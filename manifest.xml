@@ -1,0 +1,10 @@
+<package>
+  <description brief="rosmongolog">
+    Log ROS messages to MongoDB.
+  </description>
+  <author>Tim Niemueller</author>
+  <license>GPLv2+</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/rosmongolog</url>
+  <depend package="roslua"/>
+</package>
