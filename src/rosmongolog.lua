@@ -1,10 +1,12 @@
 #!/usr/bin/lua
 
 ----------------------------------------------------------------------------
---  skillenv.lua - Skiller skill environment functions
+--  rosmongolog.lua - Lua based ROS to MongoDB logger
 --
 --  Created: Wed Nov 03 17:34:31 2010
 --  Copyright  2010  Tim Niemueller [www.niemueller.de]
+--                   Carnegie Mellon University
+--                   Intel Labs Pittsburgh
 ----------------------------------------------------------------------------
 
 --  This program is free software; you can redistribute it and/or modify
@@ -18,6 +20,17 @@
 --  GNU Library General Public License for more details.
 --
 --  Read the full text in the LICENSE.GPL file in the doc directory.
+
+
+--  ************************************************************************
+--  Note: this script is working and short, but it has been retired in favor
+--        of the Python version, because that can write multiple messages
+--        concurrently to the database which is beneficial on heavy traffic
+--        topics.
+--
+--  It is however a very good start if you want to write a custom logger for
+--  low-traffic topics and where you need to do special preprocessing etc.
+--  ************************************************************************
 
 require("roslua")
 roslua.assert_version(0,4,1)
@@ -34,11 +47,9 @@ require("mongo")
 local db = mongo.Connection.New()
 db:connect("localhost")
 
-
 for _, t in ipairs(topics) do
    local s = roslua.subscriber(t.name, t.type)
-   local subcolname = t.name:gsub("/", "_")
-   if subcolname:match("_.*") then subcolname = subcolname:sub(2) end
+   local subcolname = t.name:gsub("/", "_"):sub(2)
    local collection_name = dbname .. "." .. subcolname
    s:add_listener(function (message)
 		     local doc = message:plain_value_table()
