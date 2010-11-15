@@ -7,4 +7,8 @@
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/rosmongolog</url>
   <depend package="roslua"/>
+  <depend package="rospy"/>
+  <depend package="roslib"/>
+  <depend package="rosgraph"/>
+  <depend package="rostopic"/>
 </package>
