@@ -45,39 +45,26 @@ import rostopic
 from pymongo import Connection
 
 class MongoWriter(object):
-    def __init__(self, topics, num_threads=10,
+    def __init__(self, topics = [], num_threads=10,
+                 all_topics = False, all_topics_interval = 5,
                  mongodb_host=None, mongodb_port=None, mongodb_name="roslog"):
+        self.all_topics = all_topics
+        self.all_topics_interval = all_topics_interval
         self.subscribers = []
         self.collections = {}
+        self.collection_names = []
+        self.done = False
+        self.topics = set()
+
         self.mongoconn = Connection(mongodb_host, mongodb_port)
         self.mongodb = self.mongoconn[mongodb_name]
 
-        collection_names = {}
-        for topic in topics:
-            if topic and topic[-1] == '/':
-                topic = topic[:-1]
+        self.subscribe_topics(set(topics))
+        if self.all_topics:
+            print("All topics")
+            self.ros_master = rosgraph.masterapi.Master(NODE_NAME)
+            self.update_topics(restart=False)
 
-            msg_class, real_topic, msg_eval = rostopic.get_topic_class(topic, blocking=True)
-
-            if msg_class is None:
-                # occurs on ctrl-C
-                raise Exception("Aborted while subscribing to topics")
-
-            sub = rospy.Subscriber(real_topic, msg_class, self.enqueue, topic)
-            self.subscribers.append(sub)
-
-            # although the collections is not strictly necessary, since MongoDB could handle
-            # pure topic names as collection names and we could then use mongodb[topic], we want
-            # to have names that go easier with the query tools, even though there is the theoretical
-            # possibility of name classes (hence the check)
-            collname = topic.replace("/", "_")[1:]
-            if collname in collection_names:
-                raise Exception("Two converted topic names clash: %s" % collname)
-            self.collections[topic] = self.mongodb[collname]
-            collection_names[collname] = True
-
-        self.topics = topics
-        self.done = False
         #self.str_fn = roslib.message.strify_message
         self.sep = "\n" #'\033[2J\033[;H'
         self.queue = Queue.Queue()
@@ -89,6 +76,35 @@ class MongoWriter(object):
             self.write_threads += [t]
             t.start()
 
+        self.start_all_topics_timer()
+
+    def subscribe_topics(self, topics):
+        for topic in topics:
+            if topic and topic[-1] == '/':
+                topic = topic[:-1]
+
+            if topic in self.topics: continue
+
+            msg_class, real_topic, msg_eval = rostopic.get_topic_class(topic, blocking=True)
+
+            if msg_class is None:
+                # occurs on ctrl-C
+                raise Exception("Aborted while subscribing to topics")
+
+            sub = rospy.Subscriber(real_topic, msg_class, self.enqueue, topic)
+            self.subscribers.append(sub)
+            print("Adding topic %s" % topic)
+            self.topics |= set([topic])
+
+            # although the collections is not strictly necessary, since MongoDB could handle
+            # pure topic names as collection names and we could then use mongodb[topic], we want
+            # to have names that go easier with the query tools, even though there is the theoretical
+            # possibility of name classes (hence the check)
+            collname = topic.replace("/", "_")[1:]
+            if collname in self.collection_names:
+                raise Exception("Two converted topic names clash: %s" % collname)
+            self.collections[topic] = self.mongodb[collname]
+            self.collection_names.append(collname)
 
     def message_to_dict(self, val):
         d = {}
@@ -126,12 +142,26 @@ class MongoWriter(object):
 
     def shutdown(self):
         self.done = True
+        self.all_topics_timer.cancel()
         for t in range(self.num_threads):
             self.queue.put("shutdown")
 
         for t in self.write_threads:
             t.join()
 
+    def start_all_topics_timer(self):
+        if not self.all_topics or self.done: return
+        self.all_topics_timer = threading.Timer(self.all_topics_interval, self.update_topics)
+        self.all_topics_timer.start()
+
+
+    def update_topics(self, restart=True):
+        if not self.all_topics or self.done: return
+        ts = self.ros_master.getPublishedTopics("/")
+        topics = set([t for t, t_type in ts if t != "/rosout" and t != "/rosout_agg"])
+        new_topics = topics - self.topics
+        self.subscribe_topics(new_topics)
+        if restart: self.start_all_topics_timer()
 
 def main(argv):
     parser = OptionParser()
@@ -147,7 +177,11 @@ def main(argv):
     parser.add_option("--num-threads", dest="num_threads",
                       help="Number of writer threads", type="int",
                       metavar="N", default=10)
-
+    parser.add_option("-a", "--all-topics", dest="all_topics", default=False,
+                      action="store_true",
+                      help="Log all existing topics (still excludes /rosout, /rosout_agg)")
+    parser.add_option("--all-topics-interval", dest="all_topics_interval", default=5,
+                      help="Time in seconds between checks for new topics", type="int")
     (options, args) = parser.parse_args()
 
     try:
@@ -158,6 +192,8 @@ def main(argv):
     rospy.init_node(NODE_NAME, anonymous=True)
 
     mongowriter = MongoWriter(topics=args, num_threads=options.num_threads,
+                              all_topics=options.all_topics,
+                              all_topics_interval = options.all_topics_interval,
                               mongodb_host=options.mongodb_host,
                               mongodb_port=options.mongodb_port,
                               mongodb_name=options.mongodb_name)
