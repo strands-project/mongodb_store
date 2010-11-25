@@ -43,6 +43,7 @@ from roslib.rostime import Time, Duration
 import rostopic
 
 from pymongo import Connection
+from pymongo.errors import InvalidDocument
 
 class MongoWriter(object):
     def __init__(self, topics = [], num_threads=10,
@@ -55,6 +56,9 @@ class MongoWriter(object):
         self.collection_names = []
         self.done = False
         self.topics = set()
+        #self.str_fn = roslib.message.strify_message
+        self.sep = "\n" #'\033[2J\033[;H'
+        self.queue = Queue.Queue()
 
         self.mongoconn = Connection(mongodb_host, mongodb_port)
         self.mongodb = self.mongoconn[mongodb_name]
@@ -64,10 +68,6 @@ class MongoWriter(object):
             print("All topics")
             self.ros_master = rosgraph.masterapi.Master(NODE_NAME)
             self.update_topics(restart=False)
-
-        #self.str_fn = roslib.message.strify_message
-        self.sep = "\n" #'\033[2J\033[;H'
-        self.queue = Queue.Queue()
 
         self.num_threads = num_threads
         self.write_threads = []
@@ -106,19 +106,24 @@ class MongoWriter(object):
             self.collections[topic] = self.mongodb[collname]
             self.collection_names.append(collname)
 
+    def sanitize_value(self, v):
+        if isinstance(v, rospy.Message):
+            return self.message_to_dict(v)
+        elif isinstance(v, Time):
+            t = datetime.fromtimestamp(v.secs)
+            return t + timedelta(microseconds=v.nsecs / 1000.)
+        elif isinstance(v, Duration):
+            return v.secs + v.nsecs / 1000000000.
+        elif isinstance(v, list):
+            return [self.sanitize_value(t) for t in v]
+        else:
+            return v
+
+
     def message_to_dict(self, val):
         d = {}
         for f in val.__slots__:
-            v = getattr(val, f)
-            if isinstance(v, rospy.Message):
-                d[f] = self.message_to_dict(v)
-            elif isinstance(v, Time):
-                d[f] = datetime.fromtimestamp(v.secs)
-                d[f] += timedelta(microseconds=v.nsecs / 1000.)
-            elif isinstance(v, Duration):
-                d[f] = v.secs + v.nsecs / 1000000000.
-            else:
-                d[f] = v
+            d[f] = self.sanitize_value(getattr(val, f))
         return d
 
     def enqueue(self, data, topic, current_time=None):
@@ -134,15 +139,19 @@ class MongoWriter(object):
                 doc = self.message_to_dict(msg)
                 doc["__recorded"] = ctime or datetime.now()
                 doc["__topic"]    = topic
-                self.collections[topic].insert(doc)
+                try:
+                    #print(self.sep + threading.current_thread().getName() + "@" + topic+": ")
+                    #pprint.pprint(doc)
+                    self.collections[topic].insert(doc)
+                except InvalidDocument, e:
+                    print("Failed to write " + threading.current_thread().getName() + "@" + topic+": \n")
+                    print e
+                    
 
-                sys.stdout.write(self.sep + threading.current_thread().getName() + "@" + topic+": ")
-                pprint.pprint(doc)
-                #sys.stdout.write(self.sep+self.str_fn(data, current_time=current_time) + '\n')
 
     def shutdown(self):
         self.done = True
-        self.all_topics_timer.cancel()
+        if hasattr(self, "all_topics_timer"): self.all_topics_timer.cancel()
         for t in range(self.num_threads):
             self.queue.put("shutdown")
 
