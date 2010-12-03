@@ -27,6 +27,7 @@ from __future__ import division, with_statement
 NODE_NAME='rosmongolog'
 
 import os
+import re
 import sys
 import time
 import pprint
@@ -48,9 +49,11 @@ from pymongo.errors import InvalidDocument
 class MongoWriter(object):
     def __init__(self, topics = [], num_threads=10,
                  all_topics = False, all_topics_interval = 5,
+                 exclude_topics = [],
                  mongodb_host=None, mongodb_port=None, mongodb_name="roslog"):
         self.all_topics = all_topics
         self.all_topics_interval = all_topics_interval
+        self.exclude_topics = exclude_topics
         self.subscribers = []
         self.collections = {}
         self.collection_names = []
@@ -59,6 +62,10 @@ class MongoWriter(object):
         #self.str_fn = roslib.message.strify_message
         self.sep = "\n" #'\033[2J\033[;H'
         self.queue = Queue.Queue()
+
+        self.exclude_regex = []
+        for et in self.exclude_topics:
+            self.exclude_regex.append(re.compile(et))
 
         self.mongoconn = Connection(mongodb_host, mongodb_port)
         self.mongodb = self.mongoconn[mongodb_name]
@@ -90,6 +97,14 @@ class MongoWriter(object):
             if msg_class is None:
                 # occurs on ctrl-C
                 raise Exception("Aborted while subscribing to topics")
+
+            do_continue = False
+            for tre in self.exclude_regex:
+                if tre.match(real_topic):
+                    print("Ignoring topic %s due to exclusion rule" % real_topic)
+                    do_continue = True
+                    break
+            if do_continue: continue
 
             sub = rospy.Subscriber(real_topic, msg_class, self.enqueue, topic)
             self.subscribers.append(sub)
@@ -174,6 +189,7 @@ class MongoWriter(object):
 
 def main(argv):
     parser = OptionParser()
+    parser.usage += " [TOPICs...]"
     parser.add_option("--mongodb-host", dest="mongodb_host",
                       help="Hostname of MongoDB", metavar="HOST",
                       default="localhost")
@@ -191,7 +207,14 @@ def main(argv):
                       help="Log all existing topics (still excludes /rosout, /rosout_agg)")
     parser.add_option("--all-topics-interval", dest="all_topics_interval", default=5,
                       help="Time in seconds between checks for new topics", type="int")
+    parser.add_option("-x", "--exclude", dest="exclude",
+                      help="Exclude topics matching REGEX, may be given multiple times",
+                      action="append", type="string", metavar="REGEX", default=[])
     (options, args) = parser.parse_args()
+
+    if not options.all_topics and len(args) == 0:
+        parser.print_help()
+        return
 
     try:
         rosgraph.masterapi.Master(NODE_NAME).getPid()
@@ -203,6 +226,7 @@ def main(argv):
     mongowriter = MongoWriter(topics=args, num_threads=options.num_threads,
                               all_topics=options.all_topics,
                               all_topics_interval = options.all_topics_interval,
+                              exclude_topics = options.exclude,
                               mongodb_host=options.mongodb_host,
                               mongodb_port=options.mongodb_port,
                               mongodb_name=options.mongodb_name)
