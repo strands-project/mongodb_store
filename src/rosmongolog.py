@@ -35,6 +35,7 @@ import threading
 import Queue
 from optparse import OptionParser
 from datetime import datetime, timedelta
+from time import sleep
 
 import roslib; roslib.load_manifest(NODE_NAME)
 import rospy
@@ -42,9 +43,16 @@ import rosgraph.masterapi
 import roslib.message
 from roslib.rostime import Time, Duration
 import rostopic
+import rrdtool
 
 from pymongo import Connection
 from pymongo.errors import InvalidDocument
+
+import rrdtool
+
+BACKLOG_WARN_LIMIT = 100
+STATS_LOOPTIME     = 10
+STATS_GRAPHTIME    = 10
 
 class MongoWriter(object):
     def __init__(self, topics = [], num_threads=10,
@@ -57,15 +65,18 @@ class MongoWriter(object):
         self.subscribers = []
         self.collections = {}
         self.collection_names = []
-        self.done = False
+        self.quit = False
         self.topics = set()
         #self.str_fn = roslib.message.strify_message
         self.sep = "\n" #'\033[2J\033[;H'
         self.queue = Queue.Queue()
+        self.counter = 0
+        self.counter_lock = threading.Lock()
 
         self.exclude_regex = []
         for et in self.exclude_topics:
             self.exclude_regex.append(re.compile(et))
+        self.exclude_already = []
 
         self.mongoconn = Connection(mongodb_host, mongodb_port)
         self.mongodb = self.mongoconn[mongodb_name]
@@ -85,6 +96,8 @@ class MongoWriter(object):
 
         self.start_all_topics_timer()
 
+        self.init_rrd()
+
     def subscribe_topics(self, topics):
         for topic in topics:
             if topic and topic[-1] == '/':
@@ -100,9 +113,10 @@ class MongoWriter(object):
 
             do_continue = False
             for tre in self.exclude_regex:
-                if tre.match(real_topic):
+                if not real_topic in self.exclude_already and tre.match(real_topic):
                     print("Ignoring topic %s due to exclusion rule" % real_topic)
                     do_continue = True
+                    self.exclude_already.append(real_topic)
                     break
             if do_continue: continue
 
@@ -142,10 +156,10 @@ class MongoWriter(object):
         return d
 
     def enqueue(self, data, topic, current_time=None):
-        self.queue.put((topic, data, current_time))
+        self.queue.put((topic, data, current_time or datetime.now()))
 
     def dequeue(self):
-        while not self.done:
+        while not self.quit:
             t = self.queue.get(True)
             topic = t[0]
             msg   = t[1]
@@ -158,14 +172,39 @@ class MongoWriter(object):
                     #print(self.sep + threading.current_thread().getName() + "@" + topic+": ")
                     #pprint.pprint(doc)
                     self.collections[topic].insert(doc)
+                    with self.counter_lock: self.counter += 1
                 except InvalidDocument, e:
                     print("Failed to write " + threading.current_thread().getName() + "@" + topic+": \n")
                     print e
-                    
+            
+
+    def run(self):
+        looping_threshold  = timedelta(0, STATS_LOOPTIME,  0)
+        graphing_threshold = timedelta(0, STATS_GRAPHTIME, 0)
+        graphing_last      = datetime.now()
+
+        while not rospy.is_shutdown() and not self.quit:
+            started = datetime.now()
+
+            self.update_rrd()
+
+            if datetime.now() - graphing_last > graphing_threshold:
+                print("Generating graphs")
+                self.graph_rrd()
+                graphing_last = datetime.now()
+
+            # the following code makes sure we run once per STATS_LOOPTIME, taking
+            # varying run-times and interrupted sleeps into account
+            td = datetime.now() - started
+            while td < looping_threshold:
+                sleeptime = STATS_LOOPTIME - (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / 10**6
+                if sleeptime > 0:
+                    sleep(sleeptime)
+                td = datetime.now() - started
 
 
     def shutdown(self):
-        self.done = True
+        self.quit = True
         if hasattr(self, "all_topics_timer"): self.all_topics_timer.cancel()
         for t in range(self.num_threads):
             self.queue.put("shutdown")
@@ -174,18 +213,72 @@ class MongoWriter(object):
             t.join()
 
     def start_all_topics_timer(self):
-        if not self.all_topics or self.done: return
+        if not self.all_topics or self.quit: return
         self.all_topics_timer = threading.Timer(self.all_topics_interval, self.update_topics)
         self.all_topics_timer.start()
 
 
     def update_topics(self, restart=True):
-        if not self.all_topics or self.done: return
+        if not self.all_topics or self.quit: return
         ts = self.ros_master.getPublishedTopics("/")
         topics = set([t for t, t_type in ts if t != "/rosout" and t != "/rosout_agg"])
         new_topics = topics - self.topics
         self.subscribe_topics(new_topics)
         if restart: self.start_all_topics_timer()
+
+
+    def create_rrd(self, file, *data_sources):
+        rrdtool.create(file, "--step", "10", "--start", "0",
+                       # remember that we always need to add the previous RRA time range
+                       # hence number of rows is not directly calculated by desired time frame
+                       "RRA:AVERAGE:0.5:1:720",    #  2 hours of 10 sec  averages
+                       "RRA:AVERAGE:0.5:3:1680",   # 12 hours of 30 sec  averages
+                       "RRA:AVERAGE:0.5:30:456",   #  1 day   of  5 min  averages
+                       "RRA:AVERAGE:0.5:180:412",  #  7 days  of 30 min  averages
+                       "RRA:AVERAGE:0.5:720:439",  #  4 weeks of  2 hour averages
+                       "RRA:AVERAGE:0.5:8640:402", #  1 year  of  1 day averages
+                       "RRA:MIN:0.5:1:720",
+                       "RRA:MIN:0.5:3:1680",
+                       "RRA:MIN:0.5:30:456",
+                       "RRA:MIN:0.5:180:412",
+                       "RRA:MIN:0.5:720:439",
+                       "RRA:MIN:0.5:8640:402",
+                       "RRA:MAX:0.5:1:720",
+                       "RRA:MAX:0.5:3:1680",
+                       "RRA:MAX:0.5:30:456",
+                       "RRA:MAX:0.5:180:412",
+                       "RRA:MAX:0.5:720:439",
+                       "RRA:MAX:0.5:8640:402",
+                       *data_sources)
+
+    def graph_rrd(self):
+        rrdtool.graph("logstats.png",
+                      "--start=-3600", "--end=-10",
+                      "--disable-rrdtool-tag", "--width=560",
+                      "--font", "LEGEND:10:", "--font", "UNIT:8:",
+                      "--font", "TITLE:12:", "--font", "AXIS:8:",
+                      "--title=MongoDB Logging Stats",
+                      "DEF:qsize=logstats.rrd:qsize:AVERAGE:step=10",
+                      "DEF:inserts=logstats.rrd:inserts:AVERAGE:step=10",
+                      "LINE1:qsize#FF7200:Queue Size",
+                      "GPRINT:qsize:LAST:Current\\:%8.2lf %s",
+                      "GPRINT:qsize:AVERAGE:Average\\:%8.2lf %s",
+                      "GPRINT:qsize:MAX:Maximum\\:%8.2lf %s\\n",
+                      "LINE1:inserts#503001:Inserts",
+                      "GPRINT:inserts:LAST:   Current\\:%8.2lf %s",
+                      "GPRINT:inserts:AVERAGE:Average\\:%8.2lf %s",
+                      "GPRINT:inserts:MAX:Maximum\\:%8.2lf %s\\n")
+
+    def init_rrd(self):
+        self.create_rrd("logstats.rrd",
+                        "DS:qsize:GAUGE:30:0:U",
+                        "DS:inserts:COUNTER:30:0:U")
+
+    def update_rrd(self):
+        counter = 0
+        with self.counter_lock: counter = self.counter
+        rrdtool.update("logstats.rrd", "N:%d:%d" % (self.queue.qsize(), counter))
+
 
 def main(argv):
     parser = OptionParser()
@@ -231,9 +324,7 @@ def main(argv):
                               mongodb_port=options.mongodb_port,
                               mongodb_name=options.mongodb_name)
 
-    while not rospy.is_shutdown() and not mongowriter.done:
-        time.sleep(0.1)
-
+    mongowriter.run()
     mongowriter.shutdown()
 
 if __name__ == "__main__":
