@@ -31,8 +31,10 @@ import re
 import sys
 import time
 import pprint
-import threading
-import Queue
+from threading import Thread, Lock, current_thread
+from threading import Timer 
+#from multiprocessing import Process as Thread, Queue, Lock, current_process as current_thread
+from Queue import Queue
 from optparse import OptionParser
 from datetime import datetime, timedelta
 from time import sleep
@@ -46,13 +48,13 @@ import rostopic
 import rrdtool
 
 from pymongo import Connection
-from pymongo.errors import InvalidDocument
+from pymongo.errors import InvalidDocument, InvalidStringData
 
 import rrdtool
 
 BACKLOG_WARN_LIMIT = 100
 STATS_LOOPTIME     = 10
-STATS_GRAPHTIME    = 10
+STATS_GRAPHTIME    = 60
 
 class MongoWriter(object):
     def __init__(self, topics = [], num_threads=10,
@@ -69,9 +71,12 @@ class MongoWriter(object):
         self.topics = set()
         #self.str_fn = roslib.message.strify_message
         self.sep = "\n" #'\033[2J\033[;H'
-        self.queue = Queue.Queue()
-        self.counter = 0
-        self.counter_lock = threading.Lock()
+        self.queue = Queue()
+        self.in_counter = 0
+        self.in_counter_lock = Lock()
+        self.out_counter = 0
+        self.out_counter_lock = Lock()
+	self.queuing_enabled = False
 
         self.exclude_regex = []
         for et in self.exclude_topics:
@@ -81,22 +86,24 @@ class MongoWriter(object):
         self.mongoconn = Connection(mongodb_host, mongodb_port)
         self.mongodb = self.mongoconn[mongodb_name]
 
+        self.init_rrd()
+
+        self.num_threads = num_threads
+        self.write_threads = []
+        for i in range(self.num_threads):
+            t = Thread(name="MongoWriter "+str(i), target=self.dequeue)
+            self.write_threads += [t]
+            t.start()
+
+        self.start_all_topics_timer()
+
         self.subscribe_topics(set(topics))
         if self.all_topics:
             print("All topics")
             self.ros_master = rosgraph.masterapi.Master(NODE_NAME)
             self.update_topics(restart=False)
 
-        self.num_threads = num_threads
-        self.write_threads = []
-        for i in range(self.num_threads):
-            t = threading.Thread(name="MongoWriter "+str(i), target=self.dequeue)
-            self.write_threads += [t]
-            t.start()
-
-        self.start_all_topics_timer()
-
-        self.init_rrd()
+        self.queuing_enabled = True
 
     def subscribe_topics(self, topics):
         for topic in topics:
@@ -104,6 +111,7 @@ class MongoWriter(object):
                 topic = topic[:-1]
 
             if topic in self.topics: continue
+            if topic in self.exclude_already: continue
 
             msg_class, real_topic, msg_eval = rostopic.get_topic_class(topic, blocking=True)
 
@@ -113,10 +121,10 @@ class MongoWriter(object):
 
             do_continue = False
             for tre in self.exclude_regex:
-                if not real_topic in self.exclude_already and tre.match(real_topic):
-                    print("Ignoring topic %s due to exclusion rule" % real_topic)
+                if tre.match(topic):
+                    print("Ignoring topic %s due to exclusion rule" % topic)
                     do_continue = True
-                    self.exclude_already.append(real_topic)
+                    self.exclude_already.append(topic)
                     break
             if do_continue: continue
 
@@ -131,9 +139,11 @@ class MongoWriter(object):
             # possibility of name classes (hence the check)
             collname = topic.replace("/", "_")[1:]
             if collname in self.collection_names:
-                raise Exception("Two converted topic names clash: %s" % collname)
-            self.collections[topic] = self.mongodb[collname]
-            self.collection_names.append(collname)
+                print("Two converted topic names clash: %s, ignoring topic %s"
+                      % (collname, topic))
+            else:
+                self.collections[topic] = self.mongodb[collname]
+                self.collection_names.append(collname)
 
     def sanitize_value(self, v):
         if isinstance(v, rospy.Message):
@@ -156,11 +166,15 @@ class MongoWriter(object):
         return d
 
     def enqueue(self, data, topic, current_time=None):
-        self.queue.put((topic, data, current_time or datetime.now()))
+        if self.queuing_enabled:
+            self.queue.put((topic, data, current_time or datetime.now()))
+            with self.in_counter_lock: self.in_counter += 1
+
 
     def dequeue(self):
         while not self.quit:
             t = self.queue.get(True)
+            with self.out_counter_lock: self.out_counter += 1
             topic = t[0]
             msg   = t[1]
             ctime = t[2]
@@ -172,11 +186,13 @@ class MongoWriter(object):
                     #print(self.sep + threading.current_thread().getName() + "@" + topic+": ")
                     #pprint.pprint(doc)
                     self.collections[topic].insert(doc)
-                    with self.counter_lock: self.counter += 1
                 except InvalidDocument, e:
-                    print("Failed to write " + threading.current_thread().getName() + "@" + topic+": \n")
+                    print("InvalidDocument " + current_thread().name + "@" + topic+": \n")
                     print e
-            
+                except InvalidStringData, e:
+                    print("InvalidStringData " + current_thread().name + "@" + topic+": \n")
+                    print e
+            self.queue.task_done()
 
     def run(self):
         looping_threshold  = timedelta(0, STATS_LOOPTIME,  0)
@@ -189,7 +205,7 @@ class MongoWriter(object):
             self.update_rrd()
 
             if datetime.now() - graphing_last > graphing_threshold:
-                print("Generating graphs")
+                print("Generating graphs, queue size %d" % self.queue.qsize())
                 self.graph_rrd()
                 graphing_last = datetime.now()
 
@@ -214,7 +230,7 @@ class MongoWriter(object):
 
     def start_all_topics_timer(self):
         if not self.all_topics or self.quit: return
-        self.all_topics_timer = threading.Timer(self.all_topics_interval, self.update_topics)
+        self.all_topics_timer = Timer(self.all_topics_interval, self.update_topics)
         self.all_topics_timer.start()
 
 
@@ -276,15 +292,21 @@ class MongoWriter(object):
                       "--font", "TITLE:12:", "--font", "AXIS:8:",
                       "--title=MongoDB Logging Stats",
                       "DEF:qsize=logstats.rrd:qsize:AVERAGE:step=10",
-                      "DEF:inserts=logstats.rrd:inserts:AVERAGE:step=10",
+                      "DEF:in=logstats.rrd:in:AVERAGE:step=10",
+                      "DEF:out=logstats.rrd:out:AVERAGE:step=10",
                       "LINE1:qsize#FF7200:Queue Size",
                       "GPRINT:qsize:LAST:Current\\:%8.2lf %s",
                       "GPRINT:qsize:AVERAGE:Average\\:%8.2lf %s",
                       "GPRINT:qsize:MAX:Maximum\\:%8.2lf %s\\n",
-                      "LINE1:inserts#503001:Inserts",
-                      "GPRINT:inserts:LAST:   Current\\:%8.2lf %s",
-                      "GPRINT:inserts:AVERAGE:Average\\:%8.2lf %s",
-                      "GPRINT:inserts:MAX:Maximum\\:%8.2lf %s\\n")
+                      "LINE1:in#503001:In",
+                      "GPRINT:in:LAST:        Current\\:%8.2lf %s",
+                      "GPRINT:in:AVERAGE:Average\\:%8.2lf %s",
+                      "GPRINT:in:MAX:Maximum\\:%8.2lf %s\\n",
+                      "LINE1:out#EDAC00:Out",
+                      "GPRINT:out:LAST:       Current\\:%8.2lf %s",
+                      "GPRINT:out:AVERAGE:Average\\:%8.2lf %s",
+                      "GPRINT:out:MAX:Maximum\\:%8.2lf %s\\n")
+
 
         rrdtool.graph("logmemory.png",
                       "--start=-3600", "--end=-10",
@@ -306,7 +328,8 @@ class MongoWriter(object):
     def init_rrd(self):
         self.create_rrd("logstats.rrd",
                         "DS:qsize:GAUGE:30:0:U",
-                        "DS:inserts:COUNTER:30:0:U")
+                        "DS:in:COUNTER:30:0:U",
+                        "DS:out:COUNTER:30:0:U")
 
         self.create_rrd("logmemory.rrd",
                         "DS:size:GAUGE:30:0:U",
@@ -314,9 +337,11 @@ class MongoWriter(object):
                         "DS:stack:GAUGE:30:0:U")
 
     def update_rrd(self):
-        counter = 0
-        with self.counter_lock: counter = self.counter
-        rrdtool.update("logstats.rrd", "N:%d:%d" % (self.queue.qsize(), counter))
+        in_counter = 0
+        out_counter = 0
+        with self.in_counter_lock: in_counter = self.in_counter
+        with self.out_counter_lock: out_counter = self.out_counter
+        rrdtool.update("logstats.rrd", "N:%d:%d:%d" % (self.queue.qsize(), in_counter, out_counter))
         rrdtool.update("logmemory.rrd", "N:%d:%d:%d" % self.get_memory_usage())
 
 
