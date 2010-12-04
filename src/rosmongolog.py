@@ -226,6 +226,23 @@ class MongoWriter(object):
         self.subscribe_topics(new_topics)
         if restart: self.start_all_topics_timer()
 
+    def get_memory_usage(self):
+        scale = {'kB': 1024, 'mB': 1024 * 1024,
+                 'KB': 1024, 'MB': 1024 * 1024}
+        try:
+            f = open("/proc/%d/status" % os.getpid())
+            t = f.read()
+            f.close()
+        except:
+            return (0, 0, 0)
+
+        tmp   = t[t.index("VmSize:"):].split(None, 3)
+        size  = int(tmp[1]) * scale[tmp[2]]
+        tmp   = t[t.index("VmRSS:"):].split(None, 3)
+        rss   = int(tmp[1]) * scale[tmp[2]]
+        tmp   = t[t.index("VmStk:"):].split(None, 3)
+        stack = int(tmp[1]) * scale[tmp[2]]
+        return (size, rss, stack)
 
     def create_rrd(self, file, *data_sources):
         rrdtool.create(file, "--step", "10", "--start", "0",
@@ -269,15 +286,38 @@ class MongoWriter(object):
                       "GPRINT:inserts:AVERAGE:Average\\:%8.2lf %s",
                       "GPRINT:inserts:MAX:Maximum\\:%8.2lf %s\\n")
 
+        rrdtool.graph("logmemory.png",
+                      "--start=-3600", "--end=-10",
+                      "--disable-rrdtool-tag", "--width=560",
+                      "--font", "LEGEND:10:", "--font", "UNIT:8:",
+                      "--font", "TITLE:12:", "--font", "AXIS:8:",
+                      "--title=ROS MongoLog Memory Usage",
+                      "DEF:size=logmemory.rrd:size:AVERAGE:step=10",
+                      "DEF:rss=logmemory.rrd:rss:AVERAGE:step=10",
+                      "AREA:size#FF7200:Total",
+                      "GPRINT:size:LAST:   Current\\:%8.2lf %s",
+                      "GPRINT:size:AVERAGE:Average\\:%8.2lf %s",
+                      "GPRINT:size:MAX:Maximum\\:%8.2lf %s\\n",
+                      "AREA:rss#503001:Resident",
+                      "GPRINT:rss:LAST:Current\\:%8.2lf %s",
+                      "GPRINT:rss:AVERAGE:Average\\:%8.2lf %s",
+                      "GPRINT:rss:MAX:Maximum\\:%8.2lf %s\\n")
+
     def init_rrd(self):
         self.create_rrd("logstats.rrd",
                         "DS:qsize:GAUGE:30:0:U",
                         "DS:inserts:COUNTER:30:0:U")
 
+        self.create_rrd("logmemory.rrd",
+                        "DS:size:GAUGE:30:0:U",
+                        "DS:rss:GAUGE:30:0:U",
+                        "DS:stack:GAUGE:30:0:U")
+
     def update_rrd(self):
         counter = 0
         with self.counter_lock: counter = self.counter
         rrdtool.update("logstats.rrd", "N:%d:%d" % (self.queue.qsize(), counter))
+        rrdtool.update("logmemory.rrd", "N:%d:%d:%d" % self.get_memory_usage())
 
 
 def main(argv):
