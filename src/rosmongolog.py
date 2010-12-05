@@ -31,7 +31,7 @@ import re
 import sys
 import time
 import pprint
-from threading import Thread, Lock, current_thread
+from threading import Thread, Lock, Condition, current_thread
 from threading import Timer 
 #from multiprocessing import Process as Thread, Queue, Lock, current_process as current_thread
 from Queue import Queue
@@ -47,7 +47,7 @@ from roslib.rostime import Time, Duration
 import rostopic
 import rrdtool
 
-from pymongo import Connection
+from pymongo import Connection, SLOW_ONLY
 from pymongo.errors import InvalidDocument, InvalidStringData
 
 import rrdtool
@@ -85,17 +85,9 @@ class MongoWriter(object):
 
         self.mongoconn = Connection(mongodb_host, mongodb_port)
         self.mongodb = self.mongoconn[mongodb_name]
+        self.mongodb.set_profiling_level = SLOW_ONLY
 
         self.init_rrd()
-
-        self.num_threads = num_threads
-        self.write_threads = []
-        for i in range(self.num_threads):
-            t = Thread(name="MongoWriter "+str(i), target=self.dequeue)
-            self.write_threads += [t]
-            t.start()
-
-        self.start_all_topics_timer()
 
         self.subscribe_topics(set(topics))
         if self.all_topics:
@@ -103,7 +95,23 @@ class MongoWriter(object):
             self.ros_master = rosgraph.masterapi.Master(NODE_NAME)
             self.update_topics(restart=False)
 
+        self.num_threads = num_threads
+        # stuff to work around Python lacking a barrier before 3.2
+        self.barrier_mutex = Lock()
+        self.barrier_waitcond = Condition(self.barrier_mutex)
+        self.barrier_threads_left = self.num_threads + 1
+        self.write_threads = []
+        for i in range(self.num_threads):
+            t = Thread(name="MongoWriter "+str(i), target=self.worker_thread)
+            self.write_threads += [t]
+            t.start()
+        print("Waiting for all threads to initialize")
+        self.barrier_wait()
+
+        self.start_all_topics_timer()
         self.queuing_enabled = True
+        print("Initialization complete, logging enabled")
+
 
     def subscribe_topics(self, topics):
         for topic in topics:
@@ -194,6 +202,33 @@ class MongoWriter(object):
                     print e
             self.queue.task_done()
 
+    def barrier_wait(self):
+        self.barrier_mutex.acquire()
+        self.barrier_threads_left -= 1
+        if self.barrier_threads_left == 0:
+            self.barrier_threads_left = self.num_threads + 1
+            self.barrier_waitcond.notify_all()
+            self.barrier_mutex.release()
+        else:
+            self.barrier_waitcond.wait()
+            self.barrier_mutex.release()
+
+
+    def worker_thread(self):
+        # run any query to force this thread's MongoDB connection into existence
+        for topic in self.topics:
+            self.collections[topic].count()
+
+        # wait at barrier for all threads to have initialized
+        self.barrier_wait()
+
+        # run the thread
+        self.dequeue()
+
+        # free connection
+        self.mongoconn.end_request()
+
+
     def run(self):
         looping_threshold  = timedelta(0, STATS_LOOPTIME,  0)
         graphing_threshold = timedelta(0, STATS_GRAPHTIME, 0)
@@ -212,7 +247,7 @@ class MongoWriter(object):
             # the following code makes sure we run once per STATS_LOOPTIME, taking
             # varying run-times and interrupted sleeps into account
             td = datetime.now() - started
-            while td < looping_threshold:
+            while not rospy.is_shutdown() and not self.quit and td < looping_threshold:
                 sleeptime = STATS_LOOPTIME - (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / 10**6
                 if sleeptime > 0:
                     sleep(sleeptime)
