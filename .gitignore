@@ -1,3 +1,6 @@
 *~
+*.pyc
 /build*
 /ROS_NOBUILD
+/bin/*.rrd
+/bin/*.png
