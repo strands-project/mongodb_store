@@ -32,8 +32,9 @@ import re
 import sys
 import time
 import pprint
-from threading import Timer 
-from multiprocessing import Process, Queue, Lock, Condition, Value, current_process
+from threading import Timer
+from Queue import Queue
+from multiprocessing import Process, Lock, Condition, Value, current_process
 from optparse import OptionParser
 from datetime import datetime, timedelta
 from time import sleep
@@ -86,47 +87,54 @@ class Barrier(object):
 
 
 class WorkerProcess(object):
-    def __init__(self, idnum, queue, counter_value, barrier, topics,
+    def __init__(self, idnum, topic, collname, in_counter_value, out_counter_value,
                  mongodb_host, mongodb_port, mongodb_name):
         self.name = "WorkerProcess %d" % idnum
         self.id = idnum
-        self.queue = queue
-        self.out_counter = Counter(counter_value)
-        self.barrier = barrier
+        self.topic = topic
+        self.collname = collname
+        self.queue = Queue()
+        self.out_counter = Counter(out_counter_value)
+        self.in_counter  = Counter(in_counter_value)
         self.mongodb_host = mongodb_host
         self.mongodb_port = mongodb_port
         self.mongodb_name = mongodb_name
-        self.topics = topics
         self.quit = False
+
+        self.process = Process(name=self.name, target=self.run)
+        self.process.start()
 
     def init(self):
         self.mongoconn = Connection(self.mongodb_host, self.mongodb_port)
         self.mongodb = self.mongoconn[self.mongodb_name]
         self.mongodb.set_profiling_level = SLOW_ONLY
 
-        self.collections = {}
-        for t in self.topics: self.collections[t] = self.mongodb[t]
+        self.collection = self.mongodb[self.collname]
+        self.collection.count()
 
-    def new_topic(self, topic):
-        self.collections[topic] = self.mongodb[topic]
-    
+        rospy.init_node(WORKER_NODE_NAME % self.id, anonymous=True)
+
+        msg_class, real_topic, msg_eval = rostopic.get_topic_class(self.topic, blocking=True)
+        self.subscriber = rospy.Subscriber(real_topic, msg_class, self.enqueue, self.topic)
+
     def run(self):
         self.init()
-
-        # run any query to force this thread's MongoDB connection into existence
-        #print("%s: Initializing MongoDB connections" % self.name)
-        for topic in self.topics:
-            self.collections[topic].count()
-
-        # wait at barrier for all threads to have initialized
-        #print("%s: waiting at barrier" % self.name)
-        self.barrier.wait()
 
         # run the thread
         self.dequeue()
 
         # free connection
         self.mongoconn.end_request()
+
+    def quit_watch(self):
+        self.quit_queue.get(True)
+        self.shutdown()
+
+    def shutdown(self):
+        self.quit = True
+        self.queue.put("shutdown")
+        self.process.join(1)
+        self.process.terminate()
 
     def sanitize_value(self, v):
         if isinstance(v, rospy.Message):
@@ -141,12 +149,16 @@ class WorkerProcess(object):
         else:
             return v
 
-
     def message_to_dict(self, val):
         d = {}
         for f in val.__slots__:
             d[f] = self.sanitize_value(getattr(val, f))
         return d
+
+    def enqueue(self, data, topic, current_time=None):
+        if not self.quit:
+            self.queue.put((topic, data, current_time or datetime.now()))
+            self.in_counter.increment()
 
     def dequeue(self):
         while not self.quit:
@@ -155,6 +167,7 @@ class WorkerProcess(object):
                 t = self.queue.get(True)
             except IOError:
                 # Anticipate Ctrl-C
+                print("Quit W1")
                 self.quit = True
                 return
             if isinstance(t, tuple):
@@ -170,16 +183,18 @@ class WorkerProcess(object):
                     try:
                         #print(self.sep + threading.current_thread().getName() + "@" + topic+": ")
                         #pprint.pprint(doc)
-                        self.collections[topic].insert(doc)
+                        self.collection.insert(doc)
                     except InvalidDocument, e:
-                        print("InvalidDocument " + current_process().name + "@" + topic+": \n")
+                        print("InvalidDocument " + current_process().name + "@" + topic +": \n")
                         print e
                     except InvalidStringData, e:
-                        print("InvalidStringData " + current_process().name + "@" + topic+": \n")
+                        print("InvalidStringData " + current_process().name + "@" + topic +": \n")
                         print e
 
             else:
+                print("Quit W2")
                 self.quit = True
+        print("Quit W3")
 
 
 class MongoWriter(object):
@@ -191,8 +206,9 @@ class MongoWriter(object):
         self.all_topics = all_topics
         self.all_topics_interval = all_topics_interval
         self.exclude_topics = exclude_topics
-        self.subscribers = []
-        self.collection_names = []
+        self.mongodb_host = mongodb_host
+        self.mongodb_port = mongodb_port
+        self.mongodb_name = mongodb_name
         self.quit = False
         self.topics = set()
         #self.str_fn = roslib.message.strify_message
@@ -200,9 +216,7 @@ class MongoWriter(object):
         self.queue = Queue()
         self.in_counter = Counter()
         self.out_counter = Counter()
-	self.queuing_enabled = False
-        self.workers = []
-        self.barrier = Barrier(self.num_threads + 1)
+        self.workers = {}
 
         self.exclude_regex = []
         for et in self.exclude_topics:
@@ -216,21 +230,9 @@ class MongoWriter(object):
             print("All topics")
             self.ros_master = rosgraph.masterapi.Master(NODE_NAME)
             self.update_topics(restart=False)
-
-        # stuff to work around Python lacking a barrier before 3.2
-        self.processes = []
-        for i in range(self.num_threads):
-            w = WorkerProcess(i, self.queue, self.out_counter.count, self.barrier, self.topics,
-                              mongodb_host, mongodb_port, mongodb_name)
-            p = Process(name="MongoWriterWorker "+str(i), target=w.run)
-            self.workers += [w]
-            self.processes += [p]
-            p.start()
-        print("Waiting for all processes to initialize")
-        self.barrier.wait()
+        rospy.init_node(NODE_NAME, anonymous=True)
 
         self.start_all_topics_timer()
-        self.queuing_enabled = True
         print("Initialization complete, logging enabled")
 
     def subscribe_topics(self, topics):
@@ -241,12 +243,6 @@ class MongoWriter(object):
             if topic in self.topics: continue
             if topic in self.exclude_already: continue
 
-            msg_class, real_topic, msg_eval = rostopic.get_topic_class(topic, blocking=True)
-
-            if msg_class is None:
-                # occurs on ctrl-C
-                raise Exception("Aborted while subscribing to topics")
-
             do_continue = False
             for tre in self.exclude_regex:
                 if tre.match(topic):
@@ -256,29 +252,22 @@ class MongoWriter(object):
                     break
             if do_continue: continue
 
-            sub = rospy.Subscriber(real_topic, msg_class, self.enqueue, topic)
-            self.subscribers.append(sub)
-            print("Adding topic %s" % topic)
-            self.topics |= set([topic])
-
             # although the collections is not strictly necessary, since MongoDB could handle
             # pure topic names as collection names and we could then use mongodb[topic], we want
             # to have names that go easier with the query tools, even though there is the theoretical
             # possibility of name classes (hence the check)
             collname = topic.replace("/", "_")[1:]
-            if collname in self.collection_names:
+            if collname in self.workers.keys():
                 print("Two converted topic names clash: %s, ignoring topic %s"
                       % (collname, topic))
             else:
+                print("Adding topic %s" % topic)
                 #self.collections[topic] = self.mongodb[collname]
-                for w in self.workers: w.new_topic(topic)
-                self.collection_names.append(collname)
-
-    def enqueue(self, data, topic, current_time=None):
-        if self.queuing_enabled:
-            self.queue.put((topic, data, current_time or datetime.now()))
-            self.in_counter.increment()
-
+                w = WorkerProcess(len(self.workers), topic, collname,
+                                  self.in_counter.count, self.out_counter.count,
+                                  self.mongodb_host, self.mongodb_port, self.mongodb_name)
+                self.workers[collname] = w
+                self.topics |= set([topic])
 
     def run(self):
         looping_threshold  = timedelta(0, STATS_LOOPTIME,  0)
@@ -304,15 +293,16 @@ class MongoWriter(object):
                     sleep(sleeptime)
                 td = datetime.now() - started
 
+        print("Quit M1")
+
 
     def shutdown(self):
         self.quit = True
         if hasattr(self, "all_topics_timer"): self.all_topics_timer.cancel()
-        for t in range(self.num_threads):
-            self.queue.put("shutdown")
-
-        for p in self.processes:
-            p.join()
+        print("Quit M2")
+        for name, w in self.workers.items():
+            print("Shutdown %s %d" % (w, os.getpid()))
+            w.shutdown()
 
     def start_all_topics_timer(self):
         if not self.all_topics or self.quit: return
@@ -463,8 +453,6 @@ def main(argv):
         rosgraph.masterapi.Master(NODE_NAME).getPid()
     except socket.error:
         print("Failed to communicate with master")
-
-    rospy.init_node(NODE_NAME, anonymous=True)
 
     mongowriter = MongoWriter(topics=args, num_threads=options.num_threads,
                               all_topics=options.all_topics,
