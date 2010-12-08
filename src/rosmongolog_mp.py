@@ -25,7 +25,8 @@
 from __future__ import division, with_statement
 
 NODE_NAME='rosmongolog'
-WORKER_NODE_NAME = "rosmongolog_worker_%d"
+WORKER_NODE_NAME = "rosmongolog_worker_%d_%s"
+QUEUE_MAXSIZE = 100
 
 import os
 import re
@@ -33,11 +34,12 @@ import sys
 import time
 import pprint
 from threading import Timer
-from Queue import Queue
-from multiprocessing import Process, Lock, Condition, Value, current_process
+from multiprocessing import Process, Lock, Condition, Queue, Value, current_process
+from Queue import Empty
 from optparse import OptionParser
 from datetime import datetime, timedelta
 from time import sleep
+from random import randint
 
 import roslib; roslib.load_manifest(NODE_NAME)
 import rospy
@@ -57,8 +59,8 @@ STATS_LOOPTIME     = 10
 STATS_GRAPHTIME    = 60
 
 class Counter(object):
-    def __init__(self, value = None):
-        self.count = value or Value('i', 0)
+    def __init__(self, value = None, lock = True):
+        self.count = value or Value('i', 0, lock=lock)
         self.mutex = Lock()
 
     def increment(self):
@@ -70,7 +72,7 @@ class Counter(object):
 class Barrier(object):
     def __init__(self, num_threads):
         self.num_threads = num_threads
-        self.threads_left = Value('i', num_threads)
+        self.threads_left = Value('i', num_threads, lock=True)
         self.mutex = Lock()
         self.waitcond = Condition(self.mutex)
 
@@ -88,14 +90,16 @@ class Barrier(object):
 
 class WorkerProcess(object):
     def __init__(self, idnum, topic, collname, in_counter_value, out_counter_value,
+                 drop_counter_value, queue_maxsize,
                  mongodb_host, mongodb_port, mongodb_name):
-        self.name = "WorkerProcess %d" % idnum
+        self.name = "WorkerProcess-%4d-%s" % (idnum, topic)
         self.id = idnum
         self.topic = topic
         self.collname = collname
-        self.queue = Queue()
+        self.queue = Queue(queue_maxsize)
         self.out_counter = Counter(out_counter_value)
         self.in_counter  = Counter(in_counter_value)
+        self.drop_counter = Counter(drop_counter_value)
         self.mongodb_host = mongodb_host
         self.mongodb_port = mongodb_port
         self.mongodb_name = mongodb_name
@@ -112,29 +116,37 @@ class WorkerProcess(object):
         self.collection = self.mongodb[self.collname]
         self.collection.count()
 
-        rospy.init_node(WORKER_NODE_NAME % self.id, anonymous=True)
+        rospy.init_node(WORKER_NODE_NAME % (self.id, self.collname), anonymous=False)
 
-        msg_class, real_topic, msg_eval = rostopic.get_topic_class(self.topic, blocking=True)
-        self.subscriber = rospy.Subscriber(real_topic, msg_class, self.enqueue, self.topic)
+        while not self.subscriber:
+            try:
+                msg_class, real_topic, msg_eval = rostopic.get_topic_class(self.topic, blocking=True)
+                self.subscriber = rospy.Subscriber(real_topic, msg_class, self.enqueue, self.topic)
+            except rostopic.ROSTopicIOException:
+                print("FAILED to subscribe, will keep trying %s" % self.name)
+                time.sleep(randint(1,10))
+            except rospy.ROSInitException:
+                print("FAILED to initialize, will keep trying %s" % self.name)
+                time.sleep(randint(1,10))
+                self.subscriber = None
 
     def run(self):
         self.init()
+
+        print("ACTIVE: %s" % self.name)
 
         # run the thread
         self.dequeue()
 
         # free connection
-        self.mongoconn.end_request()
-
-    def quit_watch(self):
-        self.quit_queue.get(True)
-        self.shutdown()
+        # self.mongoconn.end_request()
 
     def shutdown(self):
         self.quit = True
         self.queue.put("shutdown")
-        self.process.join(1)
+        self.process.join()
         self.process.terminate()
+        rospy.signal_shutdown("shutdown")
 
     def sanitize_value(self, v):
         if isinstance(v, rospy.Message):
@@ -157,6 +169,12 @@ class WorkerProcess(object):
 
     def enqueue(self, data, topic, current_time=None):
         if not self.quit:
+            if self.queue.full():
+                try:
+                    self.queue.get_nowait()
+                    self.drop_counter.increment()
+                except Empty:
+                    pass
             self.queue.put((topic, data, current_time or datetime.now()))
             self.in_counter.increment()
 
@@ -213,9 +231,9 @@ class MongoWriter(object):
         self.topics = set()
         #self.str_fn = roslib.message.strify_message
         self.sep = "\n" #'\033[2J\033[;H'
-        self.queue = Queue()
         self.in_counter = Counter()
         self.out_counter = Counter()
+        self.drop_counter = Counter()
         self.workers = {}
 
         self.exclude_regex = []
@@ -233,7 +251,6 @@ class MongoWriter(object):
         rospy.init_node(NODE_NAME, anonymous=True)
 
         self.start_all_topics_timer()
-        print("Initialization complete, logging enabled")
 
     def subscribe_topics(self, topics):
         for topic in topics:
@@ -246,7 +263,7 @@ class MongoWriter(object):
             do_continue = False
             for tre in self.exclude_regex:
                 if tre.match(topic):
-                    print("Ignoring topic %s due to exclusion rule" % topic)
+                    print("*** IGNORING topic %s due to exclusion rule" % topic)
                     do_continue = True
                     self.exclude_already.append(topic)
                     break
@@ -265,6 +282,7 @@ class MongoWriter(object):
                 #self.collections[topic] = self.mongodb[collname]
                 w = WorkerProcess(len(self.workers), topic, collname,
                                   self.in_counter.count, self.out_counter.count,
+                                  self.drop_counter.count, QUEUE_MAXSIZE,
                                   self.mongodb_host, self.mongodb_port, self.mongodb_name)
                 self.workers[collname] = w
                 self.topics |= set([topic])
@@ -280,7 +298,6 @@ class MongoWriter(object):
             self.update_rrd()
 
             if datetime.now() - graphing_last > graphing_threshold:
-                print("Generating graphs, queue size %d" % self.queue.qsize())
                 self.graph_rrd()
                 graphing_last = datetime.now()
 
@@ -318,22 +335,39 @@ class MongoWriter(object):
         self.subscribe_topics(new_topics)
         if restart: self.start_all_topics_timer()
 
-    def get_memory_usage(self):
+    def get_memory_usage_for_pid(self, pid):
+
         scale = {'kB': 1024, 'mB': 1024 * 1024,
                  'KB': 1024, 'MB': 1024 * 1024}
         try:
-            f = open("/proc/%d/status" % os.getpid())
+            f = open("/proc/%d/status" % pid)
             t = f.read()
             f.close()
         except:
             return (0, 0, 0)
 
-        tmp   = t[t.index("VmSize:"):].split(None, 3)
-        size  = int(tmp[1]) * scale[tmp[2]]
-        tmp   = t[t.index("VmRSS:"):].split(None, 3)
-        rss   = int(tmp[1]) * scale[tmp[2]]
-        tmp   = t[t.index("VmStk:"):].split(None, 3)
-        stack = int(tmp[1]) * scale[tmp[2]]
+        if t == "": return (0, 0, 0)
+
+        try:
+            tmp   = t[t.index("VmSize:"):].split(None, 3)
+            size  = int(tmp[1]) * scale[tmp[2]]
+            tmp   = t[t.index("VmRSS:"):].split(None, 3)
+            rss   = int(tmp[1]) * scale[tmp[2]]
+            tmp   = t[t.index("VmStk:"):].split(None, 3)
+            stack = int(tmp[1]) * scale[tmp[2]]
+            return (size, rss, stack)
+        except ValueError:
+            return (0, 0, 0)
+
+    def get_memory_usage(self):
+        print("Getting memory info")
+        size, rss, stack = 0, 0, 0
+        for _, w in self.workers.items():
+            pmem = self.get_memory_usage_for_pid(w.process.pid)
+            size  += pmem[0]
+            rss   += pmem[1]
+            stack += pmem[2]
+        print("Size: %d  RSS: %s  Stack: %s" % (size, rss, stack))
         return (size, rss, stack)
 
     def create_rrd(self, file, *data_sources):
@@ -361,8 +395,9 @@ class MongoWriter(object):
                        *data_sources)
 
     def graph_rrd(self):
+        print("Generating graphs")
         rrdtool.graph("logstats.png",
-                      "--start=-3600", "--end=-10",
+                      "--start=-600", "--end=-10",
                       "--disable-rrdtool-tag", "--width=560",
                       "--font", "LEGEND:10:", "--font", "UNIT:8:",
                       "--font", "TITLE:12:", "--font", "AXIS:8:",
@@ -370,6 +405,7 @@ class MongoWriter(object):
                       "DEF:qsize=logstats.rrd:qsize:AVERAGE:step=10",
                       "DEF:in=logstats.rrd:in:AVERAGE:step=10",
                       "DEF:out=logstats.rrd:out:AVERAGE:step=10",
+                      "DEF:drop=logstats.rrd:drop:AVERAGE:step=10",
                       "LINE1:qsize#FF7200:Queue Size",
                       "GPRINT:qsize:LAST:Current\\:%8.2lf %s",
                       "GPRINT:qsize:AVERAGE:Average\\:%8.2lf %s",
@@ -381,11 +417,15 @@ class MongoWriter(object):
                       "LINE1:out#EDAC00:Out",
                       "GPRINT:out:LAST:       Current\\:%8.2lf %s",
                       "GPRINT:out:AVERAGE:Average\\:%8.2lf %s",
-                      "GPRINT:out:MAX:Maximum\\:%8.2lf %s\\n")
+                      "GPRINT:out:MAX:Maximum\\:%8.2lf %s\\n",
+                      "LINE1:drop#506101:Dropped",
+                      "GPRINT:drop:LAST:   Current\\:%8.2lf %s",
+                      "GPRINT:drop:AVERAGE:Average\\:%8.2lf %s",
+                      "GPRINT:drop:MAX:Maximum\\:%8.2lf %s\\n")
 
 
         rrdtool.graph("logmemory.png",
-                      "--start=-3600", "--end=-10",
+                      "--start=-600", "--end=-10",
                       "--disable-rrdtool-tag", "--width=560",
                       "--font", "LEGEND:10:", "--font", "UNIT:8:",
                       "--font", "TITLE:12:", "--font", "AXIS:8:",
@@ -405,7 +445,8 @@ class MongoWriter(object):
         self.create_rrd("logstats.rrd",
                         "DS:qsize:GAUGE:30:0:U",
                         "DS:in:COUNTER:30:0:U",
-                        "DS:out:COUNTER:30:0:U")
+                        "DS:out:COUNTER:30:0:U",
+                        "DS:drop:COUNTER:30:0:U")
 
         self.create_rrd("logmemory.rrd",
                         "DS:size:GAUGE:30:0:U",
@@ -415,8 +456,15 @@ class MongoWriter(object):
     def update_rrd(self):
         # we do not lock here, we are not interested in super-precise
         # values for this, but we do care for high performance processing
-        rrdtool.update("logstats.rrd", "N:%d:%d:%d" %
-                       (self.queue.qsize(), self.in_counter.count.value, self.out_counter.count.value))
+        qsize = 0
+        for _, w in self.workers.items():
+            qsize += w.queue.qsize()
+            if w.queue.qsize() > 1000: print("Excessive queue size %6d: %s" % (w.queue.qsize(), w.name))
+        print("Updating graphs, total queue size %d, dropped %d" % (qsize, self.drop_counter.count.value))
+
+        rrdtool.update("logstats.rrd", "N:%d:%d:%d:%d" %
+                       (qsize, self.in_counter.count.value, self.out_counter.count.value,
+                        self.drop_counter.count.value))
         rrdtool.update("logmemory.rrd", "N:%d:%d:%d" % self.get_memory_usage())
 
 
