@@ -17,3 +17,6 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #rosbuild_genmsg()
 #rosbuild_gensrv()
 
+link_libraries(mongoclient)
+rosbuild_add_executable(rosmongolog_tf src/rosmongolog_tf.cpp)
+

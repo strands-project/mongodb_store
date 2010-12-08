@@ -4,3 +4,4 @@
 /ROS_NOBUILD
 /bin/*.rrd
 /bin/*.png
+/bin/rosmongolog_tf
