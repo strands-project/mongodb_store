@@ -118,6 +118,7 @@ class WorkerProcess(object):
 
         rospy.init_node(WORKER_NODE_NAME % (self.id, self.collname), anonymous=False)
 
+        self.subscriber = None
         while not self.subscriber:
             try:
                 msg_class, real_topic, msg_eval = rostopic.get_topic_class(self.topic, blocking=True)
@@ -458,8 +459,9 @@ class MongoWriter(object):
         # values for this, but we do care for high performance processing
         qsize = 0
         for _, w in self.workers.items():
-            qsize += w.queue.qsize()
-            if w.queue.qsize() > 1000: print("Excessive queue size %6d: %s" % (w.queue.qsize(), w.name))
+            wqsize = w.queue.qsize()
+            qsize += wqsize
+            if wqsize > QUEUE_MAXSIZE/2: print("Excessive queue size %6d: %s" % (wqsize, w.name))
         print("Updating graphs, total queue size %d, dropped %d" % (qsize, self.drop_counter.count.value))
 
         rrdtool.update("logstats.rrd", "N:%d:%d:%d:%d" %
