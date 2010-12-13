@@ -19,4 +19,4 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 link_libraries(mongoclient)
 rosbuild_add_executable(rosmongolog_tf src/rosmongolog_tf.cpp)
-
+rosbuild_add_executable(rosmongolog_pcl src/rosmongolog_pcl.cpp)

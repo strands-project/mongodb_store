@@ -1,7 +1,8 @@
+
 /***************************************************************************
- *  skiller.cpp - Skiller main application
+ *  rosmongolog_tf.cpp - MongoDB Logger for /tf
  *
- *  Created: Tue Aug  3 12:16:10 2010
+ *  Created: Wed Dec 8 17:00:25 2010 -0500
  *  Copyright  2010  Tim Niemueller [www.niemueller.de]
  *             2010  Carnegie Mellon University
  *             2010  Intel Labs Pittsburgh
