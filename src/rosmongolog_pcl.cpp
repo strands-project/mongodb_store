@@ -27,12 +27,22 @@
 
 #include <sensor_msgs/PointCloud.h>
 #include <unistd.h>
+#include <cstring>
 
 using namespace mongo;
 
 DBClientConnection *mongodb_conn;
-unsigned int counter;
 std::string collection;
+
+unsigned int in_counter;
+unsigned int out_counter;
+unsigned int qsize;
+unsigned int drop_counter;
+
+static pthread_mutex_t in_counter_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t out_counter_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t drop_counter_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t qsize_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void msg_callback(const sensor_msgs::PointCloud::ConstPtr& msg)
 {
@@ -76,12 +86,39 @@ void msg_callback(const sensor_msgs::PointCloud::ConstPtr& msg)
   channelsb.doneFast();
 
   mongodb_conn->insert(collection, document.obj());
-  ++counter;
+
+  // If we'd get access to the message queue this could be more useful
+  // https://code.ros.org/trac/ros/ticket/744
+  pthread_mutex_lock(&in_counter_mutex);
+  ++in_counter;
+  pthread_mutex_unlock(&in_counter_mutex);
+  pthread_mutex_lock(&out_counter_mutex);
+  ++out_counter;
+  pthread_mutex_unlock(&out_counter_mutex);
 }
 
 void print_count(const ros::TimerEvent &te)
 {
-  ROS_INFO("Logged %u messages", counter);
+  unsigned int l_in_counter, l_out_counter, l_drop_counter, l_qsize;
+
+  pthread_mutex_lock(&in_counter_mutex);
+  l_in_counter = in_counter; in_counter = 0;
+  pthread_mutex_unlock(&in_counter_mutex);
+
+  pthread_mutex_lock(&out_counter_mutex);
+  l_out_counter = out_counter; out_counter = 0;
+  pthread_mutex_unlock(&out_counter_mutex);
+
+  pthread_mutex_lock(&drop_counter_mutex);
+  l_drop_counter = drop_counter; drop_counter = 0;
+  pthread_mutex_unlock(&drop_counter_mutex);
+
+  pthread_mutex_lock(&qsize_mutex);
+  l_qsize = qsize; qsize = 0;
+  pthread_mutex_unlock(&qsize_mutex);
+
+  printf("%u:%u:%u:%u\n", l_in_counter, l_out_counter, l_drop_counter, l_qsize);
+  fflush(stdout);
 }
 
 
@@ -90,6 +127,8 @@ main(int argc, char **argv)
 {
   std::string topic = "", mongodb = "localhost", nodename = "";
   collection = "";
+
+  in_counter = out_counter = drop_counter = qsize = 0;
 
   int c;
   while ((c = getopt(argc, argv, "t:m:n:c:")) != -1) {

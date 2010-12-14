@@ -28,20 +28,25 @@ NODE_NAME='rosmongolog'
 WORKER_NODE_NAME = "rosmongolog_worker_%d_%s"
 QUEUE_MAXSIZE = 100
 
+import roslib; roslib.load_manifest(NODE_NAME)
+
 import os
 import re
 import sys
 import time
 import pprint
-from threading import Timer
+import string
+import subprocess
+from threading import Thread, Timer
 from multiprocessing import Process, Lock, Condition, Queue, Value, current_process
 from Queue import Empty
 from optparse import OptionParser
 from datetime import datetime, timedelta
 from time import sleep
 from random import randint
+from tf.msg import tfMessage
+from sensor_msgs.msg import PointCloud
 
-import roslib; roslib.load_manifest(NODE_NAME)
 import rospy
 import rosgraph.masterapi
 import roslib.message
@@ -63,8 +68,8 @@ class Counter(object):
         self.count = value or Value('i', 0, lock=lock)
         self.mutex = Lock()
 
-    def increment(self):
-        with self.mutex: self.count.value += 1
+    def increment(self, by = 1):
+        with self.mutex: self.count.value += by
 
     def value(self):
         with self.mutex: return self.count.value
@@ -168,6 +173,9 @@ class WorkerProcess(object):
             d[f] = self.sanitize_value(getattr(val, f))
         return d
 
+    def qsize(self):
+        return self.queue.qsize()
+
     def enqueue(self, data, topic, current_time=None):
         if not self.quit:
             if self.queue.full():
@@ -215,6 +223,54 @@ class WorkerProcess(object):
                 self.quit = True
         print("Quit W3")
 
+
+class SubprocessWorker(object):
+    def __init__(self, idnum, topic, collname, in_counter_value, out_counter_value,
+                 drop_counter_value, queue_maxsize,
+                 mongodb_host, mongodb_port, mongodb_name, cpp_logger):
+
+        self.name = "SubprocessWorker-%4d-%s" % (idnum, topic)
+        self.id = idnum
+        self.topic = topic
+        self.collname = collname
+        self.queue = Queue(queue_maxsize)
+        self.out_counter = Counter(out_counter_value)
+        self.in_counter  = Counter(in_counter_value)
+        self.drop_counter = Counter(drop_counter_value)
+        self.mongodb_host = mongodb_host
+        self.mongodb_port = mongodb_port
+        self.mongodb_name = mongodb_name
+        self.quit = False
+        self.qsize = 0
+
+        self.thread = Thread(name=self.name, target=self.run)
+
+        mongodb_host_port = "%s:%d" % (mongodb_host, mongodb_port)
+        collection = "%s.%s" % (mongodb_name, collname)
+        nodename = WORKER_NODE_NAME % (self.id, self.collname)
+        self.process = subprocess.Popen([cpp_logger, "-t", topic, "-n", nodename,
+                                         "-m", mongodb_host_port, "-c", collection],
+                                        stdout=subprocess.PIPE)
+
+        self.thread.start()
+
+    def qsize(self):
+        return self.qsize
+
+    def run(self):
+        while not self.quit:
+            line = self.process.stdout.readline().rstrip()
+            if line == "": continue
+            arr = string.split(line, ":")
+            self.in_counter.increment(int(arr[0]))
+            self.out_counter.increment(int(arr[1]))
+            self.drop_counter.increment(int(arr[2]))
+            self.qsize = int(arr[3])
+
+    def shutdown(self):
+        self.quit = True
+        self.process.kill()
+        self.process.wait()
 
 class MongoWriter(object):
     def __init__(self, topics = [], num_threads=10,
@@ -281,11 +337,31 @@ class MongoWriter(object):
             else:
                 print("Adding topic %s" % topic)
                 #self.collections[topic] = self.mongodb[collname]
-                w = WorkerProcess(len(self.workers), topic, collname,
-                                  self.in_counter.count, self.out_counter.count,
-                                  self.drop_counter.count, QUEUE_MAXSIZE,
-                                  self.mongodb_host, self.mongodb_port, self.mongodb_name)
+                msg_class, real_topic, msg_eval = rostopic.get_topic_class(topic, blocking=True)
+
+                w = None
+                if msg_class == tfMessage:
+                    print("DETECTED transform topic %s, using fast C++ logger" % topic)
+                    w = SubprocessWorker(len(self.workers), topic, collname,
+                                         self.in_counter.count, self.out_counter.count,
+                                         self.drop_counter.count, QUEUE_MAXSIZE,
+                                         self.mongodb_host, self.mongodb_port, self.mongodb_name,
+                                         "./rosmongolog_tf")
+                elif msg_class == PointCloud:
+                    print("DETECTED point cloud topic %s, using fast C++ logger" % topic)
+                    w = SubprocessWorker(len(self.workers), topic, collname,
+                                         self.in_counter.count, self.out_counter.count,
+                                         self.drop_counter.count, QUEUE_MAXSIZE,
+                                         self.mongodb_host, self.mongodb_port, self.mongodb_name,
+                                         "./rosmongolog_pcl")
+                else:
+                    w = WorkerProcess(len(self.workers), topic, collname,
+                                      self.in_counter.count, self.out_counter.count,
+                                      self.drop_counter.count, QUEUE_MAXSIZE,
+                                      self.mongodb_host, self.mongodb_port, self.mongodb_name)
+
                 self.workers[collname] = w
+                
                 self.topics |= set([topic])
 
     def run(self):

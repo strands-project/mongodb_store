@@ -27,13 +27,20 @@
 
 #include <tf/tfMessage.h>
 
-#define COLLECTION "roslog.tf"
-#define HOST "localhost"
-
 using namespace mongo;
 
 DBClientConnection *mongodb_conn;
-unsigned int counter;
+std::string collection;
+
+unsigned int in_counter;
+unsigned int out_counter;
+unsigned int qsize;
+unsigned int drop_counter;
+
+static pthread_mutex_t in_counter_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t out_counter_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t drop_counter_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t qsize_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void msg_callback(const tf::tfMessage::ConstPtr& msg)
 {
@@ -62,33 +69,88 @@ void msg_callback(const tf::tfMessage::ConstPtr& msg)
     transforms.push_back(transform_stamped.obj());
   }
 
-  mongodb_conn->insert(COLLECTION, BSON("transforms" << transforms));
-  ++counter;
+  mongodb_conn->insert(collection, BSON("transforms" << transforms));
+
+  // If we'd get access to the message queue this could be more useful
+  // https://code.ros.org/trac/ros/ticket/744
+  pthread_mutex_lock(&in_counter_mutex);
+  ++in_counter;
+  pthread_mutex_unlock(&in_counter_mutex);
+  pthread_mutex_lock(&out_counter_mutex);
+  ++out_counter;
+  pthread_mutex_unlock(&out_counter_mutex);
 }
 
 void print_count(const ros::TimerEvent &te)
 {
-  ROS_INFO("Logged %u messages", counter);
+  unsigned int l_in_counter, l_out_counter, l_drop_counter, l_qsize;
+
+  pthread_mutex_lock(&in_counter_mutex);
+  l_in_counter = in_counter; in_counter = 0;
+  pthread_mutex_unlock(&in_counter_mutex);
+
+  pthread_mutex_lock(&out_counter_mutex);
+  l_out_counter = out_counter; out_counter = 0;
+  pthread_mutex_unlock(&out_counter_mutex);
+
+  pthread_mutex_lock(&drop_counter_mutex);
+  l_drop_counter = drop_counter; drop_counter = 0;
+  pthread_mutex_unlock(&drop_counter_mutex);
+
+  pthread_mutex_lock(&qsize_mutex);
+  l_qsize = qsize; qsize = 0;
+  pthread_mutex_unlock(&qsize_mutex);
+
+  printf("%u:%u:%u:%u\n", l_in_counter, l_out_counter, l_drop_counter, l_qsize);
+  fflush(stdout);
 }
 
 
 int
 main(int argc, char **argv)
 {
-  ros::init(argc, argv, "tfmongolog");
+  std::string topic = "", mongodb = "localhost", nodename = "";
+  collection = "";
+
+  in_counter = out_counter = drop_counter = qsize = 0;
+
+  int c;
+  while ((c = getopt(argc, argv, "t:m:n:c:")) != -1) {
+    if ((c == '?') || (c == ':')) {
+      printf("Usage: %s -t topic -m mongodb -n nodename -c collection\n", argv[0]);
+      exit(-1);
+    } else if (c == 't') {
+      topic = optarg;
+    } else if (c == 'm') {
+      mongodb = optarg;
+    } else if (c == 'n') {
+      nodename = optarg;
+    } else if (c == 'n') {
+      nodename = optarg;
+    }
+  }
+
+  if (topic == "") {
+    printf("No topic given.\n");
+    exit(-2);
+  } else if (nodename == "") {
+    printf("No node name given.\n");
+    exit(-2);
+  }
+
+  ros::init(argc, argv, nodename);
   ros::NodeHandle n;
 
   std::string errmsg;
   mongodb_conn = new DBClientConnection(/* auto reconnect*/ true);
-  if (! mongodb_conn->connect(HOST, errmsg)) {
+  if (! mongodb_conn->connect(mongodb, errmsg)) {
     ROS_ERROR("Failed to connect to MongoDB: %s", errmsg.c_str());
     return -1;
   }
 
-  ros::Subscriber sub = n.subscribe("tf", 1000, msg_callback);
+  ros::Subscriber sub = n.subscribe<tf::tfMessage>(topic, 1000, msg_callback);
   ros::Timer count_print_timer = n.createTimer(ros::Duration(5, 0), print_count);
 
-  ROS_INFO("Logging started");
   ros::spin();
 
   delete mongodb_conn;
