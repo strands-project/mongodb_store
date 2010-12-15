@@ -48,6 +48,8 @@ from tf.msg import tfMessage
 from sensor_msgs.msg import PointCloud, CompressedImage
 from rviz_intel.msg import TriangleMesh
 
+from setproctitle import setproctitle
+
 import rospy
 import rosgraph.masterapi
 import roslib.message
@@ -115,6 +117,8 @@ class WorkerProcess(object):
         self.process.start()
 
     def init(self):
+        setproctitle("rosmongolog_mp %s" % self.topic)
+
         self.mongoconn = Connection(self.mongodb_host, self.mongodb_port)
         self.mongodb = self.mongoconn[self.mongodb_name]
         self.mongodb.set_profiling_level = SLOW_ONLY
@@ -296,6 +300,9 @@ class MongoWriter(object):
         self.out_counter = Counter()
         self.drop_counter = Counter()
         self.workers = {}
+
+
+        setproctitle("rosmongolog_mp MAIN")
 
         self.exclude_regex = []
         for et in self.exclude_topics:
