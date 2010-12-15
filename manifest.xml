@@ -13,4 +13,5 @@
   <depend package="rostopic"/>
   <depend package="tf"/>
   <depend package="sensor_msgs"/>
+  <depend package="rviz_intel"/>
 </package>
