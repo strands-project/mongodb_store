@@ -527,12 +527,13 @@ class MongoWriter(object):
 
         if self.graph_topics:
             for _, w in self.workers.items():
+                worker_time_started = datetime.now()
                 rrdtool.graph("%s/%s.png" % (self.graph_dir, w.collname),
                               "--start=-600", "--end=-10",
                               "--disable-rrdtool-tag", "--width=560",
                               "--font", "LEGEND:10:", "--font", "UNIT:8:",
                               "--font", "TITLE:12:", "--font", "AXIS:8:",
-                              "--title=MongoDB Logging Stats for %s" % w.topic,
+                              "--title=%s" % w.topic,
                               "--vertical-label=messages/sec",
                               "--slope-mode",
                               "DEF:qsize=%s/%s.rrd:qsize:AVERAGE:step=10" % (self.graph_dir, w.collname),
@@ -555,6 +556,10 @@ class MongoWriter(object):
                               "GPRINT:drop:LAST:   Current\\:%8.2lf %s",
                               "GPRINT:drop:AVERAGE:Average\\:%8.2lf %s",
                               "GPRINT:drop:MAX:Maximum\\:%8.2lf %s\\n")
+
+                worker_time_elapsed = datetime.now() - worker_time_started
+                print("Generated worker graph for %s, took %s" % (w.topic, worker_time_elapsed))
+
 
         rrdtool.graph("%s/logmemory.png" % self.graph_dir,
                       "--start=-600", "--end=-10",
