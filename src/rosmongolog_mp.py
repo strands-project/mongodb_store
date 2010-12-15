@@ -275,12 +275,13 @@ class SubprocessWorker(object):
 
 class MongoWriter(object):
     def __init__(self, topics = [], graph_topics = False,
-                 graph_dir = ".",
+                 graph_dir = ".", graph_clear = False,
                  all_topics = False, all_topics_interval = 5,
                  exclude_topics = [],
                  mongodb_host=None, mongodb_port=None, mongodb_name="roslog"):
         self.graph_dir = graph_dir
         self.graph_topics = graph_topics
+        self.graph_clear = graph_clear
         self.all_topics = all_topics
         self.all_topics_interval = all_topics_interval
         self.exclude_topics = exclude_topics
@@ -468,7 +469,7 @@ class MongoWriter(object):
         return (size, rss, stack)
 
     def assert_rrd(self, file, *data_sources):
-        if not os.path.isfile(file):
+        if not os.path.isfile(file) or self.graph_clear:
             rrdtool.create(file, "--step", "10", "--start", "0",
                            # remember that we always need to add the previous RRA time range
                            # hence number of rows is not directly calculated by desired time frame
@@ -645,6 +646,9 @@ def main(argv):
     parser.add_option("--graph-topics", dest="graph_topics", default=False,
                       action="store_true",
                       help="Write graphs per topic")
+    parser.add_option("--graph-clear", dest="graph_clear", default=False,
+                      action="store_true",
+                      help="Remove existing RRD files.")
     parser.add_option("--graph-dir", dest="graph_dir", default=".",
                       help="Directory in which to create the graphs")
     (options, args) = parser.parse_args()
@@ -660,6 +664,7 @@ def main(argv):
 
     mongowriter = MongoWriter(topics=args, graph_topics = options.graph_topics,
                               graph_dir = options.graph_dir,
+                              graph_clear = options.graph_clear,
                               all_topics=options.all_topics,
                               all_topics_interval = options.all_topics_interval,
                               exclude_topics = options.exclude,
