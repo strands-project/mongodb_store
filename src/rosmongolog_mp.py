@@ -108,6 +108,9 @@ class WorkerProcess(object):
         self.out_counter = Counter(out_counter_value)
         self.in_counter  = Counter(in_counter_value)
         self.drop_counter = Counter(drop_counter_value)
+        self.worker_out_counter = Counter()
+        self.worker_in_counter  = Counter()
+        self.worker_drop_counter = Counter()
         self.mongodb_host = mongodb_host
         self.mongodb_port = mongodb_port
         self.mongodb_name = mongodb_name
@@ -187,10 +190,12 @@ class WorkerProcess(object):
                 try:
                     self.queue.get_nowait()
                     self.drop_counter.increment()
+                    self.worker_drop_counter.increment()
                 except Empty:
                     pass
             self.queue.put((topic, data, current_time or datetime.now()))
             self.in_counter.increment()
+            self.worker_in_counter.increment()
 
     def dequeue(self):
         while not self.quit:
@@ -204,6 +209,7 @@ class WorkerProcess(object):
                 return
             if isinstance(t, tuple):
                 self.out_counter.increment()
+                self.worker_out_counter.increment()
                 topic = t[0]
                 msg   = t[1]
                 ctime = t[2]
@@ -242,6 +248,9 @@ class SubprocessWorker(object):
         self.out_counter = Counter(out_counter_value)
         self.in_counter  = Counter(in_counter_value)
         self.drop_counter = Counter(drop_counter_value)
+        self.worker_out_counter = Counter()
+        self.worker_in_counter  = Counter()
+        self.worker_drop_counter = Counter()
         self.mongodb_host = mongodb_host
         self.mongodb_port = mongodb_port
         self.mongodb_name = mongodb_name
@@ -271,6 +280,10 @@ class SubprocessWorker(object):
             self.out_counter.increment(int(arr[1]))
             self.drop_counter.increment(int(arr[2]))
             self.qsize = int(arr[3])
+
+            self.worker_in_counter.increment(int(arr[0]))
+            self.worker_out_counter.increment(int(arr[1]))
+            self.worker_drop_counter.increment(int(arr[2]))
 
     def shutdown(self):
         self.quit = True
@@ -534,7 +547,7 @@ class MongoWriter(object):
 
         if self.graph_topics:
             for _, w in self.workers.items():
-                worker_time_started = datetime.now()
+                #worker_time_started = datetime.now()
                 rrdtool.graph("%s/%s.png" % (self.graph_dir, w.collname),
                               "--start=-600", "--end=-10",
                               "--disable-rrdtool-tag", "--width=560",
@@ -564,8 +577,8 @@ class MongoWriter(object):
                               "GPRINT:drop:AVERAGE:Average\\:%8.2lf %s",
                               "GPRINT:drop:MAX:Maximum\\:%8.2lf %s\\n")
 
-                worker_time_elapsed = datetime.now() - worker_time_started
-                print("Generated worker graph for %s, took %s" % (w.topic, worker_time_elapsed))
+                #worker_time_elapsed = datetime.now() - worker_time_started
+                #print("Generated worker graph for %s, took %s" % (w.topic, worker_time_elapsed))
 
 
         rrdtool.graph("%s/logmemory.png" % self.graph_dir,
@@ -622,8 +635,9 @@ class MongoWriter(object):
 
             if self.graph_topics:
                 rrdtool.update("%s/%s.rrd" % (self.graph_dir, w.collname), "N:%d:%d:%d:%d" %
-                               (qsize, w.in_counter.count.value, w.out_counter.count.value,
-                                w.drop_counter.count.value))
+                               (wqsize, w.worker_in_counter.count.value,
+                                w.worker_out_counter.count.value,
+                                w.worker_drop_counter.count.value))
 
         rrdtool.update("%s/logstats.rrd" % self.graph_dir, "N:%d:%d:%d:%d" %
                        (qsize, self.in_counter.count.value, self.out_counter.count.value,
