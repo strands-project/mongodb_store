@@ -44,37 +44,39 @@ _admindb = None
 _datadb  = None
 
 class MongoRRD(object):
-    def __init__(self, mongodb_host=None, mongodb_port=None, mongodb_name="roslog"):
-        self.quit     = False
-        self._conn    = Connection(mongodb_host, mongodb_port)
-        self._admindb = self._conn["admin"]
-        self._datadb  = self._conn[mongodb_name]
+    def __init__(self, graph_clear = False, mongodb_host=None, mongodb_port=None, mongodb_name="roslog"):
+        self.quit        = False
+        self.graph_clear = graph_clear
+        self._conn       = Connection(mongodb_host, mongodb_port)
+        self._admindb    = self._conn["admin"]
+        self._datadb     = self._conn[mongodb_name]
 
         self.init_rrd()
 
     def create_rrd(self, file, *data_sources):
-        rrdtool.create(file, "--step", "10", "--start", "0",
-                       # remember that we always need to add the previous RRA time range
-                       # hence number of rows is not directly calculated by desired time frame
-                       "RRA:AVERAGE:0.5:1:720",    #  2 hours of 10 sec  averages
-                       "RRA:AVERAGE:0.5:3:1680",   # 12 hours of 30 sec  averages
-                       "RRA:AVERAGE:0.5:30:456",   #  1 day   of  5 min  averages
-                       "RRA:AVERAGE:0.5:180:412",  #  7 days  of 30 min  averages
-                       "RRA:AVERAGE:0.5:720:439",  #  4 weeks of  2 hour averages
-                       "RRA:AVERAGE:0.5:8640:402", #  1 year  of  1 day averages
-                       "RRA:MIN:0.5:1:720",
-                       "RRA:MIN:0.5:3:1680",
-                       "RRA:MIN:0.5:30:456",
-                       "RRA:MIN:0.5:180:412",
-                       "RRA:MIN:0.5:720:439",
-                       "RRA:MIN:0.5:8640:402",
-                       "RRA:MAX:0.5:1:720",
-                       "RRA:MAX:0.5:3:1680",
-                       "RRA:MAX:0.5:30:456",
-                       "RRA:MAX:0.5:180:412",
-                       "RRA:MAX:0.5:720:439",
-                       "RRA:MAX:0.5:8640:402",
-                       *data_sources)
+        if not os.path.isfile(file) or self.graph_clear:
+            rrdtool.create(file, "--step", "10", "--start", "0",
+                           # remember that we always need to add the previous RRA time range
+                           # hence number of rows is not directly calculated by desired time frame
+                           "RRA:AVERAGE:0.5:1:720",    #  2 hours of 10 sec  averages
+                           "RRA:AVERAGE:0.5:3:1680",   # 12 hours of 30 sec  averages
+                           "RRA:AVERAGE:0.5:30:456",   #  1 day   of  5 min  averages
+                           "RRA:AVERAGE:0.5:180:412",  #  7 days  of 30 min  averages
+                           "RRA:AVERAGE:0.5:720:439",  #  4 weeks of  2 hour averages
+                           "RRA:AVERAGE:0.5:8640:402", #  1 year  of  1 day averages
+                           "RRA:MIN:0.5:1:720",
+                           "RRA:MIN:0.5:3:1680",
+                           "RRA:MIN:0.5:30:456",
+                           "RRA:MIN:0.5:180:412",
+                           "RRA:MIN:0.5:720:439",
+                           "RRA:MIN:0.5:8640:402",
+                           "RRA:MAX:0.5:1:720",
+                           "RRA:MAX:0.5:3:1680",
+                           "RRA:MAX:0.5:30:456",
+                           "RRA:MAX:0.5:180:412",
+                           "RRA:MAX:0.5:720:439",
+                           "RRA:MAX:0.5:8640:402",
+                           *data_sources)
         
 
     def init_rrd(self):
@@ -328,9 +330,13 @@ def main(argv):
     parser.add_option("--mongodb-name", dest="mongodb_name",
                       help="Name of DB in which to store values",
                       metavar="NAME", default="roslog")
+    parser.add_option("--graph-clear", dest="graph_clear", default=False,
+                      action="store_true",
+                      help="Remove existing RRD files.")
     (options, args) = parser.parse_args()
 
-    mongorrd = MongoRRD(mongodb_host=options.mongodb_host,
+    mongorrd = MongoRRD(graph_clear=options.graph_clear,
+                        mongodb_host=options.mongodb_host,
                         mongodb_port=options.mongodb_port,
                         mongodb_name=options.mongodb_name)
     mongorrd.run()
