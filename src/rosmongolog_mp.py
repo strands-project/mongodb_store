@@ -45,7 +45,7 @@ from datetime import datetime, timedelta
 from time import sleep
 from random import randint
 from tf.msg import tfMessage
-from sensor_msgs.msg import PointCloud
+from sensor_msgs.msg import PointCloud, CompressedImage
 
 import rospy
 import rosgraph.masterapi
@@ -359,6 +359,13 @@ class MongoWriter(object):
                                  self.drop_counter.count, QUEUE_MAXSIZE,
                                  self.mongodb_host, self.mongodb_port, self.mongodb_name,
                                  "./rosmongolog_pcl")
+        elif msg_class == CompressedImage:
+            print("DETECTED compressed image topic %s, using fast C++ logger" % topic)
+            w = SubprocessWorker(idnum, topic, collname,
+                                 self.in_counter.count, self.out_counter.count,
+                                 self.drop_counter.count, QUEUE_MAXSIZE,
+                                 self.mongodb_host, self.mongodb_port, self.mongodb_name,
+                                 "./rosmongolog_cimg")
         else:
             w = WorkerProcess(idnum, topic, collname,
                               self.in_counter.count, self.out_counter.count,

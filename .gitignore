@@ -6,3 +6,4 @@
 /bin/*.png
 /bin/rosmongolog_tf
 /bin/rosmongolog_pcl
+/bin/rosmongolog_cimg
