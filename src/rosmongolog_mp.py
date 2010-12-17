@@ -41,6 +41,7 @@ from threading import Thread, Timer
 from multiprocessing import Process, Lock, Condition, Queue, Value, current_process
 from Queue import Empty
 from optparse import OptionParser
+from tempfile import mktemp
 from datetime import datetime, timedelta
 from time import sleep
 from random import randint
@@ -296,15 +297,17 @@ class SubprocessWorker(object):
         self.process.kill()
         self.process.wait()
 
+
 class MongoWriter(object):
     def __init__(self, topics = [], graph_topics = False,
-                 graph_dir = ".", graph_clear = False,
+                 graph_dir = ".", graph_clear = False, graph_daemon = False,
                  all_topics = False, all_topics_interval = 5,
                  exclude_topics = [],
                  mongodb_host=None, mongodb_port=None, mongodb_name="roslog"):
         self.graph_dir = graph_dir
         self.graph_topics = graph_topics
         self.graph_clear = graph_clear
+        self.graph_daemon = graph_daemon
         self.all_topics = all_topics
         self.all_topics_interval = all_topics_interval
         self.exclude_topics = exclude_topics
@@ -320,6 +323,7 @@ class MongoWriter(object):
         self.drop_counter = Counter()
         self.workers = {}
 
+        if self.graph_dir == ".": self.graph_dir = os.getcwd()
 
         setproctitle("rosmongolog_mp MAIN")
 
@@ -413,26 +417,23 @@ class MongoWriter(object):
 
 
     def run(self):
-        looping_threshold  = timedelta(0, STATS_LOOPTIME,  0)
-        graphing_threshold = timedelta(0, STATS_GRAPHTIME - STATS_GRAPHTIME*0.01, 0)
-        graphing_last      = datetime.now()
+        looping_threshold = timedelta(0, STATS_LOOPTIME,  0)
+
+        self.graph_thread = Thread(name="RRDGrapherThread", target=self.graph_rrd_thread)
+        self.graph_thread.daemon = True
+        self.graph_thread.start()
 
         while not rospy.is_shutdown() and not self.quit:
             started = datetime.now()
 
             self.update_rrd()
 
-            if datetime.now() - graphing_last >= graphing_threshold:
-                self.graph_rrd()
-                graphing_last = datetime.now()
-
             # the following code makes sure we run once per STATS_LOOPTIME, taking
             # varying run-times and interrupted sleeps into account
             td = datetime.now() - started
             while not rospy.is_shutdown() and not self.quit and td < looping_threshold:
                 sleeptime = STATS_LOOPTIME - (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / 10**6
-                if sleeptime > 0:
-                    sleep(sleeptime)
+                if sleeptime > 0: sleep(sleeptime)
                 td = datetime.now() - started
 
         #print("Quit M1")
@@ -445,6 +446,10 @@ class MongoWriter(object):
         for name, w in self.workers.items():
             #print("Shutdown %s %d" % (w, os.getpid()))
             w.shutdown()
+
+        if self.graph_daemon:
+            self.graph_process.kill()
+            self.graph_process.wait()
 
     def start_all_topics_timer(self):
         if not self.all_topics or self.quit: return
@@ -519,92 +524,111 @@ class MongoWriter(object):
                            "RRA:MAX:0.5:8640:402",
                            *data_sources)
 
+    def graph_rrd_thread(self):
+        graphing_threshold = timedelta(0, STATS_GRAPHTIME - STATS_GRAPHTIME*0.01, 0)
+
+        while not rospy.is_shutdown() and not self.quit:
+            started = datetime.now()
+
+            self.graph_rrd()
+
+            # the following code makes sure we run once per STATS_LOOPTIME, taking
+            # varying run-times and interrupted sleeps into account
+            td = datetime.now() - started
+            while not rospy.is_shutdown() and not self.quit and td < graphing_threshold:
+                sleeptime = STATS_GRAPHTIME - (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / 10**6
+                if sleeptime > 0: sleep(sleeptime)
+                td = datetime.now() - started
+
     def graph_rrd(self):
         #print("Generating graphs")
         time_started = datetime.now()
-        rrdtool.graph("%s/logstats.png" % self.graph_dir,
-                      "--start=-600", "--end=-10",
-                      "--disable-rrdtool-tag", "--width=560",
-                      "--font", "LEGEND:10:", "--font", "UNIT:8:",
-                      "--font", "TITLE:12:", "--font", "AXIS:8:",
-                      "--title=MongoDB Logging Stats",
-                      "--vertical-label=messages/sec",
-                      "--slope-mode",
-                      "DEF:qsize=%s/logstats.rrd:qsize:AVERAGE:step=10" % self.graph_dir,
-                      "DEF:in=%s/logstats.rrd:in:AVERAGE:step=10" % self.graph_dir,
-                      "DEF:out=%s/logstats.rrd:out:AVERAGE:step=10" % self.graph_dir,
-                      "DEF:drop=%s/logstats.rrd:drop:AVERAGE:step=10" % self.graph_dir,
-                      "LINE1:qsize#FF7200:Queue Size",
-                      "GPRINT:qsize:LAST:Current\\:%8.2lf %s",
-                      "GPRINT:qsize:AVERAGE:Average\\:%8.2lf %s",
-                      "GPRINT:qsize:MAX:Maximum\\:%8.2lf %s\\n",
-                      "LINE1:in#503001:In",
-                      "GPRINT:in:LAST:        Current\\:%8.2lf %s",
-                      "GPRINT:in:AVERAGE:Average\\:%8.2lf %s",
-                      "GPRINT:in:MAX:Maximum\\:%8.2lf %s\\n",
-                      "LINE1:out#EDAC00:Out",
-                      "GPRINT:out:LAST:       Current\\:%8.2lf %s",
-                      "GPRINT:out:AVERAGE:Average\\:%8.2lf %s",
-                      "GPRINT:out:MAX:Maximum\\:%8.2lf %s\\n",
-                      "LINE1:drop#506101:Dropped",
-                      "GPRINT:drop:LAST:   Current\\:%8.2lf %s",
-                      "GPRINT:drop:AVERAGE:Average\\:%8.2lf %s",
-                      "GPRINT:drop:MAX:Maximum\\:%8.2lf %s\\n")
+        rrdtool.graph(["%s/logstats.png" % self.graph_dir,
+                       "--start=-600", "--end=-10",
+                       "--disable-rrdtool-tag", "--width=560",
+                       "--font", "LEGEND:10:", "--font", "UNIT:8:",
+                       "--font", "TITLE:12:", "--font", "AXIS:8:",
+                       "--title=MongoDB Logging Stats",
+                       "--vertical-label=messages/sec",
+                       "--slope-mode"]
+                      + (self.graph_daemon and self.graph_daemon_args or []) +
+                      ["DEF:qsize=%s/logstats.rrd:qsize:AVERAGE:step=10" % self.graph_dir,
+                       "DEF:in=%s/logstats.rrd:in:AVERAGE:step=10" % self.graph_dir,
+                       "DEF:out=%s/logstats.rrd:out:AVERAGE:step=10" % self.graph_dir,
+                       "DEF:drop=%s/logstats.rrd:drop:AVERAGE:step=10" % self.graph_dir,
+                       "LINE1:qsize#FF7200:Queue Size",
+                       "GPRINT:qsize:LAST:Current\\:%8.2lf %s",
+                       "GPRINT:qsize:AVERAGE:Average\\:%8.2lf %s",
+                       "GPRINT:qsize:MAX:Maximum\\:%8.2lf %s\\n",
+                       "LINE1:in#503001:In",
+                       "GPRINT:in:LAST:        Current\\:%8.2lf %s",
+                       "GPRINT:in:AVERAGE:Average\\:%8.2lf %s",
+                       "GPRINT:in:MAX:Maximum\\:%8.2lf %s\\n",
+                       "LINE1:out#EDAC00:Out",
+                       "GPRINT:out:LAST:       Current\\:%8.2lf %s",
+                       "GPRINT:out:AVERAGE:Average\\:%8.2lf %s",
+                       "GPRINT:out:MAX:Maximum\\:%8.2lf %s\\n",
+                       "LINE1:drop#506101:Dropped",
+                       "GPRINT:drop:LAST:   Current\\:%8.2lf %s",
+                       "GPRINT:drop:AVERAGE:Average\\:%8.2lf %s",
+                       "GPRINT:drop:MAX:Maximum\\:%8.2lf %s\\n"])
 
         if self.graph_topics:
             for _, w in self.workers.items():
                 #worker_time_started = datetime.now()
-                rrdtool.graph("%s/%s.png" % (self.graph_dir, w.collname),
-                              "--start=-600", "--end=-10",
-                              "--disable-rrdtool-tag", "--width=560",
-                              "--font", "LEGEND:10:", "--font", "UNIT:8:",
-                              "--font", "TITLE:12:", "--font", "AXIS:8:",
-                              "--title=%s" % w.topic,
-                              "--vertical-label=messages/sec",
-                              "--slope-mode",
-                              "DEF:qsize=%s/%s.rrd:qsize:AVERAGE:step=10" % (self.graph_dir, w.collname),
-                              "DEF:in=%s/%s.rrd:in:AVERAGE:step=10" % (self.graph_dir, w.collname),
-                              "DEF:out=%s/%s.rrd:out:AVERAGE:step=10" % (self.graph_dir, w.collname),
-                              "DEF:drop=%s/%s.rrd:drop:AVERAGE:step=10" % (self.graph_dir, w.collname),
-                              "LINE1:qsize#FF7200:Queue Size",
-                              "GPRINT:qsize:LAST:Current\\:%8.2lf %s",
-                              "GPRINT:qsize:AVERAGE:Average\\:%8.2lf %s",
-                              "GPRINT:qsize:MAX:Maximum\\:%8.2lf %s\\n",
-                              "LINE1:in#503001:In",
-                              "GPRINT:in:LAST:        Current\\:%8.2lf %s",
-                              "GPRINT:in:AVERAGE:Average\\:%8.2lf %s",
-                              "GPRINT:in:MAX:Maximum\\:%8.2lf %s\\n",
-                              "LINE1:out#EDAC00:Out",
-                              "GPRINT:out:LAST:       Current\\:%8.2lf %s",
-                              "GPRINT:out:AVERAGE:Average\\:%8.2lf %s",
-                              "GPRINT:out:MAX:Maximum\\:%8.2lf %s\\n",
-                              "LINE1:drop#506101:Dropped",
-                              "GPRINT:drop:LAST:   Current\\:%8.2lf %s",
-                              "GPRINT:drop:AVERAGE:Average\\:%8.2lf %s",
-                              "GPRINT:drop:MAX:Maximum\\:%8.2lf %s\\n")
+                rrdtool.graph(["%s/%s.png" % (self.graph_dir, w.collname),
+                               "--start=-600", "--end=-10",
+                               "--disable-rrdtool-tag", "--width=560",
+                               "--font", "LEGEND:10:", "--font", "UNIT:8:",
+                               "--font", "TITLE:12:", "--font", "AXIS:8:",
+                               "--title=%s" % w.topic,
+                               "--vertical-label=messages/sec",
+                               "--slope-mode"]
+                              + (self.graph_daemon and self.graph_daemon_args or []) +
+                              ["DEF:qsize=%s/%s.rrd:qsize:AVERAGE:step=10" % (self.graph_dir, w.collname),
+                               "DEF:in=%s/%s.rrd:in:AVERAGE:step=10" % (self.graph_dir, w.collname),
+                               "DEF:out=%s/%s.rrd:out:AVERAGE:step=10" % (self.graph_dir, w.collname),
+                               "DEF:drop=%s/%s.rrd:drop:AVERAGE:step=10" % (self.graph_dir, w.collname),
+                               "LINE1:qsize#FF7200:Queue Size",
+                               "GPRINT:qsize:LAST:Current\\:%8.2lf %s",
+                               "GPRINT:qsize:AVERAGE:Average\\:%8.2lf %s",
+                               "GPRINT:qsize:MAX:Maximum\\:%8.2lf %s\\n",
+                               "LINE1:in#503001:In",
+                               "GPRINT:in:LAST:        Current\\:%8.2lf %s",
+                               "GPRINT:in:AVERAGE:Average\\:%8.2lf %s",
+                               "GPRINT:in:MAX:Maximum\\:%8.2lf %s\\n",
+                               "LINE1:out#EDAC00:Out",
+                               "GPRINT:out:LAST:       Current\\:%8.2lf %s",
+                               "GPRINT:out:AVERAGE:Average\\:%8.2lf %s",
+                               "GPRINT:out:MAX:Maximum\\:%8.2lf %s\\n",
+                               "LINE1:drop#506101:Dropped",
+                               "GPRINT:drop:LAST:   Current\\:%8.2lf %s",
+                               "GPRINT:drop:AVERAGE:Average\\:%8.2lf %s",
+                               "GPRINT:drop:MAX:Maximum\\:%8.2lf %s\\n"])
 
                 #worker_time_elapsed = datetime.now() - worker_time_started
                 #print("Generated worker graph for %s, took %s" % (w.topic, worker_time_elapsed))
 
 
-        rrdtool.graph("%s/logmemory.png" % self.graph_dir,
-                      "--start=-600", "--end=-10",
-                      "--disable-rrdtool-tag", "--width=560",
-                      "--font", "LEGEND:10:", "--font", "UNIT:8:",
-                      "--font", "TITLE:12:", "--font", "AXIS:8:",
-                      "--title=ROS MongoLog Memory Usage",
-                      "--vertical-label=bytes",
-                      "--slope-mode",
-                      "DEF:size=%s/logmemory.rrd:size:AVERAGE:step=10" % self.graph_dir,
-                      "DEF:rss=%s/logmemory.rrd:rss:AVERAGE:step=10" % self.graph_dir,
-                      "AREA:size#FF7200:Total",
-                      "GPRINT:size:LAST:   Current\\:%8.2lf %s",
-                      "GPRINT:size:AVERAGE:Average\\:%8.2lf %s",
-                      "GPRINT:size:MAX:Maximum\\:%8.2lf %s\\n",
-                      "AREA:rss#503001:Resident",
-                      "GPRINT:rss:LAST:Current\\:%8.2lf %s",
-                      "GPRINT:rss:AVERAGE:Average\\:%8.2lf %s",
-                      "GPRINT:rss:MAX:Maximum\\:%8.2lf %s\\n")
+        rrdtool.graph(["%s/logmemory.png" % self.graph_dir,
+                       "--start=-600", "--end=-10",
+                       "--disable-rrdtool-tag", "--width=560",
+                       "--font", "LEGEND:10:", "--font", "UNIT:8:",
+                       "--font", "TITLE:12:", "--font", "AXIS:8:",
+                       "--title=ROS MongoLog Memory Usage",
+                       "--vertical-label=bytes",
+                       "--slope-mode"]
+                      + (self.graph_daemon and self.graph_daemon_args or []) +
+                      ["DEF:size=%s/logmemory.rrd:size:AVERAGE:step=10" % self.graph_dir,
+                       "DEF:rss=%s/logmemory.rrd:rss:AVERAGE:step=10" % self.graph_dir,
+                       "AREA:size#FF7200:Total",
+                       "GPRINT:size:LAST:   Current\\:%8.2lf %s",
+                       "GPRINT:size:AVERAGE:Average\\:%8.2lf %s",
+                       "GPRINT:size:MAX:Maximum\\:%8.2lf %s\\n",
+                       "AREA:rss#503001:Resident",
+                       "GPRINT:rss:LAST:Current\\:%8.2lf %s",
+                       "GPRINT:rss:AVERAGE:Average\\:%8.2lf %s",
+                       "GPRINT:rss:MAX:Maximum\\:%8.2lf %s\\n"])
         time_elapsed = datetime.now() - time_started
         print("Generated graphs, took %s" % time_elapsed)
 
@@ -619,6 +643,20 @@ class MongoWriter(object):
                         "DS:size:GAUGE:30:0:U",
                         "DS:rss:GAUGE:30:0:U",
                         "DS:stack:GAUGE:30:0:U")
+
+        self.graph_args = []
+        if self.graph_daemon:
+            self.graph_sockfile = mktemp(prefix="rrd_", suffix=".sock")
+            self.graph_pidfile  = mktemp(prefix="rrd_", suffix=".pid")
+            print("Starting rrdcached -l unix:%s -p %s -b %s -g" %
+                  (self.graph_sockfile,self.graph_pidfile, self.graph_dir))
+            devnull = file('/dev/null', 'a+')
+            self.graph_process = subprocess.Popen(["/usr/bin/rrdcached",
+                                                   "-l", "unix:%s" % self.graph_sockfile,
+                                                   "-p", self.graph_pidfile,
+                                                   "-b", self.graph_dir,
+                                                   "-g"], stderr=subprocess.STDOUT, stdout=devnull)
+            self.graph_daemon_args = ["--daemon", "unix:%s" % self.graph_sockfile]
 
     def assert_worker_rrd(self, collname):
         self.assert_rrd("%s/%s.rrd" % (self.graph_dir, collname),
@@ -640,15 +678,21 @@ class MongoWriter(object):
             if wqsize > QUEUE_MAXSIZE/2: print("Excessive queue size %6d: %s" % (wqsize, w.name))
 
             if self.graph_topics:
-                rrdtool.update("%s/%s.rrd" % (self.graph_dir, w.collname), "N:%d:%d:%d:%d" %
-                               (wqsize, w.worker_in_counter.count.value,
-                                w.worker_out_counter.count.value,
-                                w.worker_drop_counter.count.value))
+                rrdtool.update(["%s/%s.rrd" % (self.graph_dir, w.collname)]
+                               + (self.graph_daemon and self.graph_daemon_args or []) +
+                               ["N:%d:%d:%d:%d" %
+                                (wqsize, w.worker_in_counter.count.value,
+                                 w.worker_out_counter.count.value, w.worker_drop_counter.count.value)])
 
-        rrdtool.update("%s/logstats.rrd" % self.graph_dir, "N:%d:%d:%d:%d" %
-                       (qsize, self.in_counter.count.value, self.out_counter.count.value,
-                        self.drop_counter.count.value))
-        rrdtool.update("%s/logmemory.rrd" % self.graph_dir, "N:%d:%d:%d" % self.get_memory_usage())
+        rrdtool.update(["%s/logstats.rrd" % self.graph_dir]
+                       + (self.graph_daemon and self.graph_daemon_args or []) +
+                       ["N:%d:%d:%d:%d" %
+                        (qsize, self.in_counter.count.value, self.out_counter.count.value,
+                         self.drop_counter.count.value)])
+
+        rrdtool.update(["%s/logmemory.rrd" % self.graph_dir]
+                       + (self.graph_daemon and self.graph_daemon_args or []) +
+                       ["N:%d:%d:%d" % self.get_memory_usage()])
 
         time_elapsed = datetime.now() - time_started
         print("Updated graphs, total queue size %d, dropped %d, took %s" %
@@ -683,6 +727,9 @@ def main(argv):
                       help="Remove existing RRD files.")
     parser.add_option("--graph-dir", dest="graph_dir", default=".",
                       help="Directory in which to create the graphs")
+    parser.add_option("--graph-daemon", dest="graph_daemon", default=False,
+                      action="store_true",
+                      help="Use rrddaemon.")
     (options, args) = parser.parse_args()
 
     if not options.all_topics and len(args) == 0:
@@ -697,6 +744,7 @@ def main(argv):
     mongowriter = MongoWriter(topics=args, graph_topics = options.graph_topics,
                               graph_dir = options.graph_dir,
                               graph_clear = options.graph_clear,
+                              graph_daemon = options.graph_daemon,
                               all_topics=options.all_topics,
                               all_topics_interval = options.all_topics_interval,
                               exclude_topics = options.exclude,
