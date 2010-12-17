@@ -160,7 +160,6 @@ class WorkerProcess(object):
         self.queue.put("shutdown")
         self.process.join()
         self.process.terminate()
-        rospy.signal_shutdown("shutdown")
 
     def sanitize_value(self, v):
         if isinstance(v, rospy.Message):
@@ -198,13 +197,20 @@ class WorkerProcess(object):
             self.worker_in_counter.increment()
 
     def dequeue(self):
-        while not self.quit:
+        while not (self.queue.empty() and self.quit):
+            # we must make sure to clear the queue before exiting,
+            # or the parent thread might deadlock otherwise
+            if self.quit:
+                while not self.queue.empty():
+                    t = self.queue.get_nowait()
+                continue
+            
             t = None
             try:
                 t = self.queue.get(True)
             except IOError:
                 # Anticipate Ctrl-C
-                print("Quit W1")
+                #print("Quit W1")
                 self.quit = True
                 return
             if isinstance(t, tuple):
@@ -230,9 +236,9 @@ class WorkerProcess(object):
                         print e
 
             else:
-                print("Quit W2")
+                #print("Quit W2")
                 self.quit = True
-        print("Quit W3")
+        #print("Quit W3")
 
 
 class SubprocessWorker(object):
@@ -429,15 +435,15 @@ class MongoWriter(object):
                     sleep(sleeptime)
                 td = datetime.now() - started
 
-        print("Quit M1")
+        #print("Quit M1")
 
 
     def shutdown(self):
         self.quit = True
         if hasattr(self, "all_topics_timer"): self.all_topics_timer.cancel()
-        print("Quit M2")
+        #print("Quit M2")
         for name, w in self.workers.items():
-            print("Shutdown %s %d" % (w, os.getpid()))
+            #print("Shutdown %s %d" % (w, os.getpid()))
             w.shutdown()
 
     def start_all_topics_timer(self):
