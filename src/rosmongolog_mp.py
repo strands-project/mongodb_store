@@ -38,7 +38,7 @@ import pprint
 import string
 import subprocess
 from threading import Thread, Timer
-from multiprocessing import Process, Lock, Condition, Queue, Value, current_process
+from multiprocessing import Process, Lock, Condition, Queue, Value, current_process, Event
 from Queue import Empty
 from optparse import OptionParser
 from tempfile import mktemp
@@ -115,7 +115,7 @@ class WorkerProcess(object):
         self.mongodb_host = mongodb_host
         self.mongodb_port = mongodb_port
         self.mongodb_name = mongodb_name
-        self.quit = False
+        self.quit = Value('i', 0)
 
         self.process = Process(name=self.name, target=self.run)
         self.process.start()
@@ -129,6 +129,8 @@ class WorkerProcess(object):
 
         self.collection = self.mongodb[self.collname]
         self.collection.count()
+
+        self.queue.cancel_join_thread()
 
         rospy.init_node(WORKER_NODE_NAME % (self.id, self.collname), anonymous=False)
 
@@ -156,9 +158,16 @@ class WorkerProcess(object):
         # free connection
         # self.mongoconn.end_request()
 
+    def is_quit(self):
+        return self.quit.value == 1
+
     def shutdown(self):
-        self.quit = True
-        self.queue.put("shutdown")
+        if not self.is_quit():
+            #print("SHUTDOWN %s qsize %d" % (self.name, self.queue.qsize()))
+            self.quit.value = 1
+            self.queue.put("shutdown")
+            while not self.queue.empty(): sleep(0.1)
+        #print("JOIN %s qsize %d" % (self.name, self.queue.qsize()))
         self.process.join()
         self.process.terminate()
 
@@ -185,7 +194,7 @@ class WorkerProcess(object):
         return self.queue.qsize()
 
     def enqueue(self, data, topic, current_time=None):
-        if not self.quit:
+        if not self.is_quit():
             if self.queue.full():
                 try:
                     self.queue.get_nowait()
@@ -198,22 +207,15 @@ class WorkerProcess(object):
             self.worker_in_counter.increment()
 
     def dequeue(self):
-        while not (self.queue.empty() and self.quit):
-            # we must make sure to clear the queue before exiting,
-            # or the parent thread might deadlock otherwise
-            if self.quit:
-                while not self.queue.empty():
-                    t = self.queue.get_nowait()
-                continue
-            
+        while not self.is_quit():
             t = None
             try:
                 t = self.queue.get(True)
             except IOError:
                 # Anticipate Ctrl-C
-                #print("Quit W1")
-                self.quit = True
-                return
+                #print("Quit W1: %s" % self.name)
+                self.quit.value = 1
+                break
             if isinstance(t, tuple):
                 self.out_counter.increment()
                 self.worker_out_counter.increment()
@@ -237,9 +239,17 @@ class WorkerProcess(object):
                         print e
 
             else:
-                #print("Quit W2")
-                self.quit = True
-        #print("Quit W3")
+                #print("Quit W2: %s" % self.name)
+                self.quit.value = 1
+
+        # we must make sure to clear the queue before exiting,
+        # or the parent thread might deadlock otherwise
+        #print("Quit W3: %s" % self.name)
+        self.subscriber.unregister()
+        self.subscriber = None
+        while not self.queue.empty():
+            t = self.queue.get_nowait()
+        print("STOPPED: %s" % self.name)
 
 
 class SubprocessWorker(object):
@@ -324,6 +334,7 @@ class MongoWriter(object):
         self.workers = {}
 
         if self.graph_dir == ".": self.graph_dir = os.getcwd()
+        if not os.path.exists(self.graph_dir): os.makedirs(self.graph_dir)
 
         setproctitle("rosmongolog_mp MAIN")
 
@@ -426,6 +437,10 @@ class MongoWriter(object):
         while not rospy.is_shutdown() and not self.quit:
             started = datetime.now()
 
+            if self.graph_daemon and self.graph_process.poll() != None:
+                print("WARNING: rrdcached died, falling back to non-cached version. Please investigate.")
+                self.graph_daemon = False
+
             self.update_rrd()
 
             # the following code makes sure we run once per STATS_LOOPTIME, taking
@@ -436,15 +451,12 @@ class MongoWriter(object):
                 if sleeptime > 0: sleep(sleeptime)
                 td = datetime.now() - started
 
-        #print("Quit M1")
-
 
     def shutdown(self):
         self.quit = True
         if hasattr(self, "all_topics_timer"): self.all_topics_timer.cancel()
-        #print("Quit M2")
         for name, w in self.workers.items():
-            #print("Shutdown %s %d" % (w, os.getpid()))
+            #print("Shutdown %s" % name)
             w.shutdown()
 
         if self.graph_daemon:
@@ -526,11 +538,13 @@ class MongoWriter(object):
 
     def graph_rrd_thread(self):
         graphing_threshold = timedelta(0, STATS_GRAPHTIME - STATS_GRAPHTIME*0.01, 0)
+        first_run = True
 
         while not rospy.is_shutdown() and not self.quit:
             started = datetime.now()
 
-            self.graph_rrd()
+            if not first_run: self.graph_rrd()
+            else: first_run = False
 
             # the following code makes sure we run once per STATS_LOOPTIME, taking
             # varying run-times and interrupted sleeps into account
@@ -655,7 +669,7 @@ class MongoWriter(object):
                                                    "-l", "unix:%s" % self.graph_sockfile,
                                                    "-p", self.graph_pidfile,
                                                    "-b", self.graph_dir,
-                                                   "-g"], stderr=subprocess.STDOUT, stdout=devnull)
+                                                   "-g"], stderr=subprocess.STDOUT)
             self.graph_daemon_args = ["--daemon", "unix:%s" % self.graph_sockfile]
 
     def assert_worker_rrd(self, collname):
