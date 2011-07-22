@@ -1,8 +1,8 @@
 
 /***************************************************************************
- *  rosmongolog_cimg.cpp - MongoDB Logger for compressed images
+ *  mongolog_trimesh.cpp - MongoDB Logger for Triangle Meshes
  *
- *  Created: Wed Dec 15 17:59:25 2010
+ *  Created: Wed Dec 15 18:16:03 2010
  *  Copyright  2010  Tim Niemueller [www.niemueller.de]
  *             2010  Carnegie Mellon University
  *             2010  Intel Labs Pittsburgh
@@ -25,7 +25,7 @@
 #include <ros/ros.h>
 #include <mongo/client/dbclient.h>
 
-#include <sensor_msgs/CompressedImage.h>
+#include <rviz_intel/TriangleMesh.h>
 
 using namespace mongo;
 
@@ -42,7 +42,7 @@ static pthread_mutex_t out_counter_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t drop_counter_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t qsize_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-void msg_callback(const sensor_msgs::CompressedImage::ConstPtr& msg)
+void msg_callback(const rviz_intel::TriangleMesh::ConstPtr& msg)
 {
   BSONObjBuilder document;
 
@@ -50,9 +50,46 @@ void msg_callback(const sensor_msgs::CompressedImage::ConstPtr& msg)
   document.append("header", BSON(   "seq" << msg->header.seq
 				 << "stamp" << stamp
 				 << "frame_id" << msg->header.frame_id));
-  document.append("format", msg->format);
-  document.appendBinData("data", msg->data.size(), BinDataGeneral,
-			 const_cast<unsigned char*>(&msg->data[0]));
+
+  BSONArrayBuilder pointsb(document.subarrayStart("points"));
+  std::vector<geometry_msgs::Point32>::const_iterator p;
+  for (p = msg->points.begin(); p != msg->points.end(); ++p) {
+    pointsb.append(BSON(   "x" << p->x
+			<< "y" << p->y
+			<< "z" << p->z));
+  }
+  pointsb.doneFast();
+
+  BSONArrayBuilder normalsb(document.subarrayStart("normals"));
+  for (p = msg->normals.begin(); p != msg->normals.end(); ++p) {
+    normalsb.append(BSON(   "x" << p->x
+		         << "y" << p->y
+		         << "z" << p->z));
+  }
+  normalsb.doneFast();
+
+  BSONArrayBuilder colorsb(document.subarrayStart("colors"));
+  std::vector<uint32_t>::const_iterator u;
+  for (u = msg->colors.begin(); u != msg->colors.end(); ++u) {
+    colorsb.append(*u);
+  }
+  colorsb.doneFast();
+
+  BSONArrayBuilder color_indsb(document.subarrayStart("color_inds"));
+  for (u = msg->color_inds.begin(); u != msg->color_inds.end(); ++u) {
+    color_indsb.append(*u);
+  }
+  color_indsb.doneFast();
+
+  BSONArrayBuilder trianglesb(document.subarrayStart("triangles"));
+  std::vector<rviz_intel::Triangle>::const_iterator t;
+  for (t = msg->triangles.begin(); t != msg->triangles.end(); ++t) {
+    trianglesb.append(BSON(   "i" << t->i
+		           << "j" << t->j
+		           << "k" << t->k));
+  }
+  trianglesb.doneFast();
+  document.append("sending_node", msg->sending_node);
 
   mongodb_conn->insert(collection, document.obj());
 
@@ -133,7 +170,7 @@ main(int argc, char **argv)
     return -1;
   }
 
-  ros::Subscriber sub = n.subscribe<sensor_msgs::CompressedImage>(topic, 1000, msg_callback);
+  ros::Subscriber sub = n.subscribe<rviz_intel::TriangleMesh>(topic, 1000, msg_callback);
   ros::Timer count_print_timer = n.createTimer(ros::Duration(5, 0), print_count);
 
   ros::spin();

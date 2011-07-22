@@ -1,12 +1,12 @@
 #!/usr/bin/python
 
 ###########################################################################
-#  rosmongolog_mp.py - Python based ROS to MongoDB logger (multi-process)
+#  mongolog.py - Python based ROS to MongoDB logger (multi-process)
 #
 #  Created: Sun Dec 05 19:45:51 2010
-#  Copyright  2010  Tim Niemueller [www.niemueller.de]
-#                   Carnegie Mellon University
-#                   Intel Labs Pittsburgh
+#  Copyright  2010-2011  Tim Niemueller [www.niemueller.de]
+#             2010-2011  Carnegie Mellon University
+#             2010       Intel Labs Pittsburgh
 ###########################################################################
 
 #  This program is free software; you can redistribute it and/or modify
@@ -24,8 +24,8 @@
 # make sure we aren't using floor division
 from __future__ import division, with_statement
 
-NODE_NAME='rosmongolog'
-WORKER_NODE_NAME = "rosmongolog_worker_%d_%s"
+NODE_NAME='mongolog'
+WORKER_NODE_NAME = "mongolog_worker_%d_%s"
 QUEUE_MAXSIZE = 100
 
 import roslib; roslib.load_manifest(NODE_NAME)
@@ -47,7 +47,7 @@ from time import sleep
 from random import randint
 from tf.msg import tfMessage
 from sensor_msgs.msg import PointCloud, CompressedImage
-from rviz_intel.msg import TriangleMesh
+#from rviz_intel.msg import TriangleMesh
 
 from setproctitle import setproctitle
 
@@ -121,7 +121,7 @@ class WorkerProcess(object):
         self.process.start()
 
     def init(self):
-        setproctitle("rosmongolog_mp %s" % self.topic)
+        setproctitle("mongolog %s" % self.topic)
 
         self.mongoconn = Connection(self.mongodb_host, self.mongodb_port)
         self.mongodb = self.mongoconn[self.mongodb_name]
@@ -336,7 +336,7 @@ class MongoWriter(object):
         if self.graph_dir == ".": self.graph_dir = os.getcwd()
         if not os.path.exists(self.graph_dir): os.makedirs(self.graph_dir)
 
-        setproctitle("rosmongolog_mp MAIN")
+        setproctitle("mongolog MAIN")
 
         self.exclude_regex = []
         for et in self.exclude_topics:
@@ -394,28 +394,30 @@ class MongoWriter(object):
                                  self.in_counter.count, self.out_counter.count,
                                  self.drop_counter.count, QUEUE_MAXSIZE,
                                 self.mongodb_host, self.mongodb_port, self.mongodb_name,
-                                 "./rosmongolog_tf")
+                                 "./mongolog_tf")
         elif msg_class == PointCloud:
             print("DETECTED point cloud topic %s, using fast C++ logger" % topic)
             w = SubprocessWorker(idnum, topic, collname,
                                  self.in_counter.count, self.out_counter.count,
                                  self.drop_counter.count, QUEUE_MAXSIZE,
                                  self.mongodb_host, self.mongodb_port, self.mongodb_name,
-                                 "./rosmongolog_pcl")
+                                 "./mongolog_pcl")
         elif msg_class == CompressedImage:
             print("DETECTED compressed image topic %s, using fast C++ logger" % topic)
             w = SubprocessWorker(idnum, topic, collname,
                                  self.in_counter.count, self.out_counter.count,
                                  self.drop_counter.count, QUEUE_MAXSIZE,
                                  self.mongodb_host, self.mongodb_port, self.mongodb_name,
-                                 "./rosmongolog_cimg")
+                                 "./mongolog_cimg")
+	"""
         elif msg_class == TriangleMesh:
             print("DETECTED triangle mesh topic %s, using fast C++ logger" % topic)
             w = SubprocessWorker(idnum, topic, collname,
                                  self.in_counter.count, self.out_counter.count,
                                  self.drop_counter.count, QUEUE_MAXSIZE,
                                  self.mongodb_host, self.mongodb_port, self.mongodb_name,
-                                 "./rosmongolog_trimesh")
+                                 "./mongolog_trimesh")
+	"""
         else:
             w = WorkerProcess(idnum, topic, collname,
                               self.in_counter.count, self.out_counter.count,

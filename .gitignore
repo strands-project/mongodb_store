@@ -4,7 +4,7 @@
 /ROS_NOBUILD
 /bin/*.rrd
 /bin/*.png
-/bin/rosmongolog_tf
-/bin/rosmongolog_pcl
-/bin/rosmongolog_cimg
-/bin/rosmongolog_trimesh
+/bin/mongolog_tf
+/bin/mongolog_pcl
+/bin/mongolog_cimg
+/bin/mongolog_trimesh

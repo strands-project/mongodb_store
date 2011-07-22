@@ -1,6 +1,6 @@
 
 /***************************************************************************
- *  rosmongolog_tf.cpp - MongoDB Logger for /tf
+ *  mongolog_tf.cpp - MongoDB Logger for /tf
  *
  *  Created: Wed Dec 8 17:00:25 2010 -0500
  *  Copyright  2010  Tim Niemueller [www.niemueller.de]

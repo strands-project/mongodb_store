@@ -1,11 +1,12 @@
 <package>
-  <description brief="rosmongolog">
-    Log ROS messages to MongoDB.
+  <description brief="mongolog">
+    Log ROS messages to MongoDB. Each individual message is converted
+    to a document, possibly recursive.
   </description>
   <author>Tim Niemueller</author>
   <license>GPLv2+</license>
   <review status="unreviewed" notes=""/>
-  <url>http://ros.org/wiki/rosmongolog</url>
+  <url>http://ros.org/wiki/mongolog</url>
   <depend package="roslua"/>
   <depend package="rospy"/>
   <depend package="roslib"/>
@@ -13,5 +14,5 @@
   <depend package="rostopic"/>
   <depend package="tf"/>
   <depend package="sensor_msgs"/>
-  <depend package="rviz_intel"/>
+  <!-- <depend package="rviz_intel"/> -->
 </package>

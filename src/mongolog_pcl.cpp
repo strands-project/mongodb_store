@@ -1,6 +1,6 @@
 
 /***************************************************************************
- *  rosmongolog_pcl.cpp - MongoDB Logger for point cloud topics
+ *  mongolog_pcl.cpp - MongoDB Logger for point cloud topics
  *
  *  Created: Mon Dec 13 15:05:37 2010
  *  Copyright  2010  Tim Niemueller [www.niemueller.de]
