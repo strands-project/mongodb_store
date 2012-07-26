@@ -1,10 +1,10 @@
 #!/usr/bin/python
 
 ###########################################################################
-#  mongolog.py - Python based ROS to MongoDB logger (multi-process)
+#  mongodb_log.py - Python based ROS to MongoDB logger (multi-process)
 #
 #  Created: Sun Dec 05 19:45:51 2010
-#  Copyright  2010-2011  Tim Niemueller [www.niemueller.de]
+#  Copyright  2010-2012  Tim Niemueller [www.niemueller.de]
 #             2010-2011  Carnegie Mellon University
 #             2010       Intel Labs Pittsburgh
 ###########################################################################
@@ -24,8 +24,9 @@
 # make sure we aren't using floor division
 from __future__ import division, with_statement
 
-NODE_NAME='mongolog'
-WORKER_NODE_NAME = "mongolog_worker_%d_%s"
+NODE_NAME='mongodb_log'
+NODE_NAME_TEMPLATE='%smongodb_log'
+WORKER_NODE_NAME = "%smongodb_log_worker_%d_%s"
 QUEUE_MAXSIZE = 100
 
 import roslib; roslib.load_manifest(NODE_NAME)
@@ -49,7 +50,11 @@ from tf.msg import tfMessage
 from sensor_msgs.msg import PointCloud, CompressedImage
 #from rviz_intel.msg import TriangleMesh
 
-from setproctitle import setproctitle
+use_setproctitle = True
+try:
+    from setproctitle import setproctitle
+except ImportError:
+    use_setproctitle = False
 
 import rospy
 import rosgraph.masterapi
@@ -100,7 +105,7 @@ class Barrier(object):
 class WorkerProcess(object):
     def __init__(self, idnum, topic, collname, in_counter_value, out_counter_value,
                  drop_counter_value, queue_maxsize,
-                 mongodb_host, mongodb_port, mongodb_name):
+                 mongodb_host, mongodb_port, mongodb_name, nodename_prefix):
         self.name = "WorkerProcess-%4d-%s" % (idnum, topic)
         self.id = idnum
         self.topic = topic
@@ -115,13 +120,16 @@ class WorkerProcess(object):
         self.mongodb_host = mongodb_host
         self.mongodb_port = mongodb_port
         self.mongodb_name = mongodb_name
+        self.nodename_prefix = nodename_prefix
         self.quit = Value('i', 0)
 
         self.process = Process(name=self.name, target=self.run)
         self.process.start()
 
     def init(self):
-        setproctitle("mongolog %s" % self.topic)
+        global use_setproctitle
+	if use_setproctitle:
+            setproctitle("mongodb_log %s" % self.topic)
 
         self.mongoconn = Connection(self.mongodb_host, self.mongodb_port)
         self.mongodb = self.mongoconn[self.mongodb_name]
@@ -132,7 +140,8 @@ class WorkerProcess(object):
 
         self.queue.cancel_join_thread()
 
-        rospy.init_node(WORKER_NODE_NAME % (self.id, self.collname), anonymous=False)
+        rospy.init_node(WORKER_NODE_NAME % (self.nodename_prefix, self.id, self.collname),
+                        anonymous=False)
 
         self.subscriber = None
         while not self.subscriber:
@@ -255,7 +264,7 @@ class WorkerProcess(object):
 class SubprocessWorker(object):
     def __init__(self, idnum, topic, collname, in_counter_value, out_counter_value,
                  drop_counter_value, queue_maxsize,
-                 mongodb_host, mongodb_port, mongodb_name, cpp_logger):
+                 mongodb_host, mongodb_port, mongodb_name, nodename_prefix, cpp_logger):
 
         self.name = "SubprocessWorker-%4d-%s" % (idnum, topic)
         self.id = idnum
@@ -271,6 +280,7 @@ class SubprocessWorker(object):
         self.mongodb_host = mongodb_host
         self.mongodb_port = mongodb_port
         self.mongodb_name = mongodb_name
+        self.nodename_prefix = nodename_prefix
         self.quit = False
         self.qsize = 0
 
@@ -278,7 +288,7 @@ class SubprocessWorker(object):
 
         mongodb_host_port = "%s:%d" % (mongodb_host, mongodb_port)
         collection = "%s.%s" % (mongodb_name, collname)
-        nodename = WORKER_NODE_NAME % (self.id, self.collname)
+        nodename = WORKER_NODE_NAME % (self.nodename_prefix, self.id, self.collname)
         self.process = subprocess.Popen([cpp_logger, "-t", topic, "-n", nodename,
                                          "-m", mongodb_host_port, "-c", collection],
                                         stdout=subprocess.PIPE)
@@ -313,7 +323,8 @@ class MongoWriter(object):
                  graph_dir = ".", graph_clear = False, graph_daemon = False,
                  all_topics = False, all_topics_interval = 5,
                  exclude_topics = [],
-                 mongodb_host=None, mongodb_port=None, mongodb_name="roslog"):
+                 mongodb_host=None, mongodb_port=None, mongodb_name="roslog",
+                 no_specific=False, nodename_prefix=""):
         self.graph_dir = graph_dir
         self.graph_topics = graph_topics
         self.graph_clear = graph_clear
@@ -324,6 +335,8 @@ class MongoWriter(object):
         self.mongodb_host = mongodb_host
         self.mongodb_port = mongodb_port
         self.mongodb_name = mongodb_name
+        self.no_specific = no_specific
+        self.nodename_prefix = nodename_prefix
         self.quit = False
         self.topics = set()
         #self.str_fn = roslib.message.strify_message
@@ -336,7 +349,9 @@ class MongoWriter(object):
         if self.graph_dir == ".": self.graph_dir = os.getcwd()
         if not os.path.exists(self.graph_dir): os.makedirs(self.graph_dir)
 
-        setproctitle("mongolog MAIN")
+        global use_setproctitle
+        if use_setproctitle:
+            setproctitle("mongodb_log MAIN")
 
         self.exclude_regex = []
         for et in self.exclude_topics:
@@ -348,9 +363,9 @@ class MongoWriter(object):
         self.subscribe_topics(set(topics))
         if self.all_topics:
             print("All topics")
-            self.ros_master = rosgraph.masterapi.Master(NODE_NAME)
+            self.ros_master = rosgraph.masterapi.Master(NODE_NAME_TEMPLATE % self.nodename_prefix)
             self.update_topics(restart=False)
-        rospy.init_node(NODE_NAME, anonymous=True)
+        rospy.init_node(NODE_NAME_TEMPLATE % self.nodename_prefix, anonymous=True)
 
         self.start_all_topics_timer()
 
@@ -388,41 +403,42 @@ class MongoWriter(object):
         msg_class, real_topic, msg_eval = rostopic.get_topic_class(topic, blocking=True)
 
         w = None
-        if msg_class == tfMessage:
+        if not self.no_specific and msg_class == tfMessage:
             print("DETECTED transform topic %s, using fast C++ logger" % topic)
             w = SubprocessWorker(idnum, topic, collname,
                                  self.in_counter.count, self.out_counter.count,
                                  self.drop_counter.count, QUEUE_MAXSIZE,
-                                self.mongodb_host, self.mongodb_port, self.mongodb_name,
-                                 "./mongolog_tf")
-        elif msg_class == PointCloud:
+                                 self.mongodb_host, self.mongodb_port, self.mongodb_name,
+                                 self.nodename_prefix, "./mongodb_log_tf")
+        elif not self.no_specific and msg_class == PointCloud:
             print("DETECTED point cloud topic %s, using fast C++ logger" % topic)
             w = SubprocessWorker(idnum, topic, collname,
                                  self.in_counter.count, self.out_counter.count,
                                  self.drop_counter.count, QUEUE_MAXSIZE,
                                  self.mongodb_host, self.mongodb_port, self.mongodb_name,
-                                 "./mongolog_pcl")
-        elif msg_class == CompressedImage:
+                                 self.nodename_prefix, "./mongodb_log_pcl")
+        elif not self.no_specific and msg_class == CompressedImage:
             print("DETECTED compressed image topic %s, using fast C++ logger" % topic)
             w = SubprocessWorker(idnum, topic, collname,
                                  self.in_counter.count, self.out_counter.count,
                                  self.drop_counter.count, QUEUE_MAXSIZE,
                                  self.mongodb_host, self.mongodb_port, self.mongodb_name,
-                                 "./mongolog_cimg")
-	"""
+                                 self.nodename_prefix, "./mongodb_log_cimg")
+	    """
         elif msg_class == TriangleMesh:
             print("DETECTED triangle mesh topic %s, using fast C++ logger" % topic)
             w = SubprocessWorker(idnum, topic, collname,
                                  self.in_counter.count, self.out_counter.count,
                                  self.drop_counter.count, QUEUE_MAXSIZE,
                                  self.mongodb_host, self.mongodb_port, self.mongodb_name,
-                                 "./mongolog_trimesh")
-	"""
+                                 self.nodename_prefix, "./mongodb_log_trimesh")
+	    """
         else:
             w = WorkerProcess(idnum, topic, collname,
                               self.in_counter.count, self.out_counter.count,
                               self.drop_counter.count, QUEUE_MAXSIZE,
-                              self.mongodb_host, self.mongodb_port, self.mongodb_name)
+                              self.mongodb_host, self.mongodb_port, self.mongodb_name,
+                              self.nodename_prefix)
 
         if self.graph_topics: self.assert_worker_rrd(collname)
         
@@ -718,6 +734,9 @@ class MongoWriter(object):
 def main(argv):
     parser = OptionParser()
     parser.usage += " [TOPICs...]"
+    parser.add_option("--nodename-prefix", dest="nodename_prefix",
+                      help="Prefix for worker node names", metavar="ROS_NODE_NAME",
+                      default="")
     parser.add_option("--mongodb-host", dest="mongodb_host",
                       help="Hostname of MongoDB", metavar="HOST",
                       default="localhost")
@@ -746,6 +765,9 @@ def main(argv):
     parser.add_option("--graph-daemon", dest="graph_daemon", default=False,
                       action="store_true",
                       help="Use rrddaemon.")
+    parser.add_option("--no-specific", dest="no_specific", default=False,
+                      action="store_true", help="Disable specific loggers")
+
     (options, args) = parser.parse_args()
 
     if not options.all_topics and len(args) == 0:
@@ -753,7 +775,7 @@ def main(argv):
         return
 
     try:
-        rosgraph.masterapi.Master(NODE_NAME).getPid()
+        rosgraph.masterapi.Master(NODE_NAME_TEMPLATE % options.nodename_prefix).getPid()
     except socket.error:
         print("Failed to communicate with master")
 
@@ -766,7 +788,9 @@ def main(argv):
                               exclude_topics = options.exclude,
                               mongodb_host=options.mongodb_host,
                               mongodb_port=options.mongodb_port,
-                              mongodb_name=options.mongodb_name)
+                              mongodb_name=options.mongodb_name,
+                              no_specific=options.no_specific,
+                              nodename_prefix=options.nodename_prefix)
 
     mongowriter.run()
     mongowriter.shutdown()

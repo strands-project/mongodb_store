@@ -1,6 +1,6 @@
 
 /***************************************************************************
- *  mongolog_cimg.cpp - MongoDB Logger for compressed images
+ *  mongodb_log_cimg.cpp - MongoDB Logger for compressed images
  *
  *  Created: Wed Dec 15 17:59:25 2010
  *  Copyright  2010  Tim Niemueller [www.niemueller.de]
@@ -110,8 +110,8 @@ main(int argc, char **argv)
       mongodb = optarg;
     } else if (c == 'n') {
       nodename = optarg;
-    } else if (c == 'n') {
-      nodename = optarg;
+    } else if (c == 'c') {
+      collection = optarg;
     }
   }
 

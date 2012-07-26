@@ -1,7 +1,7 @@
 #!/usr/bin/lua
 
 ----------------------------------------------------------------------------
---  rosmongolog.lua - Lua based ROS to MongoDB logger
+--  ros_mongodb_log.lua - Lua based ROS to MongoDB logger
 --
 --  Created: Wed Nov 03 17:34:31 2010
 --  Copyright  2010  Tim Niemueller [www.niemueller.de]
@@ -36,9 +36,9 @@ require("roslua")
 roslua.assert_version(0,4,1)
 
 roslua.init_node{master_uri=os.getenv("ROS_MASTER_URI"),
-		 node_name="/rosmongolog"}
+		 node_name="/ros_mongodb_log"}
 
-local dbname = "rosmongolog"
+local dbname = "ros_mongodb_log"
 local dbhost = "localhost"
 local topics = { {name = "/chatter", type = "std_msgs/String"} }
 

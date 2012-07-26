@@ -1,6 +1,6 @@
 
 /***************************************************************************
- *  mongolog_trimesh.cpp - MongoDB Logger for Triangle Meshes
+ *  mongodb_log_trimesh.cpp - MongoDB Logger for Triangle Meshes
  *
  *  Created: Wed Dec 15 18:16:03 2010
  *  Copyright  2010  Tim Niemueller [www.niemueller.de]
@@ -147,8 +147,8 @@ main(int argc, char **argv)
       mongodb = optarg;
     } else if (c == 'n') {
       nodename = optarg;
-    } else if (c == 'n') {
-      nodename = optarg;
+    } else if (c == 'c') {
+      collection = optarg;
     }
   }
 

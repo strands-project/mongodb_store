@@ -4,7 +4,8 @@
 /ROS_NOBUILD
 /bin/*.rrd
 /bin/*.png
-/bin/mongolog_tf
-/bin/mongolog_pcl
-/bin/mongolog_cimg
-/bin/mongolog_trimesh
+/bin/mongodb_log_tf
+/bin/mongodb_log_pcl
+/bin/mongodb_log_cimg
+/bin/mongodb_log_trimesh
+/bin/benchmark_produce_tf

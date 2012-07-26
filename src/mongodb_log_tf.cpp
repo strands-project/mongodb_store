@@ -1,6 +1,6 @@
 
 /***************************************************************************
- *  mongolog_tf.cpp - MongoDB Logger for /tf
+ *  mongodb_log_tf.cpp - MongoDB Logger for /tf
  *
  *  Created: Wed Dec 8 17:00:25 2010 -0500
  *  Copyright  2010  Tim Niemueller [www.niemueller.de]
@@ -31,6 +31,7 @@ using namespace mongo;
 
 DBClientConnection *mongodb_conn;
 std::string collection;
+std::string topic;
 
 unsigned int in_counter;
 unsigned int out_counter;
@@ -45,15 +46,14 @@ static pthread_mutex_t qsize_mutex = PTHREAD_MUTEX_INITIALIZER;
 void msg_callback(const tf::tfMessage::ConstPtr& msg)
 {
   std::vector<BSONObj> transforms;
-  BSONObjBuilder transform_stamped;
-  BSONObjBuilder transform;
-
   
   const tf::tfMessage& msg_in = *msg;
 
   std::vector<geometry_msgs::TransformStamped>::const_iterator t;
   for (t = msg_in.transforms.begin(); t != msg_in.transforms.end(); ++t) {
     Date_t stamp = t->header.stamp.sec * 1000 + t->header.stamp.nsec / 1000000;
+    BSONObjBuilder transform_stamped;
+    BSONObjBuilder transform;
     transform_stamped.append("header", BSON("seq" << t->header.seq
 					    << "stamp" << stamp
 					    << "frame_id" << t->header.frame_id));
@@ -69,7 +69,9 @@ void msg_callback(const tf::tfMessage::ConstPtr& msg)
     transforms.push_back(transform_stamped.obj());
   }
 
-  mongodb_conn->insert(collection, BSON("transforms" << transforms));
+  mongodb_conn->insert(collection, BSON("transforms" << transforms <<
+                                        "__recorded" << Date_t(time(NULL) * 1000) <<
+                                        "__topic" << topic));
 
   // If we'd get access to the message queue this could be more useful
   // https://code.ros.org/trac/ros/ticket/744
@@ -101,6 +103,7 @@ void print_count(const ros::TimerEvent &te)
   l_qsize = qsize; qsize = 0;
   pthread_mutex_unlock(&qsize_mutex);
 
+
   printf("%u:%u:%u:%u\n", l_in_counter, l_out_counter, l_drop_counter, l_qsize);
   fflush(stdout);
 }
@@ -109,8 +112,8 @@ void print_count(const ros::TimerEvent &te)
 int
 main(int argc, char **argv)
 {
-  std::string topic = "", mongodb = "localhost", nodename = "";
-  collection = "";
+  std::string mongodb = "localhost", nodename = "";
+  collection = topic = "";
 
   in_counter = out_counter = drop_counter = qsize = 0;
 
@@ -125,8 +128,8 @@ main(int argc, char **argv)
       mongodb = optarg;
     } else if (c == 'n') {
       nodename = optarg;
-    } else if (c == 'n') {
-      nodename = optarg;
+    } else if (c == 'c') {
+      collection = optarg;
     }
   }
 

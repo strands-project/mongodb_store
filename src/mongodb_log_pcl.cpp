@@ -1,6 +1,6 @@
 
 /***************************************************************************
- *  mongolog_pcl.cpp - MongoDB Logger for point cloud topics
+ *  mongodb_log_pcl.cpp - MongoDB Logger for point cloud topics
  *
  *  Created: Mon Dec 13 15:05:37 2010
  *  Copyright  2010  Tim Niemueller [www.niemueller.de]
@@ -141,8 +141,8 @@ main(int argc, char **argv)
       mongodb = optarg;
     } else if (c == 'n') {
       nodename = optarg;
-    } else if (c == 'n') {
-      nodename = optarg;
+    } else if (c == 'c') {
+      collection = optarg;
     }
   }
 
