@@ -24,12 +24,13 @@
 # make sure we aren't using floor division
 from __future__ import division, with_statement
 
+PACKAGE_NAME='mongodb_log'
 NODE_NAME='mongodb_log'
 NODE_NAME_TEMPLATE='%smongodb_log'
 WORKER_NODE_NAME = "%smongodb_log_worker_%d_%s"
 QUEUE_MAXSIZE = 100
 
-import roslib; roslib.load_manifest(NODE_NAME)
+import roslib; roslib.load_manifest(PACKAGE_NAME)
 
 import os
 import re
@@ -48,6 +49,7 @@ from time import sleep
 from random import randint
 from tf.msg import tfMessage
 from sensor_msgs.msg import PointCloud, CompressedImage
+from roslib.packages import find_node
 #from rviz_intel.msg import TriangleMesh
 
 use_setproctitle = True
@@ -403,37 +405,39 @@ class MongoWriter(object):
         msg_class, real_topic, msg_eval = rostopic.get_topic_class(topic, blocking=True)
 
         w = None
+        node_path = None
         if not self.no_specific and msg_class == tfMessage:
             print("DETECTED transform topic %s, using fast C++ logger" % topic)
-            w = SubprocessWorker(idnum, topic, collname,
-                                 self.in_counter.count, self.out_counter.count,
-                                 self.drop_counter.count, QUEUE_MAXSIZE,
-                                 self.mongodb_host, self.mongodb_port, self.mongodb_name,
-                                 self.nodename_prefix, "./mongodb_log_tf")
+            node_path = find_node(PACKAGE_NAME, "mongodb_log_tf")
+            if not node_path:
+                print("FAILED to detect mongodb_log_tf, falling back to generic logger (did not build package?)")
         elif not self.no_specific and msg_class == PointCloud:
             print("DETECTED point cloud topic %s, using fast C++ logger" % topic)
-            w = SubprocessWorker(idnum, topic, collname,
-                                 self.in_counter.count, self.out_counter.count,
-                                 self.drop_counter.count, QUEUE_MAXSIZE,
-                                 self.mongodb_host, self.mongodb_port, self.mongodb_name,
-                                 self.nodename_prefix, "./mongodb_log_pcl")
+            node_path = find_node(PACKAGE_NAME, "mongodb_log_pcl")
+            if not node_path:
+                print("FAILED to detect mongodb_log_pcl, falling back to generic logger (did not build package?)")
         elif not self.no_specific and msg_class == CompressedImage:
             print("DETECTED compressed image topic %s, using fast C++ logger" % topic)
-            w = SubprocessWorker(idnum, topic, collname,
-                                 self.in_counter.count, self.out_counter.count,
-                                 self.drop_counter.count, QUEUE_MAXSIZE,
-                                 self.mongodb_host, self.mongodb_port, self.mongodb_name,
-                                 self.nodename_prefix, "./mongodb_log_cimg")
-	    """
+            node_path = find_node(PACKAGE_NAME, "mongodb_log_cimg")
+            if not node_path:
+                print("FAILED to detect mongodb_log_cimg, falling back to generic logger (did not build package?)")
+        """
         elif msg_class == TriangleMesh:
             print("DETECTED triangle mesh topic %s, using fast C++ logger" % topic)
+            node_path = find_node(PACKAGE_NAME, "mongodb_log_trimesh")
+            if not node_path:
+                print("FAILED to detect mongodb_log_trimesh, falling back to generic logger (did not build package?)")
+        """
+
+        if node_path:
             w = SubprocessWorker(idnum, topic, collname,
                                  self.in_counter.count, self.out_counter.count,
                                  self.drop_counter.count, QUEUE_MAXSIZE,
                                  self.mongodb_host, self.mongodb_port, self.mongodb_name,
-                                 self.nodename_prefix, "./mongodb_log_trimesh")
-	    """
-        else:
+                                 self.nodename_prefix, node_path)
+
+        if not w:
+            print("GENERIC Python logger used for topic %s" % topic)
             w = WorkerProcess(idnum, topic, collname,
                               self.in_counter.count, self.out_counter.count,
                               self.drop_counter.count, QUEUE_MAXSIZE,

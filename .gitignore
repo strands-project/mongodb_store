@@ -1,9 +1,9 @@
 *~
 *.pyc
+*.rrd
+*.png
 /build*
 /ROS_NOBUILD
-/bin/*.rrd
-/bin/*.png
 /bin/mongodb_log_tf
 /bin/mongodb_log_pcl
 /bin/mongodb_log_cimg
