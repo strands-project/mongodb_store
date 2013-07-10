@@ -61,7 +61,7 @@ except ImportError:
 import rospy
 import rosgraph.masterapi
 import roslib.message
-from roslib.rostime import Time, Duration
+from rospy.rostime import Time, Duration
 import rostopic
 import rrdtool
 
