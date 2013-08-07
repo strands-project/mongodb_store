@@ -293,7 +293,8 @@ class SubprocessWorker(object):
         mongodb_host_port = "%s:%d" % (mongodb_host, mongodb_port)
         collection = "%s.%s" % (mongodb_name, collname)
         nodename = WORKER_NODE_NAME % (self.nodename_prefix, self.id, self.collname)
-        self.process = subprocess.Popen([cpp_logger, "-t", topic, "-n", nodename,
+        
+        self.process = subprocess.Popen([cpp_logger[0], "-t", topic, "-n", nodename,
                                          "-m", mongodb_host_port, "-c", collection],
                                         stdout=subprocess.PIPE)
 
@@ -408,7 +409,7 @@ class MongoWriter(object):
 
         w = None
         node_path = None
-        """
+        
         if not self.no_specific and msg_class == tfMessage:
             print("DETECTED transform topic %s, using fast C++ logger" % topic)
             node_path = find_node(PACKAGE_NAME, "mongodb_log_tf")
@@ -424,7 +425,7 @@ class MongoWriter(object):
             node_path = find_node(PACKAGE_NAME, "mongodb_log_cimg")
             if not node_path:
                 print("FAILED to detect mongodb_log_cimg, falling back to generic logger (did not build package?)")
-
+        """
         elif msg_class == TriangleMesh:
             print("DETECTED triangle mesh topic %s, using fast C++ logger" % topic)
             node_path = find_node(PACKAGE_NAME, "mongodb_log_trimesh")
