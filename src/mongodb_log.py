@@ -58,10 +58,11 @@ try:
 except ImportError:
     use_setproctitle = False
 
+import genpy
 import rospy
 import rosgraph.masterapi
 import roslib.message
-from rospy.rostime import Time, Duration
+#from rospy import Time, Duration
 import rostopic
 import rrdtool
 
@@ -185,10 +186,10 @@ class WorkerProcess(object):
     def sanitize_value(self, v):
         if isinstance(v, rospy.Message):
             return self.message_to_dict(v)
-        elif isinstance(v, Time):
+        elif isinstance(v, genpy.rostime.Time):
             t = datetime.fromtimestamp(v.secs)
             return t + timedelta(microseconds=v.nsecs / 1000.)
-        elif isinstance(v, Duration):
+        elif isinstance(v, genpy.rostime.Duration):
             return v.secs + v.nsecs / 1000000000.
         elif isinstance(v, list):
             return [self.sanitize_value(t) for t in v]
@@ -213,7 +214,8 @@ class WorkerProcess(object):
                     self.worker_drop_counter.increment()
                 except Empty:
                     pass
-            self.queue.put((topic, data, current_time or datetime.now()))
+            #self.queue.put((topic, data, current_time or datetime.now()))
+            self.queue.put((topic, data, rospy.get_time()))
             self.in_counter.increment()
             self.worker_in_counter.increment()
 
@@ -291,6 +293,7 @@ class SubprocessWorker(object):
         mongodb_host_port = "%s:%d" % (mongodb_host, mongodb_port)
         collection = "%s.%s" % (mongodb_name, collname)
         nodename = WORKER_NODE_NAME % (self.nodename_prefix, self.id, self.collname)
+        
         self.process = subprocess.Popen([cpp_logger, "-t", topic, "-n", nodename,
                                          "-m", mongodb_host_port, "-c", collection],
                                         stdout=subprocess.PIPE)
@@ -406,6 +409,7 @@ class MongoWriter(object):
 
         w = None
         node_path = None
+        
         if not self.no_specific and msg_class == tfMessage:
             print("DETECTED transform topic %s, using fast C++ logger" % topic)
             node_path = find_node(PACKAGE_NAME, "mongodb_log_tf")
@@ -434,7 +438,7 @@ class MongoWriter(object):
                                  self.in_counter.count, self.out_counter.count,
                                  self.drop_counter.count, QUEUE_MAXSIZE,
                                  self.mongodb_host, self.mongodb_port, self.mongodb_name,
-                                 self.nodename_prefix, node_path)
+                                 self.nodename_prefix, node_path[0])
 
         if not w:
             print("GENERIC Python logger used for topic %s" % topic)
