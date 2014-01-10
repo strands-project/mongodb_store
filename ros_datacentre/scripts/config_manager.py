@@ -1,19 +1,19 @@
 #!/usr/bin/env python
 
-import roslib; roslib.load_manifest('strands_datacentre')
+import roslib; roslib.load_manifest('ros_datacentre')
 import rospy
 import sys
 import os
 import collections
 import json
 
-import strands_datacentre.util
+import ros_datacentre.util
 
-from strands_datacentre.srv import *
+from ros_datacentre.srv import *
 from std_srvs.srv import *
 import rosparam
 
-if not strands_datacentre.util.check_for_pymongo():
+if not ros_datacentre.util.check_for_pymongo():
     sys.exit(1)
 
 import pymongo
@@ -24,14 +24,14 @@ class ConfigManager(object):
         rospy.init_node("config_manager")
         rospy.on_shutdown(self._on_node_shutdown)
 
-        if not strands_datacentre.util.wait_for_mongo():
+        if not ros_datacentre.util.wait_for_mongo():
             sys.exit(1)
         
         self._mongo_client = pymongo.MongoClient(rospy.get_param("datacentre_host","localhost"),
                                                  int(rospy.get_param("datacentre_port")))
 
         # Load the default settings from the defaults/ folder
-        path = os.path.join(roslib.packages.get_pkg_dir('strands_datacentre'),"defaults")
+        path = os.path.join(roslib.packages.get_pkg_dir('ros_datacentre'),"defaults")
         files = os.listdir(path)
         defaults=[]  # a list of 3-tuples, (param, val, originating_filename)
         def flatten(d, c="", f_name="" ):

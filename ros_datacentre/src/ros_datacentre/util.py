@@ -6,7 +6,7 @@ import json
 
 """
 Waits for the mongo server, as started through the
-strands_datacentre/mongodb_server.py wrapper
+ros_datacentre/mongodb_server.py wrapper
 Return True on success, False if server not even started.
 """
 def wait_for_mongo():
@@ -14,7 +14,7 @@ def wait_for_mongo():
     try:
         rospy.wait_for_service("/datacentre/wait_ready",10)
     except rospy.exceptions.ROSException, e:
-        rospy.logerr("Can't connect to MongoDB server. Make sure strands_datacentre/mongodb_server.py node is started.")
+        rospy.logerr("Can't connect to MongoDB server. Make sure ros_datacentre/mongodb_server.py node is started.")
         return False
     wait = rospy.ServiceProxy('/datacentre/wait_ready', Empty)
     wait()
@@ -28,7 +28,7 @@ def check_for_pymongo():
         import pymongo
     except:
         print("ERROR!!!")
-        print("Can't import pymongo, this is needed by strands_datacentre.")
+        print("Can't import pymongo, this is needed by ros_datacentre.")
         print("Make sure it is installed (sudo pip install pymongo)")
         return False
 
@@ -73,6 +73,21 @@ def sanitize_value(v):
         return [sanitize_value(t) for t in v]
     else:
         return v
+
+# this version is from mongodb_log but creates non-recreatable entries
+# """ Sanitize the input value for addition to the database. Taken from mongodb_log """
+# def sanitize_value(v):
+#     if isinstance(v, rospy.Message):
+#         return message_to_dict(v)
+#     elif isinstance(v, genpy.rostime.Time):
+#         t = datetime.fromtimestamp(v.secs)
+#         return t + timedelta(microseconds=v.nsecs / 1000.)
+#     elif isinstance(v, genpy.rostime.Duration):
+#         return v.secs + v.nsecs / 1000000000.
+#     elif isinstance(v, list):
+#         return [sanitize_value(t) for t in v]
+#     else:
+#         return v
 
     
 """

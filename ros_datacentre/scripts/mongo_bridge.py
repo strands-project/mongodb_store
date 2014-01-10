@@ -10,8 +10,8 @@ from client side javascript on a webpage with rosbridge/librosjs then use this.
 """
 
 import rospy
-import strands_datacentre.util as dc_util
-from strands_datacentre.srv import *
+import ros_datacentre.util as dc_util
+from ros_datacentre.srv import *
 import pymongo
 import bson.json_util 
 

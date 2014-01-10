@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(strands_datacentre)
+project(ros_datacentre)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS message_generation roscpp rospy std_msgs std_srvs)
+find_package(catkin REQUIRED COMPONENTS message_generation rospy std_msgs std_srvs)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS message_generation roscpp rospy std_msgs
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
+
 catkin_python_setup()
 
 #######################################
@@ -53,7 +54,7 @@ generate_messages(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES strands_datacentre
+#  LIBRARIES ros_datacentre
 #  CATKIN_DEPENDS roscpp rospy std_msgs std_srvs
 #  DEPENDS system_lib
 )
@@ -70,19 +71,19 @@ include_directories(
 )
 
 ## Declare a cpp library
-# add_library(strands_datacentre
-#   src/${PROJECT_NAME}/strands_datacentre.cpp
+# add_library(ros_datacentre
+#   src/${PROJECT_NAME}/ros_datacentre.cpp
 # )
 
 ## Declare a cpp executable
-# add_executable(strands_datacentre_node src/strands_datacentre_node.cpp)
+# add_executable(ros_datacentre_node src/ros_datacentre_node.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-# add_dependencies(strands_datacentre_node strands_datacentre_generate_messages_cpp)
+# add_dependencies(ros_datacentre_node ros_datacentre_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(strands_datacentre_node
+# target_link_libraries(ros_datacentre_node
 #   ${catkin_LIBRARIES}
 # )
 
@@ -100,7 +101,7 @@ install(DIRECTORY scripts/
         USE_SOURCE_PERMISSIONS)
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS strands_datacentre strands_datacentre_node
+# install(TARGETS ros_datacentre ros_datacentre_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -125,7 +126,7 @@ install(DIRECTORY scripts/
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_strands_datacentre.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_ros_datacentre.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

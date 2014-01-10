@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import roslib; roslib.load_manifest('strands_datacentre')
+import roslib; roslib.load_manifest('ros_datacentre')
 import rospy
 import subprocess
 import sys
@@ -9,9 +9,10 @@ import re
 import signal
 import errno
 from std_srvs.srv import *
-import strands_datacentre.util
 
-if not strands_datacentre.util.check_for_pymongo():
+import ros_datacentre.util
+
+if not ros_datacentre.util.check_for_pymongo():
     sys.exit(1)
     
 import pymongo
@@ -22,7 +23,7 @@ class MongoServer(object):
         rospy.on_shutdown(self._on_node_shutdown)
 
         # Get the database path
-        self._db_path = rospy.get_param("~database_path", "/opt/strands/strands_datacentre")
+        self._db_path = rospy.get_param("~database_path", "/opt/ros/ros_datacentre")
 
         # What server does mongodb reside
         self._mongo_host = rospy.get_param("datacentre_host", "localhost")
@@ -44,7 +45,7 @@ class MongoServer(object):
 
         # Check that the provided db path exists.
         if not os.path.exists(self._db_path):
-            rospy.logerr("Can't find supplied database. If this is a new DB, create it as an empty directory.")
+            rospy.logerr("Can't find database at supplied path " + self._db_path + ". If this is a new DB, create it as an empty directory.")
             sys.exit(1)
 
         # Advertise ros services for db interaction
