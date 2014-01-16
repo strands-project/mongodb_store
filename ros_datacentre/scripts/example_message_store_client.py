@@ -18,7 +18,8 @@ if __name__ == '__main__':
         insert = rospy.ServiceProxy('/message_store/insert', dc_srv.MongoInsertMsg)
         database="test_db"
         collection="things"
-        typeString="something"
+        typeString= "%s.%s" % (p.__class__.__module__, p.__class__.__name__)
+        print typeString
         buf=StringIO.StringIO()
         p.serialize(buf)
         msg=buf.getvalue()
