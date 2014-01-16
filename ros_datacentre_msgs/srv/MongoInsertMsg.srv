@@ -1,0 +1,9 @@
+# message used for inserting a ROS msg into a MongoDB database
+
+string database
+string collection
+# type to deserialise into
+string type
+# serialised mesage
+uint8 msg
+---
