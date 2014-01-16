@@ -9,6 +9,11 @@ import rospy
 import ros_datacentre_msgs.srv as dc_srv
 import ros_datacentre.util as dc_util
 import pymongo
+# from std_srvs.srv import *
+
+# For testing
+from geometry_msgs.msg import Pose, Point, Quaternion
+
 
 class MessageStore(object):
     def __init__(self):
@@ -31,6 +36,9 @@ class MessageStore(object):
 
                                                
     def insert_ros_srv(self,req):
+        p = Pose()
+        p.deserialize(req.msg)
+        print p
         collection = self._mongo_client[req.database][req.collection]
         
     insert_ros_srv.type=dc_srv.MongoInsertMsg
