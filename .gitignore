@@ -35,3 +35,9 @@ nosetests.xml
 .pydevproject
 
 *~
+
+*.pyc
+*.rrd
+*.png
+/build*
+/ROS_NOBUILD
