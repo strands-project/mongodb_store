@@ -5,5 +5,5 @@ string collection
 # type to deserialise into
 string type
 # serialised mesage
-string msg
+uint8[] msg
 ---

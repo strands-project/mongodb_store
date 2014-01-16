@@ -48,17 +48,24 @@ class MessageStore(object):
         return getattr(module, class_str)
 
                                                
+    # def insert_ros_srv(self, req):
+    #     print req.type
+    #     # get class from type
+    #     # todo: cache classes (if this is an overhead)
+    #     cls = self.load_class(req.type)
+    #     # instantiate an object from the class
+    #     obj = cls()
+    #     # deserialize data into object
+    #     obj.deserialize(req.msg)
+    #     print obj
+    #     collection = self._mongo_client[req.database][req.collection]
     def insert_ros_srv(self, req):
-        print req.type
-        # get class from type
-        # todo: cache classes (if this is an overhead)
-        cls = self.load_class(req.type)
-        # instantiate an object from the class
-        obj = cls()
+        print req
+        obj = Pose()
+        # obj = cls()
         # deserialize data into object
-        obj.deserialize(req.msg)
+        obj.deserialize(str(req.msg))
         print obj
-        collection = self._mongo_client[req.database][req.collection]
         
     insert_ros_srv.type=dc_srv.MongoInsertMsg
                                               
