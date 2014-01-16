@@ -6,7 +6,7 @@ Provides a service to store ROS message objects in a mongodb database in JSON.
 """
 
 import rospy
-import ros_datacentre_msgs.srv
+import ros_datacentre_msgs.srv as dc_srv
 import ros_datacentre.util as dc_util
 import pymongo
 
@@ -33,7 +33,7 @@ class MessageStore(object):
     def insert_ros_srv(self,req):
         collection = self._mongo_client[req.database][req.collection]
         
-    insert_ros_srv.type=MongoInsertMsg
+    insert_ros_srv.type=dc_srv.MongoInsertMsg
                                               
 
 if __name__ == '__main__':

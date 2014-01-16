@@ -19,5 +19,6 @@
   <build_depend>message_generation</build_depend>
 
   <run_depend>message_runtime</run_depend>
+   <run_depend>message_generation</run_depend>
 
 </package>
