@@ -31,6 +31,10 @@ WORKER_NODE_NAME = "%smongodb_log_worker_%d_%s"
 QUEUE_MAXSIZE = 100
 
 import roslib; roslib.load_manifest(PACKAGE_NAME)
+import rospy
+
+# for msg_to_document
+import ros_datacentre.util
 
 import os
 import re
@@ -59,17 +63,14 @@ except ImportError:
     use_setproctitle = False
 
 import genpy
-import rospy
 import rosgraph.masterapi
 import roslib.message
 #from rospy import Time, Duration
 import rostopic
-import rrdtool
+
 
 from pymongo import Connection, SLOW_ONLY
 from pymongo.errors import InvalidDocument, InvalidStringData
-
-import rrdtool
 
 BACKLOG_WARN_LIMIT = 100
 STATS_LOOPTIME     = 10
@@ -183,24 +184,8 @@ class WorkerProcess(object):
         self.process.join()
         self.process.terminate()
 
-    def sanitize_value(self, v):
-        if isinstance(v, rospy.Message):
-            return self.message_to_dict(v)
-        elif isinstance(v, genpy.rostime.Time):
-            t = datetime.fromtimestamp(v.secs)
-            return t + timedelta(microseconds=v.nsecs / 1000.)
-        elif isinstance(v, genpy.rostime.Duration):
-            return v.secs + v.nsecs / 1000000000.
-        elif isinstance(v, list):
-            return [self.sanitize_value(t) for t in v]
-        else:
-            return v
+ 
 
-    def message_to_dict(self, val):
-        d = {}
-        for f in val.__slots__:
-            d[f] = self.sanitize_value(getattr(val, f))
-        return d
 
     def qsize(self):
         return self.queue.qsize()
@@ -237,7 +222,7 @@ class WorkerProcess(object):
                 ctime = t[2]
 
                 if isinstance(msg, rospy.Message):
-                    doc = self.message_to_dict(msg)
+                    doc = ros_datacentre.util.msg_to_document(msg)
                     doc["__recorded"] = ctime or datetime.now()
                     doc["__topic"]    = topic
                     try:
@@ -324,16 +309,11 @@ class SubprocessWorker(object):
 
 
 class MongoWriter(object):
-    def __init__(self, topics = [], graph_topics = False,
-                 graph_dir = ".", graph_clear = False, graph_daemon = False,
+    def __init__(self, topics = [], 
                  all_topics = False, all_topics_interval = 5,
                  exclude_topics = [],
                  mongodb_host=None, mongodb_port=None, mongodb_name="roslog",
                  no_specific=False, nodename_prefix=""):
-        self.graph_dir = graph_dir
-        self.graph_topics = graph_topics
-        self.graph_clear = graph_clear
-        self.graph_daemon = graph_daemon
         self.all_topics = all_topics
         self.all_topics_interval = all_topics_interval
         self.exclude_topics = exclude_topics
@@ -351,9 +331,6 @@ class MongoWriter(object):
         self.drop_counter = Counter()
         self.workers = {}
 
-        if self.graph_dir == ".": self.graph_dir = os.getcwd()
-        if not os.path.exists(self.graph_dir): os.makedirs(self.graph_dir)
-
         global use_setproctitle
         if use_setproctitle:
             setproctitle("mongodb_log MAIN")
@@ -363,7 +340,6 @@ class MongoWriter(object):
             self.exclude_regex.append(re.compile(et))
         self.exclude_already = []
 
-        self.init_rrd()
 
         self.subscribe_topics(set(topics))
         if self.all_topics:
@@ -447,8 +423,6 @@ class MongoWriter(object):
                               self.drop_counter.count, QUEUE_MAXSIZE,
                               self.mongodb_host, self.mongodb_port, self.mongodb_name,
                               self.nodename_prefix)
-
-        if self.graph_topics: self.assert_worker_rrd(collname)
         
         return w
 
@@ -456,18 +430,8 @@ class MongoWriter(object):
     def run(self):
         looping_threshold = timedelta(0, STATS_LOOPTIME,  0)
 
-        self.graph_thread = Thread(name="RRDGrapherThread", target=self.graph_rrd_thread)
-        self.graph_thread.daemon = True
-        self.graph_thread.start()
-
         while not rospy.is_shutdown() and not self.quit:
-            started = datetime.now()
-
-            if self.graph_daemon and self.graph_process.poll() != None:
-                print("WARNING: rrdcached died, falling back to non-cached version. Please investigate.")
-                self.graph_daemon = False
-
-            self.update_rrd()
+            started = datetime.now()        
 
             # the following code makes sure we run once per STATS_LOOPTIME, taking
             # varying run-times and interrupted sleeps into account
@@ -485,9 +449,6 @@ class MongoWriter(object):
             #print("Shutdown %s" % name)
             w.shutdown()
 
-        if self.graph_daemon:
-            self.graph_process.kill()
-            self.graph_process.wait()
 
     def start_all_topics_timer(self):
         if not self.all_topics or self.quit: return
@@ -537,207 +498,6 @@ class MongoWriter(object):
         #print("Size: %d  RSS: %s  Stack: %s" % (size, rss, stack))
         return (size, rss, stack)
 
-    def assert_rrd(self, file, *data_sources):
-        if not os.path.isfile(file) or self.graph_clear:
-            rrdtool.create(file, "--step", "10", "--start", "0",
-                           # remember that we always need to add the previous RRA time range
-                           # hence number of rows is not directly calculated by desired time frame
-                           "RRA:AVERAGE:0.5:1:720",    #  2 hours of 10 sec  averages
-                           "RRA:AVERAGE:0.5:3:1680",   # 12 hours of 30 sec  averages
-                           "RRA:AVERAGE:0.5:30:456",   #  1 day   of  5 min  averages
-                           "RRA:AVERAGE:0.5:180:412",  #  7 days  of 30 min  averages
-                           "RRA:AVERAGE:0.5:720:439",  #  4 weeks of  2 hour averages
-                           "RRA:AVERAGE:0.5:8640:402", #  1 year  of  1 day averages
-                           "RRA:MIN:0.5:1:720",
-                           "RRA:MIN:0.5:3:1680",
-                           "RRA:MIN:0.5:30:456",
-                           "RRA:MIN:0.5:180:412",
-                           "RRA:MIN:0.5:720:439",
-                           "RRA:MIN:0.5:8640:402",
-                           "RRA:MAX:0.5:1:720",
-                           "RRA:MAX:0.5:3:1680",
-                           "RRA:MAX:0.5:30:456",
-                           "RRA:MAX:0.5:180:412",
-                           "RRA:MAX:0.5:720:439",
-                           "RRA:MAX:0.5:8640:402",
-                           *data_sources)
-
-    def graph_rrd_thread(self):
-        graphing_threshold = timedelta(0, STATS_GRAPHTIME - STATS_GRAPHTIME*0.01, 0)
-        first_run = True
-
-        while not rospy.is_shutdown() and not self.quit:
-            started = datetime.now()
-
-            if not first_run: self.graph_rrd()
-            else: first_run = False
-
-            # the following code makes sure we run once per STATS_LOOPTIME, taking
-            # varying run-times and interrupted sleeps into account
-            td = datetime.now() - started
-            while not rospy.is_shutdown() and not self.quit and td < graphing_threshold:
-                sleeptime = STATS_GRAPHTIME - (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / 10**6
-                if sleeptime > 0: sleep(sleeptime)
-                td = datetime.now() - started
-
-    def graph_rrd(self):
-        #print("Generating graphs")
-        time_started = datetime.now()
-        rrdtool.graph(["%s/logstats.png" % self.graph_dir,
-                       "--start=-600", "--end=-10",
-                       "--disable-rrdtool-tag", "--width=560",
-                       "--font", "LEGEND:10:", "--font", "UNIT:8:",
-                       "--font", "TITLE:12:", "--font", "AXIS:8:",
-                       "--title=MongoDB Logging Stats",
-                       "--vertical-label=messages/sec",
-                       "--slope-mode"]
-                      + (self.graph_daemon and self.graph_daemon_args or []) +
-                      ["DEF:qsize=%s/logstats.rrd:qsize:AVERAGE:step=10" % self.graph_dir,
-                       "DEF:in=%s/logstats.rrd:in:AVERAGE:step=10" % self.graph_dir,
-                       "DEF:out=%s/logstats.rrd:out:AVERAGE:step=10" % self.graph_dir,
-                       "DEF:drop=%s/logstats.rrd:drop:AVERAGE:step=10" % self.graph_dir,
-                       "LINE1:qsize#FF7200:Queue Size",
-                       "GPRINT:qsize:LAST:Current\\:%8.2lf %s",
-                       "GPRINT:qsize:AVERAGE:Average\\:%8.2lf %s",
-                       "GPRINT:qsize:MAX:Maximum\\:%8.2lf %s\\n",
-                       "LINE1:in#503001:In",
-                       "GPRINT:in:LAST:        Current\\:%8.2lf %s",
-                       "GPRINT:in:AVERAGE:Average\\:%8.2lf %s",
-                       "GPRINT:in:MAX:Maximum\\:%8.2lf %s\\n",
-                       "LINE1:out#EDAC00:Out",
-                       "GPRINT:out:LAST:       Current\\:%8.2lf %s",
-                       "GPRINT:out:AVERAGE:Average\\:%8.2lf %s",
-                       "GPRINT:out:MAX:Maximum\\:%8.2lf %s\\n",
-                       "LINE1:drop#506101:Dropped",
-                       "GPRINT:drop:LAST:   Current\\:%8.2lf %s",
-                       "GPRINT:drop:AVERAGE:Average\\:%8.2lf %s",
-                       "GPRINT:drop:MAX:Maximum\\:%8.2lf %s\\n"])
-
-        if self.graph_topics:
-            for _, w in self.workers.items():
-                #worker_time_started = datetime.now()
-                rrdtool.graph(["%s/%s.png" % (self.graph_dir, w.collname),
-                               "--start=-600", "--end=-10",
-                               "--disable-rrdtool-tag", "--width=560",
-                               "--font", "LEGEND:10:", "--font", "UNIT:8:",
-                               "--font", "TITLE:12:", "--font", "AXIS:8:",
-                               "--title=%s" % w.topic,
-                               "--vertical-label=messages/sec",
-                               "--slope-mode"]
-                              + (self.graph_daemon and self.graph_daemon_args or []) +
-                              ["DEF:qsize=%s/%s.rrd:qsize:AVERAGE:step=10" % (self.graph_dir, w.collname),
-                               "DEF:in=%s/%s.rrd:in:AVERAGE:step=10" % (self.graph_dir, w.collname),
-                               "DEF:out=%s/%s.rrd:out:AVERAGE:step=10" % (self.graph_dir, w.collname),
-                               "DEF:drop=%s/%s.rrd:drop:AVERAGE:step=10" % (self.graph_dir, w.collname),
-                               "LINE1:qsize#FF7200:Queue Size",
-                               "GPRINT:qsize:LAST:Current\\:%8.2lf %s",
-                               "GPRINT:qsize:AVERAGE:Average\\:%8.2lf %s",
-                               "GPRINT:qsize:MAX:Maximum\\:%8.2lf %s\\n",
-                               "LINE1:in#503001:In",
-                               "GPRINT:in:LAST:        Current\\:%8.2lf %s",
-                               "GPRINT:in:AVERAGE:Average\\:%8.2lf %s",
-                               "GPRINT:in:MAX:Maximum\\:%8.2lf %s\\n",
-                               "LINE1:out#EDAC00:Out",
-                               "GPRINT:out:LAST:       Current\\:%8.2lf %s",
-                               "GPRINT:out:AVERAGE:Average\\:%8.2lf %s",
-                               "GPRINT:out:MAX:Maximum\\:%8.2lf %s\\n",
-                               "LINE1:drop#506101:Dropped",
-                               "GPRINT:drop:LAST:   Current\\:%8.2lf %s",
-                               "GPRINT:drop:AVERAGE:Average\\:%8.2lf %s",
-                               "GPRINT:drop:MAX:Maximum\\:%8.2lf %s\\n"])
-
-                #worker_time_elapsed = datetime.now() - worker_time_started
-                #print("Generated worker graph for %s, took %s" % (w.topic, worker_time_elapsed))
-
-
-        rrdtool.graph(["%s/logmemory.png" % self.graph_dir,
-                       "--start=-600", "--end=-10",
-                       "--disable-rrdtool-tag", "--width=560",
-                       "--font", "LEGEND:10:", "--font", "UNIT:8:",
-                       "--font", "TITLE:12:", "--font", "AXIS:8:",
-                       "--title=ROS MongoLog Memory Usage",
-                       "--vertical-label=bytes",
-                       "--slope-mode"]
-                      + (self.graph_daemon and self.graph_daemon_args or []) +
-                      ["DEF:size=%s/logmemory.rrd:size:AVERAGE:step=10" % self.graph_dir,
-                       "DEF:rss=%s/logmemory.rrd:rss:AVERAGE:step=10" % self.graph_dir,
-                       "AREA:size#FF7200:Total",
-                       "GPRINT:size:LAST:   Current\\:%8.2lf %s",
-                       "GPRINT:size:AVERAGE:Average\\:%8.2lf %s",
-                       "GPRINT:size:MAX:Maximum\\:%8.2lf %s\\n",
-                       "AREA:rss#503001:Resident",
-                       "GPRINT:rss:LAST:Current\\:%8.2lf %s",
-                       "GPRINT:rss:AVERAGE:Average\\:%8.2lf %s",
-                       "GPRINT:rss:MAX:Maximum\\:%8.2lf %s\\n"])
-        time_elapsed = datetime.now() - time_started
-        print("Generated graphs, took %s" % time_elapsed)
-
-    def init_rrd(self):
-        self.assert_rrd("%s/logstats.rrd" % self.graph_dir,
-                        "DS:qsize:GAUGE:30:0:U",
-                        "DS:in:COUNTER:30:0:U",
-                        "DS:out:COUNTER:30:0:U",
-                        "DS:drop:COUNTER:30:0:U")
-
-        self.assert_rrd("%s/logmemory.rrd" % self.graph_dir,
-                        "DS:size:GAUGE:30:0:U",
-                        "DS:rss:GAUGE:30:0:U",
-                        "DS:stack:GAUGE:30:0:U")
-
-        self.graph_args = []
-        if self.graph_daemon:
-            self.graph_sockfile = mktemp(prefix="rrd_", suffix=".sock")
-            self.graph_pidfile  = mktemp(prefix="rrd_", suffix=".pid")
-            print("Starting rrdcached -l unix:%s -p %s -b %s -g" %
-                  (self.graph_sockfile,self.graph_pidfile, self.graph_dir))
-            devnull = file('/dev/null', 'a+')
-            self.graph_process = subprocess.Popen(["/usr/bin/rrdcached",
-                                                   "-l", "unix:%s" % self.graph_sockfile,
-                                                   "-p", self.graph_pidfile,
-                                                   "-b", self.graph_dir,
-                                                   "-g"], stderr=subprocess.STDOUT)
-            self.graph_daemon_args = ["--daemon", "unix:%s" % self.graph_sockfile]
-
-    def assert_worker_rrd(self, collname):
-        self.assert_rrd("%s/%s.rrd" % (self.graph_dir, collname),
-                        "DS:qsize:GAUGE:30:0:U",
-                        "DS:in:COUNTER:30:0:U",
-                        "DS:out:COUNTER:30:0:U",
-                        "DS:drop:COUNTER:30:0:U")
-
-
-    def update_rrd(self):
-        # we do not lock here, we are not interested in super-precise
-        # values for this, but we do care for high performance processing
-        qsize = 0
-        #print("Updating graphs")
-        time_started = datetime.now()
-        for _, w in self.workers.items():
-            wqsize = w.queue.qsize()
-            qsize += wqsize
-            if wqsize > QUEUE_MAXSIZE/2: print("Excessive queue size %6d: %s" % (wqsize, w.name))
-
-            if self.graph_topics:
-                rrdtool.update(["%s/%s.rrd" % (self.graph_dir, w.collname)]
-                               + (self.graph_daemon and self.graph_daemon_args or []) +
-                               ["N:%d:%d:%d:%d" %
-                                (wqsize, w.worker_in_counter.count.value,
-                                 w.worker_out_counter.count.value, w.worker_drop_counter.count.value)])
-
-        rrdtool.update(["%s/logstats.rrd" % self.graph_dir]
-                       + (self.graph_daemon and self.graph_daemon_args or []) +
-                       ["N:%d:%d:%d:%d" %
-                        (qsize, self.in_counter.count.value, self.out_counter.count.value,
-                         self.drop_counter.count.value)])
-
-        rrdtool.update(["%s/logmemory.rrd" % self.graph_dir]
-                       + (self.graph_daemon and self.graph_daemon_args or []) +
-                       ["N:%d:%d:%d" % self.get_memory_usage()])
-
-        time_elapsed = datetime.now() - time_started
-        print("Updated graphs, total queue size %d, dropped %d, took %s" %
-              (qsize, self.drop_counter.count.value, time_elapsed))
-
 
 def main(argv):
     parser = OptionParser()
@@ -747,10 +507,10 @@ def main(argv):
                       default="")
     parser.add_option("--mongodb-host", dest="mongodb_host",
                       help="Hostname of MongoDB", metavar="HOST",
-                      default="localhost")
+                      default=rospy.get_param("datacentre_host", "localhost"))
     parser.add_option("--mongodb-port", dest="mongodb_port",
                       help="Hostname of MongoDB", type="int",
-                      metavar="PORT", default=27017)
+                      metavar="PORT", default=rospy.get_param("datacentre_port", 27017))
     parser.add_option("--mongodb-name", dest="mongodb_name",
                       help="Name of DB in which to store values",
                       metavar="NAME", default="roslog")
@@ -762,17 +522,6 @@ def main(argv):
     parser.add_option("-x", "--exclude", dest="exclude",
                       help="Exclude topics matching REGEX, may be given multiple times",
                       action="append", type="string", metavar="REGEX", default=[])
-    parser.add_option("--graph-topics", dest="graph_topics", default=False,
-                      action="store_true",
-                      help="Write graphs per topic")
-    parser.add_option("--graph-clear", dest="graph_clear", default=False,
-                      action="store_true",
-                      help="Remove existing RRD files.")
-    parser.add_option("--graph-dir", dest="graph_dir", default=".",
-                      help="Directory in which to create the graphs")
-    parser.add_option("--graph-daemon", dest="graph_daemon", default=False,
-                      action="store_true",
-                      help="Use rrddaemon.")
     parser.add_option("--no-specific", dest="no_specific", default=False,
                       action="store_true", help="Disable specific loggers")
 
@@ -787,10 +536,7 @@ def main(argv):
     except socket.error:
         print("Failed to communicate with master")
 
-    mongowriter = MongoWriter(topics=args, graph_topics = options.graph_topics,
-                              graph_dir = options.graph_dir,
-                              graph_clear = options.graph_clear,
-                              graph_daemon = options.graph_daemon,
+    mongowriter = MongoWriter(topics=args, 
                               all_topics=options.all_topics,
                               all_topics_interval = options.all_topics_interval,
                               exclude_topics = options.exclude,
