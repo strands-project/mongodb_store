@@ -16,14 +16,13 @@ if __name__ == '__main__':
 
     try:
         insert = rospy.ServiceProxy('/message_store/insert', dc_srv.MongoInsertMsg)
-        database="test_db"
-        collection="things"
-        typeString= "%s.%s" % (p.__class__.__module__, p.__class__.__name__)
-        print typeString
+        database="not"
+        collection="yet"                
+        print p._type
         buf=StringIO.StringIO()
         p.serialize(buf)
         msg=buf.getvalue()
-        insert(database, collection, typeString, msg)
+        insert(database, collection, p._type, msg)
         
     except rospy.ServiceException, e:
         print "Service call failed: %s"%e

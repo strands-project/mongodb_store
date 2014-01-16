@@ -47,25 +47,32 @@ class MessageStore(object):
         # Finally, we retrieve the Class
         return getattr(module, class_str)
 
-                                               
-    # def insert_ros_srv(self, req):
-    #     print req.type
-    #     # get class from type
-    #     # todo: cache classes (if this is an overhead)
-    #     cls = self.load_class(req.type)
-    #     # instantiate an object from the class
-    #     obj = cls()
-    #     # deserialize data into object
-    #     obj.deserialize(req.msg)
-    #     print obj
-    #     collection = self._mongo_client[req.database][req.collection]
+    def type_to_class_string(self, type):
+        """ 
+        Takes a ROS msg type and turns it into a Python module and class name. 
+        E.g. from 
+        geometry_msgs/Pose 
+        to
+        geometry_msgs.msg._Pose.Pose
+        """
+        print type
+        parts = type.split('/')
+        cls_string = "%s.msg._%s.%s" % (parts[0], parts[1], parts[1])
+        return cls_string
+
     def insert_ros_srv(self, req):
-        print req
-        obj = Pose()
-        # obj = cls()
+        print req.type
+        # get class from type
+        # todo: cache classes (if this is an overhead)
+        cls_string = self.type_to_class_string(req.type)
+        cls = self.load_class(cls_string)
+        # instantiate an object from the class
+        obj = cls()
         # deserialize data into object
-        obj.deserialize(str(req.msg))
+        obj.deserialize(req.msg)
         print obj
+        collection = self._mongo_client[req.database][req.collection]
+    
         
     insert_ros_srv.type=dc_srv.MongoInsertMsg
                                               
