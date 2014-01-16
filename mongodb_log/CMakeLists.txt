@@ -71,7 +71,7 @@ catkin_package(
 add_executable(mongodb_log_tf src/mongodb_log_tf.cpp)
 add_executable(mongodb_log_pcl src/mongodb_log_pcl.cpp)
 add_executable(mongodb_log_cimg src/mongodb_log_cimg.cpp)
-add_executable(benchmark_produce_tf src/benchmark/produce_tf.cpp)
+
 # rosbuild_add_executable(rosmongodb_log_trimesh src/rosmongodb_log_trimesh.cpp)
 target_link_libraries(mongodb_log_tf
   ${catkin_LIBRARIES}
@@ -88,11 +88,7 @@ target_link_libraries(mongodb_log_cimg
   mongoclient
   ${Boost_LIBRARIES}
 )
-target_link_libraries(benchmark_produce_tf
-  ${catkin_LIBRARIES}
-  mongoclient
-  ${Boost_LIBRARIES}
-)
+
 #rosbuild_link_boost(mongodb_log_cimg system)
 #rosbuild_link_boost(mongodb_log_pcl system)
 #rosbuild_link_boost(mongodb_log_tf system)
