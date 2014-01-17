@@ -107,14 +107,14 @@ def store_message(collection, msg, meta):
     doc={}
     doc["meta"]=meta
     doc["msg"]=msg_to_document(msg)
-    collection.insert(doc)
+    return collection.insert(doc)
 
 """
 Store a ROS message sans meta data
 """
 def store_message_no_meta(collection, msg):
     doc=msg_to_document(msg)
-    collection.insert(doc)
+    return collection.insert(doc)
 
 """
 Load a ROS message from the DB, no meta

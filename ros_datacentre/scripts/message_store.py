@@ -61,6 +61,9 @@ class MessageStore(object):
         return cls_string
 
     def insert_ros_srv(self, req):
+        """
+        Receives a 
+        """
         print req.type
         # get class from type
         # todo: cache classes (if this is an overhead)
@@ -72,7 +75,7 @@ class MessageStore(object):
         obj.deserialize(req.msg)
         print obj
         collection = self._mongo_client[req.database][req.collection]
-    
+        return str(dc_util.store_message_no_meta(collection, obj))
         
     insert_ros_srv.type=dc_srv.MongoInsertMsg
                                               

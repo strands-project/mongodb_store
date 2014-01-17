@@ -7,3 +7,5 @@ string type
 # serialised mesage
 uint8[] msg
 ---
+# id of the inserted msg
+string id
