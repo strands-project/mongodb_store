@@ -33,7 +33,10 @@ public:
 	}
 
 	template<typename MsgType> 
-	void insert(const MsgType & _msg, const std::string & _database, const std::string & _collection) {
+	void insert(const MsgType & _msg, 
+		const std::string & _database, 
+		const std::string & _collection) {
+		
   		//Create message with basic fields
   		ros_datacentre_msgs::MongoInsertMsg msg;
   		msg.request.database = _database;
