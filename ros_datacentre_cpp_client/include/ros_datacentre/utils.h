@@ -3,59 +3,63 @@
 
 namespace ros_datacentre {
 
-/*
-  Pose p;
-
-  ros_datacentre_msgs::MongoInsertMsg msg;
-  msg.request.database = "not";
-  msg.request.collection = "yet";
-  msg.request.type = ros::message_traits::DataType<Pose>::value();
-  
-  ros::ServiceClient client = nh.serviceClient<ros_datacentre_msgs::MongoInsertMsg>();
-
-
-   // std::stringstream ss;
-   //  ss << ros::message_traits::DataType<Pose>::value() << " " << p;
-   //  ROS_INFO("%s", ss.str().c_str());
-
-
-  //how long the data will be
-  uint32_t serial_size = ros::serialization::serializationLength(p);
-  //set msg vector to this size
-  msg.request.msg.resize(serial_size);
-  //serialise the object into the vector via this stream
-   ros::serialization::OStream stream(&(msg.request.msg[0]), serial_size);
-  ros::serialization::serialize(stream, p);
-
-  //sent data over
-  client.call(msg);
-*/
-
 class MessageStoreProxy
 {
 public:
 
-
 	/**
 
 	**/
-	MessageStoreProxy(ros::NodeHandle handle, std::string _service, std::string _database, std::string _collection) {
+	MessageStoreProxy(ros::NodeHandle handle, 
+		const std::string & _service = "/message_store/insert", 
+		const std::string & _database = "not", 
+		const std::string & _collection = "yet") {
 		init(handle, _service, _database, _collection);
 	}
 
-	/**
-	* Default contructor with sensible default values.
-	**/
-	MessageStoreProxy(ros::NodeHandle handle)  {
-		init(handle, "/message_store/insert",  "not", "yet");
-	}
+
+	MessageStoreProxy(const MessageStoreProxy& _rhs) :
+		m_database(_rhs.m_database),
+		m_collection(_rhs.m_collection),
+		m_client(_rhs.m_client)
+	{}
+
 
 	~MessageStoreProxy() {}
 
+	template<typename MsgType> 
+	void insert(const MsgType & _msg) {
+		insert(_msg, m_database, m_collection);
+	}
+
+	template<typename MsgType> 
+	void insert(const MsgType & _msg, const std::string & _database, const std::string & _collection) {
+  		//Create message with basic fields
+  		ros_datacentre_msgs::MongoInsertMsg msg;
+  		msg.request.database = _database;
+  		msg.request.collection = _collection;
+  		msg.request.type = ros::message_traits::DataType<MsgType>::value();
+ 
+	 	//how long the data will be
+  		uint32_t serial_size = ros::serialization::serializationLength(_msg);
+ 	 	//set msg vector to this size
+  		msg.request.msg.resize(serial_size);
+  		//serialise the object into the vector via this stream
+   		ros::serialization::OStream stream(&(msg.request.msg[0]), serial_size);
+  		ros::serialization::serialize(stream, _msg);
+
+  		//sent data over
+  		m_client.call(msg);
+	}
+
+
 	private:
 
-	void init(ros::NodeHandle handle, std::string _service, std::string _database, std::string _collection) {		
-		m_client = handle.serviceClient<ros_datacentre_msgs::MongoInsertMsg>("/message_store/insert");
+	void init(ros::NodeHandle handle, const std::string & _service, 
+		const std::string & _database, const std::string & _collection) {		
+		m_client = handle.serviceClient<ros_datacentre_msgs::MongoInsertMsg>(_service);
+		m_database = _database;
+		m_collection = _collection;
 	}
 
 protected:
