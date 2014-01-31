@@ -21,17 +21,35 @@ int main(int argc, char **argv)
 	//This is the message we want to store
 	Pose p;
 
-	//Insert it
+	//Insert something with a name
 	messageStore.insertNamed("my pose", p);
 
 	std::vector< boost::shared_ptr<Pose> > results;
 
-	messageStore.queryNamed<Pose>("my favourite pose", results);
+	//Get it back
+	messageStore.queryNamed<Pose>("my pose", results);
 
 	BOOST_FOREACH( boost::shared_ptr<Pose> p,  results)
 	{
-		ROS_INFO_STREAM("Got one: " << *p);
+		ROS_INFO_STREAM("Got: " << *p);
 	}
+
+	results.clear();
+	// try to get it back with an incorrect name, so get None instead
+	messageStore.queryNamed<Pose>("my favourite position", results);
+	BOOST_FOREACH( boost::shared_ptr<Pose> p,  results)
+	{
+		ROS_INFO_STREAM("Got: " << *p);
+	}
+
+	results.clear();
+	// get all poses  
+	messageStore.query<Pose>(results);
+	BOOST_FOREACH( boost::shared_ptr<Pose> p,  results)
+	{
+		ROS_INFO_STREAM("Got: " << *p);
+	}
+	
 
 
 	return 0;

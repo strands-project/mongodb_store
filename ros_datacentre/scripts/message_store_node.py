@@ -85,8 +85,8 @@ class MessageStore(object):
 
         # TODO start using some string constants!
 
-        print "query document: " 
-        print obj_query
+        rospy.loginfo("query document: %s", obj_query) 
+        
 
         # this is a list of entries in dict format including meta
         entries =  dc_util.query_message(collection, obj_query, req.single)

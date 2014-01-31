@@ -117,7 +117,7 @@ public:
   		msg.request.database = m_database;
   		msg.request.collection = m_collection;
   		msg.request.type = ros::message_traits::DataType<MsgType>::value();
-  		msg.request.single = true;
+  		msg.request.single = find_one;
   	
 		//if there's no message then no copying is necessary
   		if(_message_query.size() > 0) {
