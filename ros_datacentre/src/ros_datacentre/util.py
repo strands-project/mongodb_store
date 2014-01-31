@@ -104,10 +104,20 @@ def msg_to_document(msg):
 Store a ROS message into the DB
 """    
 def store_message(collection, msg, meta):
+    doc=msg_to_document(msg)
+    doc["_meta"]=meta
+    return collection.insert(doc)
+
+"""
+Stores a ROS message into the DB with msg and meta as separate fields
+"""    
+def store_message_separate(collection, msg, meta):
     doc={}
     doc["meta"]=meta
     doc["msg"]=msg_to_document(msg)
     return collection.insert(doc)
+
+
 
 """
 Store a ROS message sans meta data

@@ -73,9 +73,10 @@ class MessageStore(object):
         obj = cls()
         # deserialize data into object
         obj.deserialize(req.msg)
-        print obj
+        # convert input tuple to dict
+        meta = dict((pair.first, pair.second) for pair in req.meta)
         collection = self._mongo_client[req.database][req.collection]
-        return str(dc_util.store_message_no_meta(collection, obj))
+        return str(dc_util.store_message(collection, obj, meta))
         
     insert_ros_srv.type=dc_srv.MongoInsertMsg
                                               
