@@ -15,5 +15,5 @@ StringPair[] message_query
 # key/values to be turned into a query doc on meta content
 StringPair[] meta_query
 ---
-# ids matching messages
-string[] ids
+# messages which match the query
+SerialisedMessage[] messages

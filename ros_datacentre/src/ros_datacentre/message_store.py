@@ -1,7 +1,8 @@
 import rospy
 import ros_datacentre_msgs.srv as dc_srv
-from ros_datacentre_msgs.msg import StringPair 
-import StringIO
+import ros_datacentre.util as dc_util
+from ros_datacentre_msgs.msg import StringPair, SerialisedMessage
+
 import copy
 
 class MessageStoreProxy:
@@ -9,11 +10,11 @@ class MessageStoreProxy:
 		self.database = database
 		self.collection = collection
 		insert_service = service_prefix + '/insert'
-		query_ids_service = service_prefix + '/query_ids'
+		query_ids_service = service_prefix + '/query_messages'
 		rospy.wait_for_service(insert_service)
 		rospy.wait_for_service(query_ids_service)
-		self.insertSrv = rospy.ServiceProxy(insert_service, dc_srv.MongoInsertMsg)
-		self.queryIdSrv = rospy.ServiceProxy(query_ids_service, dc_srv.MongoQueryMsg)
+		self.insert_srv = rospy.ServiceProxy(insert_service, dc_srv.MongoInsertMsg)
+		self.query_id_srv = rospy.ServiceProxy(query_ids_service, dc_srv.MongoQueryMsg)
 
 	def insert_named(self, name, message, meta = {}):
 		# create a copy as we're modifying it
@@ -25,22 +26,26 @@ class MessageStoreProxy:
 	def insert(self, message, meta = {}):
 		# assume meta is a dict, convert k/v to tuple pairs 
 		meta_tuple = tuple(StringPair(k, v) for k, v in meta.iteritems())
-		print message._type 
-		buf=StringIO.StringIO() 
-		message.serialize(buf) 
-		serialised_msg=buf.getvalue() 
-		self.insertSrv(self.database, self.collection, message._type, serialised_msg, meta_tuple)
+		serialised_msg = dc_util.serialise_message(message)
+		self.insert_srv(self.database, self.collection, serialised_msg, meta_tuple)
 
-	def query_named(self, name, message, meta = {}):
+	def query_named(self, name, type, single = True, meta = {}):
 		# create a copy as we're modifying it
 		meta_copy = copy.copy(meta)
 		meta_copy["name"] = name
-		self.query({}, message, meta_copy, True)
+		return self.query(type, {}, meta_copy, single)
 
-	def query(self, message_query, message, meta_query = {}, single = False):
-		# assume meta is a dict, convert k/v to tuple pairs 
+	def query(self, type, message_query, meta_query = {}, single = False):
+		# assume meta is a dict, convert k/v to tuple pairs for ROS msg type
 		message_tuple = tuple(StringPair(k, v) for k, v in message_query.iteritems())
 		meta_tuple = tuple(StringPair(k, v) for k, v in meta_query.iteritems())
-				
-		ids = self.queryIdSrv(self.database, self.collection, message._type, single, message_tuple, meta_tuple)
-		print ids
+		# a tuple of SerialisedMessages
+		response = self.query_id_srv(self.database, self.collection, type, single, message_tuple, meta_tuple)		
+		messages = map(dc_util.deserialise_message, response.messages) 
+		if single:
+			if len(messages) > 0:
+				return messages[0]
+			else:
+				return None
+		else:
+			return messages

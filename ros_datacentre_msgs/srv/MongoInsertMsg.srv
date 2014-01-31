@@ -2,11 +2,8 @@
 
 string database
 string collection
-# type to deserialise into
-string type
-# serialised mesage
-uint8[] msg
-# meta description to be added to mesage, each pair interpreted as key = value
+SerialisedMessage message
+# meta description to be added to message, each pair interpreted as key = value
 StringPair[] meta
 ---
 # id of the inserted msg

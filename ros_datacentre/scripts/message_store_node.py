@@ -9,7 +9,7 @@ import rospy
 import ros_datacentre_msgs.srv as dc_srv
 import ros_datacentre.util as dc_util
 import pymongo
-import importlib
+
 
 
 class MessageStore(object):
@@ -29,53 +29,27 @@ class MessageStore(object):
                 service=getattr(self, attr)
                 rospy.Service("/message_store/"+attr[:-8], service.type, service)
 
-    def load_class(self, full_class_string):
-        """
-        dynamically load a class from a string
-        shamelessly ripped from: http://thomassileo.com/blog/2012/12/21/dynamically-load-python-modules-or-classes/
-        """
-        class_data = full_class_string.split(".")
-        module_path = ".".join(class_data[:-1])
-        class_str = class_data[-1]
-        module = importlib.import_module(module_path)
-        # Finally, we retrieve the Class
-        return getattr(module, class_str)
 
-    def type_to_class_string(self, type):
-        """ 
-        Takes a ROS msg type and turns it into a Python module and class name. 
-        E.g. from 
-        geometry_msgs/Pose 
-        to
-        geometry_msgs.msg._Pose.Pose
-        """
-        print type
-        parts = type.split('/')
-        cls_string = "%s.msg._%s.%s" % (parts[0], parts[1], parts[1])
-        return cls_string
 
     def insert_ros_srv(self, req):
         """
         Receives a 
         """
-        print req.type
-        # get class from type
-        # todo: cache classes (if this is an overhead)
-        cls_string = self.type_to_class_string(req.type)
-        cls = self.load_class(cls_string)
-        # instantiate an object from the class
-        obj = cls()
         # deserialize data into object
-        obj.deserialize(req.msg)
+        obj = dc_util.deserialise_message(req.message)        
         # convert input tuple to dict
         meta = dict((pair.first, pair.second) for pair in req.meta)
+        #  also store type information
+        meta["stored_class"] = obj.__module__ + "." + obj.__class__.__name__
+        meta["stored_type"] = req.message.type
         # get requested collection from the db, creating if necessary
         collection = self._mongo_client[req.database][req.collection]
-        return str(dc_util.store_message(collection, obj, meta))        
+        obj_id = dc_util.store_message(collection, obj, meta)
+        return str(obj_id)        
     insert_ros_srv.type=dc_srv.MongoInsertMsg
                           
 
-    def query_ids_ros_srv(self, req):
+    def query_messages_ros_srv(self, req):
         """
         Returns t
         """
@@ -85,11 +59,23 @@ class MessageStore(object):
         obj_query = dict((pair.first, pair.second) for pair in req.message_query)
         obj_query.update(dict(("_meta."+pair.first, pair.second) for pair in req.meta_query))
 
-        ids =  dc_util.query_message_ids(collection, obj_query, req.single)
-        print ids
-        return [ids]
+        # this is a list of entries in dict format including meta
+        entries =  dc_util.query_message(collection, obj_query, req.single)
+
+        serialised_messages = ()
+
+        for entry in entries:
+            # load the class object for this type
+            # TODO this should be the same for every item in the list, so could reuse
+            cls = dc_util.load_class(entry["_meta"]["stored_class"])
+            # instantiate the ROS message object from the dictionary retrieved from the db
+            message = dc_util.dictionary_to_message(entry, cls)            
+            # the serialise this object in order to be sent in a generic form
+            serialised_messages = serialised_messages + (dc_util.serialise_message(message), )
+       
+        return [serialised_messages]
         
-    query_ids_ros_srv.type=dc_srv.MongoQueryMsg
+    query_messages_ros_srv.type=dc_srv.MongoQueryMsg
 
 
 if __name__ == '__main__':

@@ -16,12 +16,12 @@ if __name__ == '__main__':
     msg_store = MessageStoreProxy()
 
     p = Pose(Point(0, 1, 2), Quaternion(3, 4,  5, 6))
-    p2 = Pose()
+  
     meta = {'also':'bob'}
 
     try:
         msg_store.insert_named("nice pose", p, meta)
-        msg_store.query_named("nice pose", p2)
+        print msg_store.query_named("nice pose", Pose._type)
 
         
     except rospy.ServiceException, e:

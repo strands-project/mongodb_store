@@ -64,7 +64,7 @@ public:
   		ros_datacentre_msgs::MongoInsertMsg msg;
   		msg.request.database = _database;
   		msg.request.collection = _collection;
-  		msg.request.type = ros::message_traits::DataType<MsgType>::value();
+  		msg.request.message.type = ros::message_traits::DataType<MsgType>::value();
  		
  		//if there's no meta then no copying is necessary
   		if(_meta.size() > 0) {
@@ -74,9 +74,9 @@ public:
 	 	//how long the data will be
   		uint32_t serial_size = ros::serialization::serializationLength(_msg);
  	 	//set msg vector to this size
-  		msg.request.msg.resize(serial_size);
+  		msg.request.message.msg.resize(serial_size);
   		//serialise the object into the vector via this stream
-   		ros::serialization::OStream stream(&(msg.request.msg[0]), serial_size);
+   		ros::serialization::OStream stream(&(msg.request.message.msg[0]), serial_size);
   		ros::serialization::serialize(stream, _msg);
 
   		//sent data over
