@@ -6,6 +6,8 @@ string collection
 string type
 # serialised mesage
 uint8[] msg
+# meta description to be added to mesage, each pair interpreted as key = value
+StringPair[] meta
 ---
 # id of the inserted msg
 string id

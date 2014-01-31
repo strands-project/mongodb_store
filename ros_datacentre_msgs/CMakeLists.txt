@@ -3,6 +3,11 @@ project(ros_datacentre_msgs)
 
 find_package(catkin REQUIRED COMPONENTS message_generation)
 
+add_message_files(
+  FILES
+  StringPair.msg
+)
+
 add_service_files(
   FILES
   MongoInsertMsg.srv
