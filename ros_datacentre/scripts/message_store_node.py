@@ -60,7 +60,8 @@ class MessageStore(object):
         # build the query doc 
         
         # load serialised json
-        if req.message_query[0].first == dc_srv.MongoQueryMsgRequest.JSON_QUERY:
+
+        if len(req.message_query) > 0 and req.message_query[0].first == dc_srv.MongoQueryMsgRequest.JSON_QUERY:
             obj_query = json.loads(req.message_query[0].second)
         # else use the string pairs
         else:
@@ -68,7 +69,7 @@ class MessageStore(object):
         
 
         # load serialised json for meta
-        if req.meta_query[0].first == dc_srv.MongoQueryMsgRequest.JSON_QUERY:
+        if len(req.meta_query) > 0 and req.meta_query[0].first == dc_srv.MongoQueryMsgRequest.JSON_QUERY:
             meta_query = json.loads(req.meta_query[0].second)
             # prefix all keys with "_meta." to make it 
             for old_key in meta_query:

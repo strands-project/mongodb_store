@@ -33,9 +33,9 @@ class MessageStoreProxy:
 		# create a copy as we're modifying it
 		meta_copy = copy.copy(meta)
 		meta_copy["name"] = name
-		return self.query({}, type, meta_copy, single)
+		return self.query(type, {}, meta_copy, single)
 
-	def query(self, message_query, type, meta_query = {}, single = False):
+	def query(self, type, message_query = {}, meta_query = {}, single = False):
 		# assume meta is a dict, convert k/v to tuple pairs for ROS msg type
 
 		# serialise the json queries to strings using json.dumps
