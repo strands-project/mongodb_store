@@ -9,6 +9,7 @@ import rospy
 import ros_datacentre_msgs.srv as dc_srv
 import ros_datacentre.util as dc_util
 import pymongo
+import json
 
 
 
@@ -53,11 +54,38 @@ class MessageStore(object):
         """
         Returns t
         """
-        print req.type
         collection = self._mongo_client[req.database][req.collection]
+
+
         # build the query doc 
-        obj_query = dict((pair.first, pair.second) for pair in req.message_query)
-        obj_query.update(dict(("_meta."+pair.first, pair.second) for pair in req.meta_query))
+        
+        # load serialised json
+        if req.message_query[0].first == dc_srv.MongoQueryMsgRequest.JSON_QUERY:
+            obj_query = json.loads(req.message_query[0].second)
+        # else use the string pairs
+        else:
+            obj_query = dict((pair.first, pair.second) for pair in req.message_query)
+        
+
+        # load serialised json for meta
+        if req.meta_query[0].first == dc_srv.MongoQueryMsgRequest.JSON_QUERY:
+            meta_query = json.loads(req.meta_query[0].second)
+            # prefix all keys with "_meta." to make it 
+            for old_key in meta_query:
+                meta_query["_meta." + old_key] = meta_query.pop(old_key)
+                obj_query.update(meta_query)
+        # else use the string pairs
+        else:
+            obj_query.update(dict(("_meta." + pair.first, pair.second) for pair in req.meta_query))
+
+
+        # restrict results to have the type asked for
+        obj_query["_meta.stored_type"] = req.type
+
+        # TODO start using some string constants!
+
+        print "query document: " 
+        print obj_query
 
         # this is a list of entries in dict format including meta
         entries =  dc_util.query_message(collection, obj_query, req.single)

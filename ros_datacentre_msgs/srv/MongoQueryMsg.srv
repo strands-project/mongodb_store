@@ -1,8 +1,7 @@
 # message used for querying for ids of matching ROS msgs from a MongoDB database
 
 # constant passed as key in query to indicate the value should be treated as a query string (assuming that is possible...)
-# TODO use this
-# string STRING_QUERY="value of this is a fixed query"
+string JSON_QUERY="jnsdfskajd_fmgs.dlf"
 
 string database
 string collection

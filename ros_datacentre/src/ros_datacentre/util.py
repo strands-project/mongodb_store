@@ -168,6 +168,8 @@ def query_message(collection, query_doc, find_one):
         result = collection.find_one(query_doc)
         if result:
             return [ result ] 
+        else:
+            return []
     else:
         return [ result for result in collection.find(query_doc) ]
 

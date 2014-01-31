@@ -2,7 +2,7 @@ import rospy
 import ros_datacentre_msgs.srv as dc_srv
 import ros_datacentre.util as dc_util
 from ros_datacentre_msgs.msg import StringPair, SerialisedMessage
-
+import json
 import copy
 
 class MessageStoreProxy:
@@ -33,15 +33,23 @@ class MessageStoreProxy:
 		# create a copy as we're modifying it
 		meta_copy = copy.copy(meta)
 		meta_copy["name"] = name
-		return self.query(type, {}, meta_copy, single)
+		return self.query({}, type, meta_copy, single)
 
-	def query(self, type, message_query, meta_query = {}, single = False):
+	def query(self, message_query, type, meta_query = {}, single = False):
 		# assume meta is a dict, convert k/v to tuple pairs for ROS msg type
-		message_tuple = tuple(StringPair(k, v) for k, v in message_query.iteritems())
-		meta_tuple = tuple(StringPair(k, v) for k, v in meta_query.iteritems())
+
+		# serialise the json queries to strings using json.dumps
+		message_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(message_query)),)
+		meta_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(meta_query)),)
+
 		# a tuple of SerialisedMessages
 		response = self.query_id_srv(self.database, self.collection, type, single, message_tuple, meta_tuple)		
-		messages = map(dc_util.deserialise_message, response.messages) 
+
+		if response.messages is None:
+			messages = []
+		else:
+			messages = map(dc_util.deserialise_message, response.messages) 
+
 		if single:
 			if len(messages) > 0:
 				return messages[0]

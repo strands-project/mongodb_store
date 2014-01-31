@@ -17,11 +17,25 @@ if __name__ == '__main__':
 
     p = Pose(Point(0, 1, 2), Quaternion(3, 4,  5, 6))
   
-    meta = {'also':'bob'}
-
     try:
-        msg_store.insert_named("nice pose", p, meta)
-        print msg_store.query_named("nice pose", Pose._type)
+        # insert a pose object with a name
+        msg_store.insert_named("my favourite pose", p)
+ 
+        # get it back with a name
+        print msg_store.query_named("my favourite pose", Pose._type)
+        # try to get it back with an incorrect name, so get None instead
+        print msg_store.query_named("my favourite position", Pose._type)
+
+        # get all poses  
+        print msg_store.query({} , Pose._type)
+        # get all non-existant typed objects, so get an empty list back
+        print msg_store.query({} , "not my type")
+        
+        # get all poses where the y position is 1
+        print msg_store.query({"position.y": 1} , Pose._type)
+
+        # get all poses where the y position greater than 0
+        print msg_store.query({"position.y": {"$gt": 0}} , Pose._type)
 
         
     except rospy.ServiceException, e:
