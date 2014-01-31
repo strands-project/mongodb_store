@@ -1,0 +1,13 @@
+# message used for returning a single object with a given id
+
+string database
+string collection
+# type must be known
+string type
+# ObjectId of object in db
+string id
+---
+# serialised message
+uint8[] msg
+# meta description stored along with it
+StringPair[] meta

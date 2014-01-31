@@ -10,12 +10,6 @@ import ros_datacentre_msgs.srv as dc_srv
 import ros_datacentre.util as dc_util
 import pymongo
 import importlib
-# from std_srvs.srv import *
-
-# For testing
-from geometry_msgs.msg import Pose, Point, Quaternion
-
-
 
 
 class MessageStore(object):
@@ -74,7 +68,8 @@ class MessageStore(object):
         # deserialize data into object
         obj.deserialize(req.msg)
         # convert input tuple to dict
-        meta = dict((pair.first, pair.second) for pair in req.meta)
+        meta = dict((pair.second, pair.first) for pair in req.meta)
+        # get requested collection from the db, creating if necessary
         collection = self._mongo_client[req.database][req.collection]
         return str(dc_util.store_message(collection, obj, meta))
         

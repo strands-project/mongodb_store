@@ -107,7 +107,7 @@ add_executable(example_ros_datacentre_cpp_client src/example_ros_datacentre_cpp_
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-# add_dependencies(ros_datacentre_cpp_client_node ros_datacentre_cpp_client_generate_messages_cpp)
+add_dependencies(example_ros_datacentre_cpp_client ros_datacentre_msgs_generate_messages_cpp)
 
 # Specify libraries to link a library or executable target against
 target_link_libraries(example_ros_datacentre_cpp_client

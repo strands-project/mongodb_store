@@ -21,7 +21,7 @@ int main(int argc, char **argv)
   Pose p;
 
   //Insert it
-  messageStore.insert(p);
+  messageStore.insertNamed("my pose", p);
 
   return 0;
 }
