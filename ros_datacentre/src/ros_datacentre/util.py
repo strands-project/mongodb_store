@@ -3,6 +3,7 @@ import genpy
 from std_srvs.srv import Empty
 import yaml
 import json
+import copy
 
 """
 Waits for the mongo server, as started through the
@@ -108,14 +109,14 @@ def store_message(collection, msg, meta):
     doc["_meta"]=meta
     return collection.insert(doc)
 
-"""
-Stores a ROS message into the DB with msg and meta as separate fields
-"""    
-def store_message_separate(collection, msg, meta):
-    doc={}
-    doc["meta"]=meta
-    doc["msg"]=msg_to_document(msg)
-    return collection.insert(doc)
+# """
+# Stores a ROS message into the DB with msg and meta as separate fields
+# """    
+# def store_message_separate(collection, msg, meta):
+#     doc={}
+#     doc["meta"]=meta
+#     doc["msg"]=msg_to_document(msg)
+#     return collection.insert(doc)
 
 
 
@@ -133,3 +134,17 @@ def document_to_msg_no_meta(document, TYPE):
     msg = TYPE()
     _fill_msg(msg, document)
     return meta, msg
+
+"""
+Peform a query for a stored, returning a tuple of id strings
+"""
+def query_message_ids(collection, query_doc, find_one):
+
+    if find_one:
+        ids = ()
+        result = collection.find_one(query_doc, {"_id":1})
+        if result:
+            return str(result["_id"]), 
+    else:
+        return tuple(str(result["_id"]) for result in collection.find(query_doc, {'_id':1}))
+

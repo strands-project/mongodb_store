@@ -68,13 +68,29 @@ class MessageStore(object):
         # deserialize data into object
         obj.deserialize(req.msg)
         # convert input tuple to dict
-        meta = dict((pair.second, pair.first) for pair in req.meta)
+        meta = dict((pair.first, pair.second) for pair in req.meta)
         # get requested collection from the db, creating if necessary
         collection = self._mongo_client[req.database][req.collection]
-        return str(dc_util.store_message(collection, obj, meta))
-        
+        return str(dc_util.store_message(collection, obj, meta))        
     insert_ros_srv.type=dc_srv.MongoInsertMsg
-                                              
+                          
+
+    def query_ids_ros_srv(self, req):
+        """
+        Returns t
+        """
+        print req.type
+        collection = self._mongo_client[req.database][req.collection]
+        # build the query doc 
+        obj_query = dict((pair.first, pair.second) for pair in req.message_query)
+        obj_query.update(dict(("_meta."+pair.first, pair.second) for pair in req.meta_query))
+
+        ids =  dc_util.query_message_ids(collection, obj_query, req.single)
+        print ids
+        return [ids]
+        
+    query_ids_ros_srv.type=dc_srv.MongoQueryMsg
+
 
 if __name__ == '__main__':
     store = MessageStore()
