@@ -4,9 +4,9 @@ import roslib; roslib.load_manifest('strands_datacentre')
 import rospy
 
 import strands_datacentre.util
-import strands_diagnostics
+from strands_diagnostics.logger import DiagnosticsLogger
 
 if __name__=="__main__":
     # start the logger
     node =  rospy.init_node("diagnostics_logger")
-    logger = strands_diagnostics.DiagnosticsLogger(node)
+    logger = DiagnosticsLogger(node)
