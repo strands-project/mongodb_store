@@ -3,13 +3,15 @@
   <arg name="port" default="62345" />
 
   <param name="datacentre_port" value="$(arg port)" />
-  <param name="datacentre_host" value="$(env HOSTNAME)" />
+  <param name="datacentre_host" value="$(optenv HOSTNAME localhost)" />
   
   <node name="mongo_server" pkg="ros_datacentre" type="mongodb_server.py" output="screen">
     <param name="database_path" value="$(arg db_path)"/>
   </node>
 
   <node name="config_manager" pkg="ros_datacentre" type="config_manager.py" output="screen"/>
+
+  <node name="message_store" pkg="ros_datacentre" type="message_store_node.py" output="screen"/>
 
   <!-- rosout and diagnostic topic logger -->
   <!-- <node name="diagnostics_logger" pkg="strands_diagnostics" type="logger" output="screen"/> -->
