@@ -6,7 +6,7 @@ import json
 import copy
 
 class MessageStoreProxy:
-	def __init__(self, service_prefix='/message_store', database='not', collection='yet'):
+	def __init__(self, service_prefix='/message_store', database='message_store', collection='message_store'):
 		self.database = database
 		self.collection = collection
 		insert_service = service_prefix + '/insert'

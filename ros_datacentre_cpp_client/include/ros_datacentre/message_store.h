@@ -28,8 +28,8 @@ public:
 	**/
 	MessageStoreProxy(ros::NodeHandle handle, 
 		const std::string & _servicePrefix = "/message_store", 
-		const std::string & _database = "not", 
-		const std::string & _collection = "yet") :
+		const std::string & _database = "message_store", 
+		const std::string & _collection = "message_store") :
 		m_insertClient(handle.serviceClient<ros_datacentre_msgs::MongoInsertMsg>(_servicePrefix + "/insert")),
 		m_queryClient(handle.serviceClient<ros_datacentre_msgs::MongoQueryMsg>(_servicePrefix + "/query_messages")),
 		m_database(_database),
