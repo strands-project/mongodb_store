@@ -1,5 +1,5 @@
 # The implementation of the diagnostics logger 
-from strands_datacentre.util import *
+from ros_datacentre.util import *
 from strands_diagnostics.msg import DiagnosticMessage
 from rosgraph_msgs.msg import Log
 

@@ -4,7 +4,7 @@ project(strands_diagnostics)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS rospy std_msgs strands_datacentre message_generation)
+find_package(catkin REQUIRED COMPONENTS rospy std_msgs ros_datacentre message_generation)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -50,7 +50,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES strands_diagnostics
-#  CATKIN_DEPENDS rospy strands_datacentre
+#  CATKIN_DEPENDS rospy ros_datacentre
 #  DEPENDS system_lib
 )
 
