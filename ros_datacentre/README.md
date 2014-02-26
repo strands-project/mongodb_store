@@ -29,9 +29,9 @@ rosparam set datacentre_host bob # note that if using multiple machines, 'localh
 rosrun ros_mongodb_datacentre mongodb_server.py
 ```
 
-By default, the mongod database will be stored in `/opt/strands/strands_datacentre`. This can be overridden by setting the private parameter ~database_path for the node. If it is the first time that the database is used, be sure to first run
+By default, the mongod database will be stored in `/opt/strands/ros_datacentre`. This can be overridden by setting the private parameter ~database_path for the node. If it is the first time that the database is used, be sure to first run
 
-```mkdir  /opt/strands/strands_datacentre``` 
+```mkdir  /opt/strands/ros_datacentre``` 
 
 If you prefer to use different mongodb instance, set the datacentre_* parameters accordingly.
 
@@ -40,13 +40,13 @@ If you prefer to use different mongodb instance, set the datacentre_* parameters
 Config Manager Overview
 -----------------------
 
-The config manager provides a centralised way to store robot application parameters, with optional site-specific overrides. All configurations are stored inside the strands_datacentre mongodb, within a database named "configs". 
+The config manager provides a centralised way to store robot application parameters, with optional site-specific overrides. All configurations are stored inside the ros_datacentre mongodb, within a database named "configs". 
 
 Two levels of parameters are considered:
 
 1) Global default parameters. 
 These should be "working defaults" - so all essential parameters at least have a default value. For example, if a robot application requires some calibration data, default values should be provided.
-These parameters are shared among sites, so are stored inside github under strands_datacentre/defaults. When the config manager is started, all .yaml files stored in this folder will be examined. Any new default parameters will be inserted into the "defaults" collection within the configs database.
+These parameters are shared among sites, so are stored inside github under ros_datacentre/defaults. When the config manager is started, all .yaml files stored in this folder will be examined. Any new default parameters will be inserted into the "defaults" collection within the configs database.
 
 2) Local parameters.
 These parameters override the same named  global default parameters, allowing site-specific parameter setting. They are stored within the database inside the "local" collection.
@@ -92,7 +92,7 @@ rosservice call /config_manager/get_param "param_name: '/my/parameter'"
 
 Setting parameters
 ------------------
-Default parameters are set by placing them in the yaml files in the defaults directory in strands_datacentre. This way, default parameters are added to the github repo and shared between all users.
+Default parameters are set by placing them in the yaml files in the defaults directory in ros_datacentre. This way, default parameters are added to the github repo and shared between all users.
 
 The local parameter overrides can be set in 2 ways:
 1) Using the config_manager service:
@@ -116,8 +116,8 @@ Launch files
 Both mongodb and config_manager can be started together using the datacentre.launch file:
 
 ```
-HOSTNAME=yourhost roslaunch strands_datacentre datacentre.launch db_path:=/path/to/db db_port:=62345
+HOSTNAME=yourhost roslaunch ros_datacentre datacentre.launch db_path:=/path/to/db db_port:=62345
 ```
 
-The HOSTNAME env variable is required; db_path will default to /opt/strands/strands_datacentre and db_port will default to 62345. 
+The HOSTNAME env variable is required; db_path will default to /opt/strands/ros_datacentre and db_port will default to 62345. 
 
