@@ -237,3 +237,13 @@ def deserialise_message(serialised_message):
     # deserialize data into object
     message.deserialize(serialised_message.msg)
     return message
+
+
+"""
+Covert a StringPairList into a dictionary
+"""
+def string_pair_list_to_dictionary(spl):
+    d = dict()
+    for pair in spl.pairs:
+        d[pair.first] = pair.second
+    return d

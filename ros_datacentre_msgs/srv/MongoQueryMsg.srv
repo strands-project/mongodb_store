@@ -16,3 +16,4 @@ StringPair[] meta_query
 ---
 # messages which match the query
 SerialisedMessage[] messages
+StringPairList[] metas
