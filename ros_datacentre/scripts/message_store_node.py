@@ -10,6 +10,7 @@ import ros_datacentre_msgs.srv as dc_srv
 import ros_datacentre.util as dc_util
 import pymongo
 import json
+from ros_datacentre_msgs.msg import  StringPair, StringPairList
 
 
 
@@ -72,9 +73,10 @@ class MessageStore(object):
         if len(req.meta_query) > 0 and req.meta_query[0].first == dc_srv.MongoQueryMsgRequest.JSON_QUERY:
             meta_query = json.loads(req.meta_query[0].second)
             # prefix all keys with "_meta." to make it 
+            prefixed_meta_query = {}
             for old_key in meta_query:
-                meta_query["_meta." + old_key] = meta_query.pop(old_key)
-                obj_query.update(meta_query)
+                prefixed_meta_query["_meta." + old_key] = meta_query[old_key]
+            obj_query.update(prefixed_meta_query)
         # else use the string pairs
         else:
             obj_query.update(dict(("_meta." + pair.first, pair.second) for pair in req.meta_query))
@@ -92,6 +94,7 @@ class MessageStore(object):
         entries =  dc_util.query_message(collection, obj_query, req.single)
 
         serialised_messages = ()
+        metas = ()
 
         for entry in entries:
             # load the class object for this type
@@ -101,8 +104,9 @@ class MessageStore(object):
             message = dc_util.dictionary_to_message(entry, cls)            
             # the serialise this object in order to be sent in a generic form
             serialised_messages = serialised_messages + (dc_util.serialise_message(message), )
-       
-        return [serialised_messages]
+            metas = metas + (StringPairList(tuple(StringPair(k, v) for k, v in entry["_meta"].iteritems())), )
+
+        return [serialised_messages, metas]
         
     query_messages_ros_srv.type=dc_srv.MongoQueryMsg
 

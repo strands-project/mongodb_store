@@ -35,6 +35,9 @@ class MessageStoreProxy:
 		meta_copy["name"] = name
 		return self.query(type, {}, meta_copy, single)
 
+	"""
+	Returns [message, meta] where message is the queried message and meta a dictionary of meta information. If single is false returns a list of these lists.
+	"""
 	def query(self, type, message_query = {}, meta_query = {}, single = False):
 		# assume meta is a dict, convert k/v to tuple pairs for ROS msg type
 
@@ -47,13 +50,15 @@ class MessageStoreProxy:
 
 		if response.messages is None:
 			messages = []
+			metas = []
 		else:
 			messages = map(dc_util.deserialise_message, response.messages) 
+			metas = map(dc_util.string_pair_list_to_dictionary, response.metas)
 
 		if single:
 			if len(messages) > 0:
-				return messages[0]
-			else:
-				return None
+				return [messages[0], metas[0]]
+			else:				
+				return [None, None]
 		else:
-			return messages
+			return [[message, meta] for message in messages for meta in metas]
