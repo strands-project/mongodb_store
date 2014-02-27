@@ -1,5 +1,5 @@
 <launch>
-  <arg name="db_path" default="/opt/ros/ros_datacentre"/>
+  <arg name="db_path" default="/opt/strands/ros_datacentre"/>
   <arg name="port" default="62345" />
 
   <param name="datacentre_port" value="$(arg port)" />
