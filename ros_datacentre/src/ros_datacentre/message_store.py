@@ -42,7 +42,12 @@ class MessageStoreProxy:
 	def update_named(self, name, message, meta = {}, upsert = False):
 		meta_query = {}
 		meta_query["name"] = name
-		return self.update(message, meta, {}, meta_query, upsert)		
+
+		# make sure the name goes into the meta info after update
+		meta_copy = copy.copy(meta)
+		meta_copy["name"] = name
+
+		return self.update(message, meta_copy, {}, meta_query, upsert)		
 
 	def update(self, message, meta = {}, message_query = {}, meta_query = {},  upsert = False):
 		# serialise the json queries to strings using json.dumps

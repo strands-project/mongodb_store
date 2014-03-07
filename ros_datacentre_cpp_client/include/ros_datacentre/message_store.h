@@ -181,7 +181,13 @@ public:
 					const mongo::BSONObj & _meta = mongo::BSONObj()) {
 
 		mongo::BSONObj meta_query = BSON( "name" << _name );
-		return update<MsgType>(_msg, _meta, mongo::BSONObj(), meta_query, _upsert);
+
+		// make sure the name goes into the meta info after update
+		mongo::BSONObjBuilder builder;
+		builder.appendElements(_meta);
+		builder.append("name", _name);
+
+		return update<MsgType>(_msg, builder.obj(), mongo::BSONObj(), meta_query, _upsert);
 	}
 
 	template<typename MsgType> 
