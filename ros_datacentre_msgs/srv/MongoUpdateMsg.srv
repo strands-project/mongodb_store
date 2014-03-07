@@ -1,0 +1,21 @@
+# message used for updating matching ROS msgs from a MongoDB database
+
+string database
+string collection
+# whether you're only looking for a single 
+bool single
+# insert if no matching message found
+bool upsert
+# key/values to be turned into a query doc on message content
+StringPair[] message_query
+# key/values to be turned into a query doc on meta content
+StringPair[] meta_query
+# the message to be inserted
+SerialisedMessage message
+# meta description to be added to message, if empty leave meta unchanged, if upsert true and empty, use meta_query
+StringPair[] meta
+---
+# id of the updated msg
+string id
+# true if the database was changed
+bool success
