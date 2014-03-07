@@ -11,7 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+find_package(Boost REQUIRED COMPONENTS system thread program_options filesystem)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -112,6 +112,8 @@ add_dependencies(example_ros_datacentre_cpp_client ros_datacentre_msgs_generate_
 # Specify libraries to link a library or executable target against
 target_link_libraries(example_ros_datacentre_cpp_client
   ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
+  mongoclient
 )
 
 #############

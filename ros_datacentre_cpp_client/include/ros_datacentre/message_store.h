@@ -6,7 +6,14 @@
 #include "ros_datacentre_msgs/MongoQueryMsg.h"
 #include "ros_datacentre_msgs/StringPair.h"
 #include "ros_datacentre_msgs/SerialisedMessage.h"
+
+//include to get BSON. There's probably a much smaller of set of headers we could get away with
+#include "mongo/client/dbclient.h"
+
 #include  <boost/make_shared.hpp> 
+
+
+
 
 namespace ros_datacentre {
 
@@ -85,19 +92,22 @@ public:
 
 	template<typename MsgType> 
 	void insertNamed(const std::string & _name, const MsgType & _msg, 
-		const StringPairs & _meta = EMPTY_PAIR_LIST) {
-		
-		//make a copy so we can add stuff
-		StringPairs meta = _meta;
-		meta.push_back(makePair("name", _name));
-		insert(_msg, m_database, m_collection, meta);
+		const mongo::BSONObj & _meta = mongo::BSONObj()) {
+
+		//create a copy of the meta data with the name included
+		mongo::BSONObjBuilder builder;
+		builder.appendElements(_meta);
+		builder.append("name", _name);
+
+		//and insert as usual
+		insert(_msg, m_database, m_collection, builder.obj());
 	}
 
 	template<typename MsgType> 
 	void insert(const MsgType & _msg, 
 		const std::string & _database, 
 		const std::string & _collection, 
-		const StringPairs & _meta = EMPTY_PAIR_LIST) {
+		const mongo::BSONObj & _meta = mongo::BSONObj()) {
 
   		//Create message with basic fields
   		ros_datacentre_msgs::MongoInsertMsg msg;
@@ -106,8 +116,8 @@ public:
   		
  		
  		//if there's no meta then no copying is necessary
-  		if(_meta.size() > 0) {
- 			msg.request.meta = _meta;
+  		if(!_meta.isEmpty()) {
+ 			msg.request.meta.pairs.push_back(makePair(ros_datacentre_msgs::MongoQueryMsgRequest::JSON_QUERY, _meta.jsonString()));
 		}
 
 	 	fill_serialised_message(msg.request.message, _msg);

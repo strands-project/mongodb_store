@@ -297,6 +297,7 @@ Creates a dictionary from a StringPairList which could contain JSON as a string
 """
 def string_pair_list_to_dictionary(spl):
     if len(spl.pairs) > 0 and spl.pairs[0].first == MongoQueryMsgRequest.JSON_QUERY:
+        # print "looks like %s", spl.pairs[0].second
         return json.loads(spl.pairs[0].second)
     # else use the string pairs
     else:

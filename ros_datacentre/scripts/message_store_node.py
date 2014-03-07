@@ -40,7 +40,7 @@ class MessageStore(object):
         # deserialize data into object
         obj = dc_util.deserialise_message(req.message)        
         # convert input tuple to dict
-        meta = dict((pair.first, pair.second) for pair in req.meta)
+        meta = dc_util.string_pair_list_to_dictionary(req.meta)
         # get requested collection from the db, creating if necessary
         collection = self._mongo_client[req.database][req.collection]
         obj_id = dc_util.store_message(collection, obj, meta)
@@ -52,7 +52,7 @@ class MessageStore(object):
         """
         Updates a msg in the store
         """
-        # rospy.loginfo("called")
+        # rospy.lrosoginfo("called")
         collection = self._mongo_client[req.database][req.collection]
 
         # build the query doc         

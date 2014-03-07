@@ -24,7 +24,7 @@ class MessageStoreProxy:
 		# create a copy as we're modifying it
 		meta_copy = copy.copy(meta)
 		meta_copy["name"] = name
-		self.insert(message, meta_copy)
+		self.insert(message, StringPairList(meta_copy))
 	
 
 	def insert(self, message, meta = {}):
