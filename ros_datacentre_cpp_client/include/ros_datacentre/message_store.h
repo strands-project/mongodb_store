@@ -131,15 +131,15 @@ public:
 					std::vector< boost::shared_ptr<MsgType> > & _results, 
 					bool find_one = true) {
 
-		StringPairs meta_query;
-		meta_query.push_back(makePair("name", _name));
-		return query<MsgType>(_results, EMPTY_PAIR_LIST, meta_query, find_one);
+		
+		mongo::BSONObj meta_query = BSON( "name" << _name );
+		return query<MsgType>(_results, mongo::BSONObj(), meta_query, find_one);
 	}
 
 	template<typename MsgType> 
 	bool query(std::vector< boost::shared_ptr<MsgType> > & _results,
-				const StringPairs & _message_query = EMPTY_PAIR_LIST,
-				const StringPairs & _meta_query = EMPTY_PAIR_LIST,
+				const mongo::BSONObj & _message_query = mongo::BSONObj(),
+				const mongo::BSONObj & _meta_query = mongo::BSONObj(),
 				bool find_one = false) {
 
 		//Create message with basic fields
@@ -150,16 +150,17 @@ public:
   		msg.request.single = find_one;
   	
 		//if there's no message then no copying is necessary
-  		if(_message_query.size() > 0) {
- 			msg.request.message_query.pairs = _message_query;
+  		if(!_message_query.isEmpty()) {
+ 			msg.request.message_query.pairs.push_back(makePair(ros_datacentre_msgs::MongoQueryMsgRequest::JSON_QUERY, _message_query.jsonString())); 			 			
 		}
 
 		//if there's no meta then no copying is necessary
-  		if(_meta_query.size() > 0) {
- 			msg.request.meta_query.pairs = _meta_query;
+		if(!_meta_query.isEmpty()) {
+ 			msg.request.meta_query.pairs.push_back(makePair(ros_datacentre_msgs::MongoQueryMsgRequest::JSON_QUERY, _meta_query.jsonString())); 			 			
 		}
 
   		if(m_queryClient.call(msg)) {
+
   			ROS_INFO("Got back %li messages", msg.response.messages.size());
   			for(size_t i = 0; i < msg.response.messages.size(); i ++) {
   				_results.push_back(deserialise_message<MsgType>(msg.response.messages[i]));
@@ -176,19 +177,18 @@ public:
 	template<typename MsgType> 
 	bool updateNamed(const std::string & _name, 
 					const MsgType & _msg, 
-					const StringPairs & _meta = EMPTY_PAIR_LIST,					
+					const mongo::BSONObj & _meta = mongo::BSONObj(), 
 					bool _upsert = false) {
 
-		StringPairs meta_query;
-		meta_query.push_back(makePair("name", _name));
-		return update<MsgType>(_msg, _meta, EMPTY_PAIR_LIST, meta_query, _upsert);
+		mongo::BSONObj meta_query = BSON( "name" << _name );
+		return update<MsgType>(_msg, _meta, mongo::BSONObj(), meta_query, _upsert);
 	}
 
 	template<typename MsgType> 
 	bool update(const MsgType & _msg, 
-				const StringPairs & _meta = EMPTY_PAIR_LIST,
-				const StringPairs & _message_query = EMPTY_PAIR_LIST,
-				const StringPairs & _meta_query = EMPTY_PAIR_LIST,
+				const mongo::BSONObj & _meta = mongo::BSONObj(),
+				const mongo::BSONObj & _message_query = mongo::BSONObj(),
+				const mongo::BSONObj & _meta_query = mongo::BSONObj(),
 				bool _upsert = false) {
 
 		//Create message with basic fields
@@ -198,21 +198,22 @@ public:
   		msg.request.upsert = _upsert;
   	
 		//if there's no message then no copying is necessary
-  		if(_message_query.size() > 0) {
- 			msg.request.message_query.pairs = _message_query;
+  		if(!_message_query.isEmpty()) {
+ 			msg.request.message_query.pairs.push_back(makePair(ros_datacentre_msgs::MongoQueryMsgRequest::JSON_QUERY, _message_query.jsonString())); 			 			
 		}
 
 		//if there's no meta then no copying is necessary
-  		if(_meta_query.size() > 0) {
- 			msg.request.meta_query.pairs = _meta_query;
+		if(!_meta_query.isEmpty()) {
+ 			msg.request.meta_query.pairs.push_back(makePair(ros_datacentre_msgs::MongoQueryMsgRequest::JSON_QUERY, _meta_query.jsonString())); 			 			
 		}
 
 		fill_serialised_message(msg.request.message, _msg);
 
-		//if there's no meta then no copying is necessary
-  		if(_meta.size() > 0) {
- 			msg.request.meta.pairs = _meta;
+			//if there's no meta then no copying is necessary
+  		if(!_meta.isEmpty()) {
+ 			msg.request.meta.pairs.push_back(makePair(ros_datacentre_msgs::MongoQueryMsgRequest::JSON_QUERY, _meta.jsonString()));
 		}
+
 
   		if(m_updateClient.call(msg)) {
   			return msg.response.success;

@@ -24,14 +24,14 @@ class MessageStoreProxy:
 		# create a copy as we're modifying it
 		meta_copy = copy.copy(meta)
 		meta_copy["name"] = name
-		self.insert(message, StringPairList(meta_copy))
+		self.insert(message, meta_copy)
 	
 
 	def insert(self, message, meta = {}):
 		# assume meta is a dict, convert k/v to tuple pairs 
-		meta_tuple = tuple(StringPair(k, v) for k, v in meta.iteritems())
+		meta_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(meta)),)
 		serialised_msg = dc_util.serialise_message(message)
-		self.insert_srv(self.database, self.collection, serialised_msg, meta_tuple)
+		self.insert_srv(self.database, self.collection, serialised_msg, StringPairList(meta_tuple))
 
 	def query_named(self, name, type, single = True, meta = {}):
 		# create a copy as we're modifying it
@@ -48,7 +48,7 @@ class MessageStoreProxy:
 		# serialise the json queries to strings using json.dumps
 		message_query_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(message_query)),)
 		meta_query_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(meta_query)),)
-		meta_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(meta_query)),)
+		meta_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(meta)),)
 		self.update_srv(self.database, self.collection, upsert, StringPairList(message_query_tuple), StringPairList(meta_query_tuple), dc_util.serialise_message(message), StringPairList(meta_tuple))		
 
 
@@ -65,7 +65,7 @@ class MessageStoreProxy:
 		# a tuple of SerialisedMessages
 		response = self.query_id_srv(self.database, self.collection, type, single, StringPairList(message_tuple), StringPairList(meta_tuple))		
 
-		print response
+		# print response
 
 		if response.messages is None:
 			messages = []

@@ -14,6 +14,7 @@ from ros_datacentre_msgs.msg import  StringPair, StringPairList
 
 
 
+
 class MessageStore(object):
     def __init__(self):
         rospy.init_node("message_store")
@@ -116,8 +117,8 @@ class MessageStore(object):
             # instantiate the ROS message object from the dictionary retrieved from the db
             message = dc_util.dictionary_to_message(entry, cls)            
             # the serialise this object in order to be sent in a generic form
-            serialised_messages = serialised_messages + (dc_util.serialise_message(message), )
-            metas = metas + (StringPairList(tuple(StringPair(k, v) for k, v in entry["_meta"].iteritems())), )
+            serialised_messages = serialised_messages + (dc_util.serialise_message(message), )            
+            metas = metas + (StringPairList([StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(entry["_meta"]))]), )
 
         return [serialised_messages, metas]
         
