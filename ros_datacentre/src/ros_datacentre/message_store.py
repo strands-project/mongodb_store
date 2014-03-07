@@ -42,9 +42,9 @@ class MessageStoreProxy:
 	def update_named(self, name, message, meta = {}, upsert = False):
 		meta_query = {}
 		meta_query["name"] = name
-		return self.update(message, {}, meta_query, meta, upsert)		
+		return self.update(message, meta, {}, meta_query, upsert)		
 
-	def update(self, message, message_query = {}, meta_query = {},  meta = {}, upsert = False):
+	def update(self, message, meta = {}, message_query = {}, meta_query = {},  upsert = False):
 		# serialise the json queries to strings using json.dumps
 		message_query_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(message_query)),)
 		meta_query_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(meta_query)),)
