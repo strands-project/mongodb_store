@@ -23,19 +23,28 @@ if __name__ == '__main__':
  
         # get it back with a name
         print msg_store.query_named("my favourite pose", Pose._type)
-        # try to get it back with an incorrect name, so get None instead
-        print msg_store.query_named("my favourite position", Pose._type)
 
-        # get all poses  
-        print msg_store.query(Pose._type)
-        # get all non-existant typed objects, so get an empty list back
-        print msg_store.query( "not my type")
+        p.position.x = 666
+
+        msg_store.update_named("my favourite pose", p)
+
+        # get it back with a name
+        # print msg_store.query_named("my favourite pose", Pose._type)
+
+
+        # # try to get it back with an incorrect name, so get None instead
+        # print msg_store.query_named("my favourite position", Pose._type)
+
+        # # get all poses  
+        # print msg_store.query(Pose._type)
+        # # get all non-existant typed objects, so get an empty list back
+        # print msg_store.query( "not my type")
         
-        # get all poses where the y position is 1
-        print msg_store.query(Pose._type, {"position.y": 1})
+        # # get all poses where the y position is 1
+        # print msg_store.query(Pose._type, {"position.y": 1})
 
-        # get all poses where the y position greater than 0
-        print msg_store.query(Pose._type, {"position.y": {"$gt": 0}})
+        # # get all poses where the y position greater than 0
+        # print msg_store.query(Pose._type, {"position.y": {"$gt": 0}})
 
         
     except rospy.ServiceException, e:

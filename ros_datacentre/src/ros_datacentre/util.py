@@ -6,6 +6,8 @@ import json
 import copy
 import StringIO
 from ros_datacentre_msgs.msg import SerialisedMessage
+from ros_datacentre_msgs.srv import MongoQueryMsgRequest
+
 import importlib
 
 """
@@ -175,12 +177,57 @@ def query_message(collection, query_doc, find_one):
 
 
 """
+Update ROS message into the DB
+"""    
+def store_message(collection, msg, meta):
+    doc=msg_to_document(msg)
+    doc["_meta"]=meta
+    #  also store type information
+    doc["_meta"]["stored_class"] = msg.__module__ + "." + msg.__class__.__name__
+    doc["_meta"]["stored_type"] = msg._type
+       
+    return collection.insert(doc)
+
+
+"""
+Update ROS message into the DB, return updated id and true if db altered
+"""    
+def update_message(collection, query_doc, msg, meta, upsert):
+    # see if it's in db first
+    result = collection.find_one(query_doc)
+
+    # if it's not in there but we're allowed to insert
+    if not result:
+        if upsert:
+            return store_message(collection, msg, meta), True
+        else:
+            return "", False
+
+    # convert msg to db document
+    doc=msg_to_document(msg)
+
+    # if no meta supplied, reuse from db
+    if result and len(meta) == 0:        
+        doc["_meta"] = result["_meta"]
+    else:
+        doc["_meta"] = meta
+
+    # print result
+    # print doc
+
+    # ensure necessary parts are there too 
+    doc["_meta"]["stored_class"] = msg.__module__ + "." + msg.__class__.__name__
+    doc["_meta"]["stored_type"] = msg._type
+    
+    return collection.update(query_doc, doc), True
+
+
+"""
 Peform a query for a stored, returning a tuple of id strings
 """
 def query_message_ids(collection, query_doc, find_one):
 
     if find_one:
-        ids = ()
         result = collection.find_one(query_doc)
         if result:
             return str(result["_id"]), 
@@ -240,10 +287,20 @@ def deserialise_message(serialised_message):
 
 
 """
-Covert a StringPairList into a dictionary
+Covert a StringPairList into a dictionary, ignoring content
+"""
+def string_pair_list_to_dictionary_no_json(spl):
+    return dict((pair.first, pair.second) for pair in spl)
+
+"""
+Creates a dictionary from a StringPairList which could contain JSON as a string
 """
 def string_pair_list_to_dictionary(spl):
-    d = dict()
-    for pair in spl.pairs:
-        d[pair.first] = pair.second
-    return d
+    if len(spl.pairs) > 0 and spl.pairs[0].first == MongoQueryMsgRequest.JSON_QUERY:
+        return json.loads(spl.pairs[0].second)
+    # else use the string pairs
+    else:
+        return string_pair_list_to_dictionary_no_json(spl.pairs)
+        
+
+
