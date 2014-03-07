@@ -129,25 +129,25 @@ public:
 	template<typename MsgType> 
 	bool queryNamed(const std::string & _name, 
 					std::vector< boost::shared_ptr<MsgType> > & _results, 
-					bool find_one = true) {
+					bool _find_one = true) {
 
 		
 		mongo::BSONObj meta_query = BSON( "name" << _name );
-		return query<MsgType>(_results, mongo::BSONObj(), meta_query, find_one);
+		return query<MsgType>(_results, mongo::BSONObj(), meta_query, _find_one);
 	}
 
 	template<typename MsgType> 
 	bool query(std::vector< boost::shared_ptr<MsgType> > & _results,
 				const mongo::BSONObj & _message_query = mongo::BSONObj(),
 				const mongo::BSONObj & _meta_query = mongo::BSONObj(),
-				bool find_one = false) {
+				bool _find_one = false) {
 
 		//Create message with basic fields
   		ros_datacentre_msgs::MongoQueryMsg msg;
   		msg.request.database = m_database;
   		msg.request.collection = m_collection;
   		msg.request.type = ros::message_traits::DataType<MsgType>::value();
-  		msg.request.single = find_one;
+  		msg.request.single = _find_one;
   	
 		//if there's no message then no copying is necessary
   		if(!_message_query.isEmpty()) {
@@ -177,8 +177,8 @@ public:
 	template<typename MsgType> 
 	bool updateNamed(const std::string & _name, 
 					const MsgType & _msg, 
-					const mongo::BSONObj & _meta = mongo::BSONObj(), 
-					bool _upsert = false) {
+					bool _upsert = false,
+					const mongo::BSONObj & _meta = mongo::BSONObj()) {
 
 		mongo::BSONObj meta_query = BSON( "name" << _name );
 		return update<MsgType>(_msg, _meta, mongo::BSONObj(), meta_query, _upsert);
