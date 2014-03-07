@@ -163,6 +163,16 @@ public:
 	}
 
 
+	template<typename MsgType> 
+	bool updateNamed(const std::string & _name, 
+					const MsgType & _msg, 
+					const StringPairs & _meta = EMPTY_PAIR_LIST,					
+					bool _upsert = false) {
+
+		StringPairs meta_query;
+		meta_query.push_back(makePair("name", _name));
+		return update<MsgType>(_msg, _meta, EMPTY_PAIR_LIST, meta_query, _upsert);
+	}
 
 	template<typename MsgType> 
 	bool update(const MsgType & _msg, 
@@ -195,11 +205,7 @@ public:
 		}
 
   		if(m_updateClient.call(msg)) {
-  			// ROS_INFO("Got back %li messages", msg.response.messages.size());
-  			// for(size_t i = 0; i < msg.response.messages.size(); i ++) {
-  			// 	_results.push_back(deserialise_message<MsgType>(msg.response.messages[i]));
-  			// }
-  			return true;
+  			return msg.response.success;
   		}
   		else {
  	 		return false;
