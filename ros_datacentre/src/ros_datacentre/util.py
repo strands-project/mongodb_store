@@ -206,11 +206,12 @@ def update_message(collection, query_doc, msg, meta, upsert):
     # convert msg to db document
     doc=msg_to_document(msg)
 
-    # if no meta supplied, reuse from db
-    if result and len(meta) == 0:        
-        doc["_meta"] = result["_meta"]
-    else:
-        doc["_meta"] = meta
+    
+    #update _meta
+    doc["_meta"] = result["_meta"]
+    doc["_meta"]=dict(list(doc["_meta"].items()) + list(meta.items())) #merges the two dicts, overwiriting elements in doc["_meta"] with elements in meta
+
+
 
     # print result
     # print doc
