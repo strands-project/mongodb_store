@@ -13,8 +13,8 @@ add_message_files(
 add_service_files(
   FILES
   MongoInsertMsg.srv
+  MongoUpdateMsg.srv
   MongoQueryMsg.srv
-  MongoQueryID.srv
 )
 
 generate_messages()

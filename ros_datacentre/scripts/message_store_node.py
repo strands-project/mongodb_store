@@ -14,6 +14,7 @@ from ros_datacentre_msgs.msg import  StringPair, StringPairList
 
 
 
+
 class MessageStore(object):
     def __init__(self):
         rospy.init_node("message_store")
@@ -40,16 +41,50 @@ class MessageStore(object):
         # deserialize data into object
         obj = dc_util.deserialise_message(req.message)        
         # convert input tuple to dict
-        meta = dict((pair.first, pair.second) for pair in req.meta)
-        #  also store type information
-        meta["stored_class"] = obj.__module__ + "." + obj.__class__.__name__
-        meta["stored_type"] = req.message.type
+        meta = dc_util.string_pair_list_to_dictionary(req.meta)
         # get requested collection from the db, creating if necessary
         collection = self._mongo_client[req.database][req.collection]
         obj_id = dc_util.store_message(collection, obj, meta)
         return str(obj_id)        
     insert_ros_srv.type=dc_srv.MongoInsertMsg
-                          
+             
+
+    def update_ros_srv(self, req):
+        """
+        Updates a msg in the store
+        """
+        # rospy.lrosoginfo("called")
+        collection = self._mongo_client[req.database][req.collection]
+
+        # build the query doc         
+        obj_query = self.to_query_dict(req.message_query, req.meta_query)
+
+        # restrict results to have the type asked for
+        obj_query["_meta.stored_type"] = req.message.type
+
+        # TODO start using some string constants!
+
+        rospy.loginfo("update spec document: %s", obj_query) 
+
+        # deserialize data into object
+        obj = dc_util.deserialise_message(req.message)        
+      
+        (obj_id, altered) = dc_util.update_message(collection, obj_query, obj, dc_util.string_pair_list_to_dictionary(req.meta), req.upsert)
+
+        return str(obj_id), altered
+    update_ros_srv.type=dc_srv.MongoUpdateMsg
+       
+
+    def to_query_dict(self, message_query, meta_query):            
+        """
+        Decodes and combines the given StringPairList queries into a single mongodb query
+        """
+        obj_query = dc_util.string_pair_list_to_dictionary(message_query)        
+        bare_meta_query = dc_util.string_pair_list_to_dictionary(meta_query)
+        for (k, v) in bare_meta_query.iteritems():
+            obj_query["_meta." + k] = v
+
+        return obj_query
 
     def query_messages_ros_srv(self, req):
         """
@@ -57,30 +92,8 @@ class MessageStore(object):
         """
         collection = self._mongo_client[req.database][req.collection]
 
-
-        # build the query doc 
-        
-        # load serialised json
-
-        if len(req.message_query) > 0 and req.message_query[0].first == dc_srv.MongoQueryMsgRequest.JSON_QUERY:
-            obj_query = json.loads(req.message_query[0].second)
-        # else use the string pairs
-        else:
-            obj_query = dict((pair.first, pair.second) for pair in req.message_query)
-        
-
-        # load serialised json for meta
-        if len(req.meta_query) > 0 and req.meta_query[0].first == dc_srv.MongoQueryMsgRequest.JSON_QUERY:
-            meta_query = json.loads(req.meta_query[0].second)
-            # prefix all keys with "_meta." to make it 
-            prefixed_meta_query = {}
-            for old_key in meta_query:
-                prefixed_meta_query["_meta." + old_key] = meta_query[old_key]
-            obj_query.update(prefixed_meta_query)
-        # else use the string pairs
-        else:
-            obj_query.update(dict(("_meta." + pair.first, pair.second) for pair in req.meta_query))
-
+        # build the query doc         
+        obj_query = self.to_query_dict(req.message_query, req.meta_query)
 
         # restrict results to have the type asked for
         obj_query["_meta.stored_type"] = req.type
@@ -89,9 +102,10 @@ class MessageStore(object):
 
         rospy.loginfo("query document: %s", obj_query) 
         
-
         # this is a list of entries in dict format including meta
         entries =  dc_util.query_message(collection, obj_query, req.single)
+
+        # rospy.loginfo("entries: %s", entries) 
 
         serialised_messages = ()
         metas = ()
@@ -103,8 +117,8 @@ class MessageStore(object):
             # instantiate the ROS message object from the dictionary retrieved from the db
             message = dc_util.dictionary_to_message(entry, cls)            
             # the serialise this object in order to be sent in a generic form
-            serialised_messages = serialised_messages + (dc_util.serialise_message(message), )
-            metas = metas + (StringPairList(tuple(StringPair(k, v) for k, v in entry["_meta"].iteritems())), )
+            serialised_messages = serialised_messages + (dc_util.serialise_message(message), )            
+            metas = metas + (StringPairList([StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(entry["_meta"]))]), )
 
         return [serialised_messages, metas]
         

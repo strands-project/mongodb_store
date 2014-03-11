@@ -26,13 +26,21 @@ int main(int argc, char **argv)
 
 	std::vector< boost::shared_ptr<Pose> > results;
 
-	//Get it back
+	//Get it back, by default get one
 	messageStore.queryNamed<Pose>("my pose", results);
 
 	BOOST_FOREACH( boost::shared_ptr<Pose> p,  results)
 	{
 		ROS_INFO_STREAM("Got: " << *p);
 	}
+
+
+	p.position.x = 999;
+	messageStore.updateNamed("my pose", p);
+
+
+
+
 
 	results.clear();
 	// try to get it back with an incorrect name, so get None instead
@@ -43,7 +51,7 @@ int main(int argc, char **argv)
 	}
 
 	results.clear();
-	// get all poses  
+	// get all poses, should show updated named position  
 	messageStore.query<Pose>(results);
 	BOOST_FOREACH( boost::shared_ptr<Pose> p,  results)
 	{

@@ -4,7 +4,7 @@ string database
 string collection
 SerialisedMessage message
 # meta description to be added to message, each pair interpreted as key = value
-StringPair[] meta
+StringPairList meta
 ---
 # id of the inserted msg
 string id
