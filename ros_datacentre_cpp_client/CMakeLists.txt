@@ -111,9 +111,9 @@ add_dependencies(example_ros_datacentre_cpp_client ros_datacentre_msgs_generate_
 
 # Specify libraries to link a library or executable target against
 target_link_libraries(example_ros_datacentre_cpp_client
+  mongoclient
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
-  mongoclient
 )
 
 #############
