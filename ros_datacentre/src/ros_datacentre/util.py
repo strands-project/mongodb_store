@@ -144,11 +144,23 @@ def store_message_no_meta(collection, msg):
 Fill a ROS message from a dictionary, assuming the slots of the message are keys in the dictionary.
 """
 def fill_message(message, document):
-    for slot in message.__slots__:
+    for slot, slot_type in zip(message.__slots__,
+                               getattr(message,"_slot_types",[""]*len(message.__slots__))):
         value = document[slot]
         # fill internal structures if value is a dictionary itself
         if isinstance(value, dict):
             fill_message(getattr(message, slot), value)
+        elif isinstance(value, list) and slot_type.find("/")!=-1:
+            # if its a list and the type is some message (contains a "/")
+            lst=[]
+            # Remove [] from message type ([:-2])
+            msg_type = type_to_class_string(slot_type[:-2])
+            msg_class = load_class(msg_type)
+            for i in value:
+                msg = msg_class()
+                fill_message(msg, i)
+                lst.append(msg)
+            setattr(message, slot, lst)    
         else:
             setattr(message, slot, value)    
 
