@@ -85,4 +85,4 @@ class MessageStoreProxy:
 			else:				
 				return [None, None]
 		else:
-			return [[message, meta] for message in messages for meta in metas]
+			return zip(messages,metas)
