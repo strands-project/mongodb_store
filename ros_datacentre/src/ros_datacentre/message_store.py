@@ -61,7 +61,7 @@ class MessageStoreProxy:
 		message_query_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json_util.dumps(message_query)),)
 		meta_query_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json_util.dumps(meta_query)),)
 		meta_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json_util.dumps(meta)),)
-		self.update_srv(self.database, self.collection, upsert, StringPairList(message_query_tuple), StringPairList(meta_query_tuple), dc_util.serialise_message(message), StringPairList(meta_tuple))		
+		return self.update_srv(self.database, self.collection, upsert, StringPairList(message_query_tuple), StringPairList(meta_query_tuple), dc_util.serialise_message(message), StringPairList(meta_tuple))		
 
 
 	"""

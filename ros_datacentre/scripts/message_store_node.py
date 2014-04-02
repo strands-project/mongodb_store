@@ -64,7 +64,7 @@ class MessageStore(object):
 
         # TODO start using some string constants!
 
-        rospy.loginfo("update spec document: %s", obj_query) 
+        rospy.logdebug("update spec document: %s", obj_query) 
 
         # deserialize data into object
         obj = dc_util.deserialise_message(req.message)        
@@ -100,12 +100,12 @@ class MessageStore(object):
 
         # TODO start using some string constants!
 
-        rospy.loginfo("query document: %s", obj_query) 
+        rospy.logdebug("query document: %s", obj_query) 
         
         # this is a list of entries in dict format including meta
         entries =  dc_util.query_message(collection, obj_query, req.single)
 
-        # rospy.loginfo("entries: %s", entries) 
+        # rospy.logdebug("entries: %s", entries) 
 
         serialised_messages = ()
         metas = ()
