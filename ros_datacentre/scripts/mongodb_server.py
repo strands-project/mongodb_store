@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import roslib; roslib.load_manifest('ros_datacentre')
 import rospy
 import subprocess
 import sys

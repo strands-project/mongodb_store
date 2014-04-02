@@ -9,7 +9,7 @@ import rospy
 import ros_datacentre_msgs.srv as dc_srv
 import ros_datacentre.util as dc_util
 import pymongo
-import json
+from bson import json_util
 from ros_datacentre_msgs.msg import  StringPair, StringPairList
 
 
@@ -118,7 +118,7 @@ class MessageStore(object):
             message = dc_util.dictionary_to_message(entry, cls)            
             # the serialise this object in order to be sent in a generic form
             serialised_messages = serialised_messages + (dc_util.serialise_message(message), )            
-            metas = metas + (StringPairList([StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(entry["_meta"]))]), )
+            metas = metas + (StringPairList([StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json_util.dumps(entry["_meta"]))]), )
 
         return [serialised_messages, metas]
         
