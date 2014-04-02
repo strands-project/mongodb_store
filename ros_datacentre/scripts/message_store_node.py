@@ -118,6 +118,9 @@ class MessageStore(object):
             message = dc_util.dictionary_to_message(entry, cls)            
             # the serialise this object in order to be sent in a generic form
             serialised_messages = serialised_messages + (dc_util.serialise_message(message), )            
+            # add ObjectID into meta as it might be useful later
+            entry["_meta"]["_id"] = entry["_id"]
+            # serialise meta
             metas = metas + (StringPairList([StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json_util.dumps(entry["_meta"]))]), )
 
         return [serialised_messages, metas]
