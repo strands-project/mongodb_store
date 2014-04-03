@@ -38,7 +38,7 @@ class MessageStoreProxy:
 		return self.insert_srv(self.database, self.collection, serialised_msg, StringPairList(meta_tuple))
 
 	def query_id(self, id, type):
-		return self.query(type, {'_id': ObjectId(id)})
+		return self.query(type, {'_id': ObjectId(id)}, {}, True)
 
 	def query_named(self, name, type, single = True, meta = {}):
 		# create a copy as we're modifying it
