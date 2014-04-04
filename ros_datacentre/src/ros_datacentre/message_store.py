@@ -35,7 +35,7 @@ class MessageStoreProxy:
 		# assume meta is a dict, convert k/v to tuple pairs 
 		meta_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json_util.dumps(meta)),)
 		serialised_msg = dc_util.serialise_message(message)
-		return self.insert_srv(self.database, self.collection, serialised_msg, StringPairList(meta_tuple))
+		return self.insert_srv(self.database, self.collection, serialised_msg, StringPairList(meta_tuple)).id
 
 	def query_id(self, id, type):
 		return self.query(type, {'_id': ObjectId(id)}, {}, True)
