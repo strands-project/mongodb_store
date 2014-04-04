@@ -9,7 +9,7 @@ import rospy
 import ros_datacentre_msgs.srv as dc_srv
 import ros_datacentre.util as dc_util
 import pymongo
-import json
+from bson import json_util
 from ros_datacentre_msgs.msg import  StringPair, StringPairList
 
 
@@ -64,7 +64,7 @@ class MessageStore(object):
 
         # TODO start using some string constants!
 
-        rospy.loginfo("update spec document: %s", obj_query) 
+        rospy.logdebug("update spec document: %s", obj_query) 
 
         # deserialize data into object
         obj = dc_util.deserialise_message(req.message)        
@@ -100,12 +100,12 @@ class MessageStore(object):
 
         # TODO start using some string constants!
 
-        rospy.loginfo("query document: %s", obj_query) 
+        rospy.logdebug("query document: %s", obj_query) 
         
         # this is a list of entries in dict format including meta
         entries =  dc_util.query_message(collection, obj_query, req.single)
 
-        # rospy.loginfo("entries: %s", entries) 
+        # rospy.logdebug("entries: %s", entries) 
 
         serialised_messages = ()
         metas = ()
@@ -118,7 +118,10 @@ class MessageStore(object):
             message = dc_util.dictionary_to_message(entry, cls)            
             # the serialise this object in order to be sent in a generic form
             serialised_messages = serialised_messages + (dc_util.serialise_message(message), )            
-            metas = metas + (StringPairList([StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(entry["_meta"]))]), )
+            # add ObjectID into meta as it might be useful later
+            entry["_meta"]["_id"] = entry["_id"]
+            # serialise meta
+            metas = metas + (StringPairList([StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json_util.dumps(entry["_meta"]))]), )
 
         return [serialised_messages, metas]
         

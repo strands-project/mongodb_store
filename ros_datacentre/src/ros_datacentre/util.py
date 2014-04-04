@@ -2,7 +2,7 @@ import rospy
 import genpy
 from std_srvs.srv import Empty
 import yaml
-import json
+from bson import json_util
 import copy
 import StringIO
 from ros_datacentre_msgs.msg import SerialisedMessage
@@ -311,7 +311,7 @@ Creates a dictionary from a StringPairList which could contain JSON as a string
 def string_pair_list_to_dictionary(spl):
     if len(spl.pairs) > 0 and spl.pairs[0].first == MongoQueryMsgRequest.JSON_QUERY:
         # print "looks like %s", spl.pairs[0].second
-        return json.loads(spl.pairs[0].second)
+        return json_util.loads(spl.pairs[0].second)
     # else use the string pairs
     else:
         return string_pair_list_to_dictionary_no_json(spl.pairs)
