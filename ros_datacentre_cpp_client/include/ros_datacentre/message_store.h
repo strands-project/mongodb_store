@@ -40,14 +40,35 @@ void fill_serialised_message(ros_datacentre_msgs::SerialisedMessage & _sm,
 
 	//how long the data will be
 	uint32_t serial_size = ros::serialization::serializationLength(_msg);
- 	//set msg vector to this size
+	
+	// std::cout<<"serial_size: "<<serial_size<<std::endl;	
+
+ 	//set msg vector to this size + 4 to hold length description
 	_sm.msg.resize(serial_size);
 	//serialise the object into the vector via this stream
 	ros::serialization::OStream stream(&(_sm.msg[0]), serial_size);
+	
+	// serialise message
 	ros::serialization::serialize(stream, _msg);
-
 }
 
+
+template<typename MsgType> 
+boost::shared_ptr<MsgType> deserialise_message(ros_datacentre_msgs::SerialisedMessage & _sm) {
+
+	// std::cout<<_sm<<std::endl;
+
+	boost::shared_ptr<MsgType> message = boost::make_shared<MsgType>();
+
+	uint32_t serial_size = _sm.msg.size();
+	
+	// std::cout<<"serial_size: "<<serial_size<<std::endl;	
+
+	ros::serialization::IStream msgStream(&(_sm.msg[0]), serial_size);
+	ros::serialization::deserialize(msgStream, *message);
+
+	return message;
+}
 
 class MessageStoreProxy
 {
@@ -233,17 +254,6 @@ public:
 
 protected:
 
-	template<typename MsgType> 
-	boost::shared_ptr<MsgType> deserialise_message(ros_datacentre_msgs::SerialisedMessage & _sm) {
-
-		boost::shared_ptr<MsgType> message = boost::make_shared<MsgType>();
-
-		uint32_t serial_size = ros::serialization::serializationLength(*message);
-		ros::serialization::IStream stream(&(_sm.msg[0]), serial_size);
-		ros::serialization::deserialize(stream, *message);
-
-		return message;
-	}
 
 	std::string m_database;
 	std::string m_collection;
