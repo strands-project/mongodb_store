@@ -10,14 +10,14 @@ class TestMessageStoreProxy(unittest.TestCase):
 
     def test_add_message(self):
         msg_store = MessageStoreProxy()
-        POSE_NAME = "test_pose_6"
+        POSE_NAME = "__test__pose__"
         p = Pose(Point(0, 1, 2), Quaternion(0, 0, 0, 1))
       
         # insert a pose object with a name
         msg_store.insert_named(POSE_NAME, p)
  
         # get it back with a name
-        stored = msg_store.query_named(POSE_NAME, Pose._type)[0]
+        stored, meta = msg_store.query_named(POSE_NAME, Pose._type)
 
         self.assertIsInstance(stored, Pose)
         self.assertEqual(stored.position.x, p.position.x)
@@ -47,9 +47,11 @@ class TestMessageStoreProxy(unittest.TestCase):
         none_query = msg_store.query( "not my type")
         self.assertEqual(len(none_query), 0)
         
-        # URGENT TODO: must remove the item or unittest only really valid once
-
-        
+        # must remove the item or unittest only really valid once
+        print meta["_id"]
+        print str(meta["_id"])
+        deleted = msg_store.delete(str(meta["_id"]))
+        self.assertTrue(deleted)
 
     
     

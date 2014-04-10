@@ -13,15 +13,18 @@ class MessageStoreProxy:
 		self.collection = collection
 		insert_service = service_prefix + '/insert'
 		update_service = service_prefix + '/update'
+		delete_service = service_prefix + '/delete'
 		query_ids_service = service_prefix + '/query_messages'
 		rospy.logdebug("Waiting for services...")
 		rospy.wait_for_service(insert_service)
 		rospy.wait_for_service(update_service)
 		rospy.wait_for_service(query_ids_service)
+		rospy.wait_for_service(delete_service)
 		rospy.logdebug("Done")
 		self.insert_srv = rospy.ServiceProxy(insert_service, dc_srv.MongoInsertMsg)
 		self.update_srv = rospy.ServiceProxy(update_service, dc_srv.MongoUpdateMsg)
 		self.query_id_srv = rospy.ServiceProxy(query_ids_service, dc_srv.MongoQueryMsg)
+		self.delete_srv = rospy.ServiceProxy(delete_service, dc_srv.MongoDeleteMsg)
 
 
 	def insert_named(self, name, message, meta = {}):
@@ -39,6 +42,15 @@ class MessageStoreProxy:
 
 	def query_id(self, id, type):
 		return self.query(type, {'_id': ObjectId(id)}, {}, True)
+	
+	def delete(self, message_id):
+		"""
+		Delete the message with the given ID.
+		
+		:Parameters:
+			message_id : string
+		"""
+		return self.delete_srv(self.database, self.collection, message_id)
 
 	def query_named(self, name, type, single = True, meta = {}):
 		# create a copy as we're modifying it
