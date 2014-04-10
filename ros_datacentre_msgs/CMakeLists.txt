@@ -15,6 +15,7 @@ add_service_files(
   MongoInsertMsg.srv
   MongoUpdateMsg.srv
   MongoQueryMsg.srv
+  MongoDeleteMsg.srv
 )
 
 generate_messages()
