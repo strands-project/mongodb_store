@@ -125,6 +125,10 @@ install(DIRECTORY scripts/
 ## Testing ##
 #############
 
+if (CATKIN_ENABLE_TESTING)
+  find_package(catkin REQUIRED COMPONENTS rostest)
+endif()
+
 ## Add gtest based cpp test target and link libraries
 # catkin_add_gtest(${PROJECT_NAME}-test test/test_ros_datacentre.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
@@ -132,4 +136,9 @@ install(DIRECTORY scripts/
 # endif()
 
 ## Add folders to be run by python nosetests
-# catkin_add_nosetests(test)
+# catkin_add_nosetests(unittests/test_messagestore.py)
+
+
+if (CATKIN_ENABLE_TESTING)
+  add_rostest(tests/messagestore.test)
+endif()
