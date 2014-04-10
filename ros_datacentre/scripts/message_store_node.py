@@ -11,9 +11,7 @@ import ros_datacentre.util as dc_util
 import pymongo
 from bson import json_util
 from ros_datacentre_msgs.msg import  StringPair, StringPairList
-
-
-
+from bson.objectid import ObjectId
 
 class MessageStore(object):
     def __init__(self):
@@ -47,6 +45,26 @@ class MessageStore(object):
         obj_id = dc_util.store_message(collection, obj, meta)
         return str(obj_id)        
     insert_ros_srv.type=dc_srv.MongoInsertMsg
+             
+    def delete_ros_srv(self, req):
+        """
+        Deletes a message by ID 
+        """
+        # Get the message
+        collection = self._mongo_client[req.database][req.collection]
+        docs = dc_util.query_message(collection, {"_id": ObjectId(req.document_id)}, find_one=True)
+        if len(docs) != 1:
+            return False
+        message = docs[0]
+        
+        # Remove the doc
+        collection.remove(message)
+        
+        # But keep it in "trash"
+        bk_collection = self._mongo_client[req.database][req.collection + "_Trash"]
+        bk_collection.save(message)
+        return True        
+    delete_ros_srv.type=dc_srv.MongoDeleteMsg
              
 
     def update_ros_srv(self, req):
