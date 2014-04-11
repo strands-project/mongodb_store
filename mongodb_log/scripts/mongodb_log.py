@@ -30,7 +30,7 @@ NODE_NAME_TEMPLATE='%smongodb_log'
 WORKER_NODE_NAME = "%smongodb_log_worker_%d_%s"
 QUEUE_MAXSIZE = 100
 
-import roslib; roslib.load_manifest(PACKAGE_NAME)
+# import roslib; roslib.load_manifest(PACKAGE_NAME)
 import rospy
 
 # for msg_to_document
@@ -45,6 +45,7 @@ import string
 import subprocess
 from threading import Thread, Timer
 from multiprocessing import Process, Lock, Condition, Queue, Value, current_process, Event
+import multiprocessing as mp
 from Queue import Empty
 from optparse import OptionParser
 from tempfile import mktemp
@@ -127,12 +128,15 @@ class WorkerProcess(object):
         self.nodename_prefix = nodename_prefix
         self.quit = Value('i', 0)
 
+        # print "Creating process %s" % self.name
         self.process = Process(name=self.name, target=self.run)
+        # print "created %s" % self.process
         self.process.start()
+        # print "started %s" % self.process
 
-    def init(self):
-        global use_setproctitle
-	if use_setproctitle:
+    def init(self): 
+        global use_setproctitle 
+        if use_setproctitle: 
             setproctitle("mongodb_log %s" % self.topic)
 
         self.mongoconn = Connection(self.mongodb_host, self.mongodb_port)
@@ -144,8 +148,11 @@ class WorkerProcess(object):
 
         self.queue.cancel_join_thread()
 
-        rospy.init_node(WORKER_NODE_NAME % (self.nodename_prefix, self.id, self.collname),
-                        anonymous=False)
+
+
+        worker_node_name = WORKER_NODE_NAME % (self.nodename_prefix, self.id, self.collname)
+        # print "Calling init_node with %s from process %s" % (worker_node_name, mp.current_process())
+        rospy.init_node(worker_node_name, anonymous=False)
 
         self.subscriber = None
         while not self.subscriber:
@@ -222,13 +229,16 @@ class WorkerProcess(object):
                 ctime = t[2]
 
                 if isinstance(msg, rospy.Message):
-                    doc = ros_datacentre.util.msg_to_document(msg)
-                    doc["__recorded"] = ctime or datetime.now()
-                    doc["__topic"]    = topic
+
                     try:
                         #print(self.sep + threading.current_thread().getName() + "@" + topic+": ")
                         #pprint.pprint(doc)
-                        self.collection.insert(doc)
+                        meta = {}    
+                        meta["recorded"] = ctime or datetime.now()
+                        meta["topic"]    = topic
+
+                        ros_datacentre.util.store_message(self.collection, msg, meta)                    
+
                     except InvalidDocument, e:
                         print("InvalidDocument " + current_process().name + "@" + topic +": \n")
                         print e
@@ -346,11 +356,21 @@ class MongoWriter(object):
             print("All topics")
             self.ros_master = rosgraph.masterapi.Master(NODE_NAME_TEMPLATE % self.nodename_prefix)
             self.update_topics(restart=False)
-        rospy.init_node(NODE_NAME_TEMPLATE % self.nodename_prefix, anonymous=True)
+
+        node_name = NODE_NAME_TEMPLATE % self.nodename_prefix
+        # print "Calling init_node with %s from process %s" % (node_name, mp.current_process())
+        
+        rospy.init_node(node_name, anonymous=True)
 
         self.start_all_topics_timer()
 
     def subscribe_topics(self, topics):
+
+        # print "existing topics %s" % self.topics
+
+        # print "subscribing to topics %s" % topics
+
+
         for topic in topics:
             if topic and topic[-1] == '/':
                 topic = topic[:-1]
@@ -457,8 +477,11 @@ class MongoWriter(object):
 
 
     def update_topics(self, restart=True):
+        """
+        Called at a fixed interval (see start_all_topics_timer) to update the list of topics if we are logging all topics (e.g. --all-topics flag is given).
+        """
         if not self.all_topics or self.quit: return
-        ts = self.ros_master.getPublishedTopics("/")
+        ts = rospy.get_published_topics()
         topics = set([t for t, t_type in ts if t != "/rosout" and t != "/rosout_agg"])
         new_topics = topics - self.topics
         self.subscribe_topics(new_topics)
