@@ -195,16 +195,16 @@ public:
 		}
 
   		if(m_queryClient.call(msg)) {
-
   			ROS_INFO("Got back %li messages", msg.response.messages.size());
-  			for(size_t i = 0; i < msg.response.messages.size(); i ++) {
-  				_results.push_back(deserialise_message<MsgType>(msg.response.messages[i]));
-  			}
-  			return true;
+  			if(msg.response.messages.size() > 0) {
+	  			for(size_t i = 0; i < msg.response.messages.size(); i ++) {
+	  				_results.push_back(deserialise_message<MsgType>(msg.response.messages[i]));
+	  			}			  		
+	  			return true;
+	  		}
   		}
-  		else {
- 	 		return false;
- 	 	}
+
+		return false;
 
 	}
 
