@@ -106,13 +106,13 @@ public:
 
 
 	template<typename MsgType> 
-	void insert(const MsgType & _msg) {
-		insert(_msg, m_database, m_collection);
+	std::string insert(const MsgType & _msg) {
+		return insert(_msg, m_database, m_collection);
 	}
 
 
 	template<typename MsgType> 
-	void insertNamed(const std::string & _name, const MsgType & _msg, 
+	std::string insertNamed(const std::string & _name, const MsgType & _msg, 
 		const mongo::BSONObj & _meta = mongo::BSONObj()) {
 
 		//create a copy of the meta data with the name included
@@ -121,30 +121,32 @@ public:
 		builder.append("name", _name);
 
 		//and insert as usual
-		insert(_msg, m_database, m_collection, builder.obj());
+		return insert(_msg, m_database, m_collection, builder.obj());
 	}
 
 	template<typename MsgType> 
-	void insert(const MsgType & _msg, 
+	std::string insert(const MsgType & _msg, 
 		const std::string & _database, 
 		const std::string & _collection, 
 		const mongo::BSONObj & _meta = mongo::BSONObj()) {
 
   		//Create message with basic fields
-  		ros_datacentre_msgs::MongoInsertMsg msg;
-  		msg.request.database = _database;
-  		msg.request.collection = _collection;
+  		ros_datacentre_msgs::MongoInsertMsg srv;
+  		srv.request.database = _database;
+  		srv.request.collection = _collection;
   		
  		
  		//if there's no meta then no copying is necessary
   		if(!_meta.isEmpty()) {
- 			msg.request.meta.pairs.push_back(makePair(ros_datacentre_msgs::MongoQueryMsgRequest::JSON_QUERY, _meta.jsonString()));
+ 			srv.request.meta.pairs.push_back(makePair(ros_datacentre_msgs::MongoQueryMsgRequest::JSON_QUERY, _meta.jsonString()));
 		}
 
-	 	fill_serialised_message(msg.request.message, _msg);
+	 	fill_serialised_message(srv.request.message, _msg);
 
   		//sent data over
-  		m_insertClient.call(msg);
+  		m_insertClient.call(srv);
+  		return srv.response.id;
+
 	}
 
 	template<typename MsgType> 
@@ -155,6 +157,14 @@ public:
 		
 		mongo::BSONObj meta_query = BSON( "name" << _name );
 		return query<MsgType>(_results, mongo::BSONObj(), meta_query, _find_one);
+	}
+
+	template<typename MsgType> 
+	bool queryID(const std::string & _id, 
+					std::vector< boost::shared_ptr<MsgType> > & _results) {
+		
+		mongo::BSONObj msg_query = BSON( "_id" << mongo::OID(_id) );
+		return query<MsgType>(_results, msg_query, mongo::BSONObj(), true);
 	}
 
 	template<typename MsgType> 

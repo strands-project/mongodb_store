@@ -6,7 +6,7 @@
 
 using namespace geometry_msgs;
 using namespace ros_datacentre;
-
+using namespace std;
 /**
  * This tutorial demonstrates simple sending of messages over the ROS system.
  */
@@ -20,23 +20,34 @@ int main(int argc, char **argv)
 
 	//This is the message we want to store
 	Pose p;
-
+	string name("my pose");
 	//Insert something with a name
-	messageStore.insertNamed("my pose", p);
+	string id(messageStore.insertNamed(name, p));
+	cout<<"Pose \""<<name<<"\" inserted with id "<<id<<endl;
 
-	std::vector< boost::shared_ptr<Pose> > results;
+
+	vector< boost::shared_ptr<Pose> > results;
 
 	//Get it back, by default get one
-	messageStore.queryNamed<Pose>("my pose", results);
+	if(messageStore.queryNamed<Pose>(name, results)) {
 
-	BOOST_FOREACH( boost::shared_ptr<Pose> p,  results)
-	{
-		ROS_INFO_STREAM("Got: " << *p);
+		BOOST_FOREACH( boost::shared_ptr<Pose> p,  results)
+		{
+			ROS_INFO_STREAM("Got by name: " << *p);
+		}
 	}
 
+	if(messageStore.queryID<Pose>(id, results)) {
+
+		BOOST_FOREACH( boost::shared_ptr<Pose> p,  results)
+		{
+			ROS_INFO_STREAM("Got by ID: " << *p);
+		}
+
+	}
 
 	p.position.x = 999;
-	messageStore.updateNamed("my pose", p);
+	messageStore.updateNamed(name, p);
 
 
 
