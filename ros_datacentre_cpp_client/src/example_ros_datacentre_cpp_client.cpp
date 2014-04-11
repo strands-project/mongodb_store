@@ -50,9 +50,6 @@ int main(int argc, char **argv)
 	messageStore.updateNamed(name, p);
 
 
-
-
-
 	results.clear();
 	// try to get it back with an incorrect name, so get None instead
 	messageStore.queryNamed<Pose>("my favourite position", results);
@@ -69,8 +66,17 @@ int main(int argc, char **argv)
 		ROS_INFO_STREAM("Got: " << *p);
 	}
 	
+	messageStore.deleteID(id);
 
+	results.clear();
+	if(messageStore.queryID<Pose>(id, results)) {
 
+		BOOST_FOREACH( boost::shared_ptr<Pose> p,  results)
+		{
+			ROS_INFO_STREAM("Got by ID: " << *p);
+		}
+
+	}
 	return 0;
 }
 
