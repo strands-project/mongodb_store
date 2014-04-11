@@ -4,6 +4,7 @@
 #include "ros_datacentre_msgs/MongoInsertMsg.h"
 #include "ros_datacentre_msgs/MongoUpdateMsg.h"
 #include "ros_datacentre_msgs/MongoQueryMsg.h"
+#include "ros_datacentre_msgs/MongoDeleteMsg.h"
 #include "ros_datacentre_msgs/StringPair.h"
 #include "ros_datacentre_msgs/SerialisedMessage.h"
 
@@ -84,6 +85,7 @@ public:
 		m_insertClient(handle.serviceClient<ros_datacentre_msgs::MongoInsertMsg>(_servicePrefix + "/insert")),
 		m_updateClient(handle.serviceClient<ros_datacentre_msgs::MongoUpdateMsg>(_servicePrefix + "/update")),
 		m_queryClient(handle.serviceClient<ros_datacentre_msgs::MongoQueryMsg>(_servicePrefix + "/query_messages")),
+		m_deleteClient(handle.serviceClient<ros_datacentre_msgs::MongoDeleteMsg>(_servicePrefix + "/delete")),
 		m_database(_database),
 		m_collection(_collection)
 	{
@@ -91,6 +93,7 @@ public:
 		m_insertClient.waitForExistence();
 		m_updateClient.waitForExistence();
 		m_queryClient.waitForExistence();
+		m_deleteClient.waitForExistence();
 	}
 
 	MessageStoreProxy(const MessageStoreProxy& _rhs) :
@@ -98,7 +101,8 @@ public:
 		m_collection(_rhs.m_collection),
 		m_insertClient(_rhs.m_insertClient),
 		m_updateClient(_rhs.m_insertClient),
-		m_queryClient(_rhs.m_queryClient)
+		m_queryClient(_rhs.m_queryClient),
+		m_deleteClient(_rhs.m_deleteClient)
 	{}
 
 
@@ -106,13 +110,13 @@ public:
 
 
 	template<typename MsgType> 
-	void insert(const MsgType & _msg) {
-		insert(_msg, m_database, m_collection);
+	std::string insert(const MsgType & _msg) {
+		return insert(_msg, m_database, m_collection);
 	}
 
 
 	template<typename MsgType> 
-	void insertNamed(const std::string & _name, const MsgType & _msg, 
+	std::string insertNamed(const std::string & _name, const MsgType & _msg, 
 		const mongo::BSONObj & _meta = mongo::BSONObj()) {
 
 		//create a copy of the meta data with the name included
@@ -121,30 +125,32 @@ public:
 		builder.append("name", _name);
 
 		//and insert as usual
-		insert(_msg, m_database, m_collection, builder.obj());
+		return insert(_msg, m_database, m_collection, builder.obj());
 	}
 
 	template<typename MsgType> 
-	void insert(const MsgType & _msg, 
+	std::string insert(const MsgType & _msg, 
 		const std::string & _database, 
 		const std::string & _collection, 
 		const mongo::BSONObj & _meta = mongo::BSONObj()) {
 
   		//Create message with basic fields
-  		ros_datacentre_msgs::MongoInsertMsg msg;
-  		msg.request.database = _database;
-  		msg.request.collection = _collection;
+  		ros_datacentre_msgs::MongoInsertMsg srv;
+  		srv.request.database = _database;
+  		srv.request.collection = _collection;
   		
  		
  		//if there's no meta then no copying is necessary
   		if(!_meta.isEmpty()) {
- 			msg.request.meta.pairs.push_back(makePair(ros_datacentre_msgs::MongoQueryMsgRequest::JSON_QUERY, _meta.jsonString()));
+ 			srv.request.meta.pairs.push_back(makePair(ros_datacentre_msgs::MongoQueryMsgRequest::JSON_QUERY, _meta.jsonString()));
 		}
 
-	 	fill_serialised_message(msg.request.message, _msg);
+	 	fill_serialised_message(srv.request.message, _msg);
 
   		//sent data over
-  		m_insertClient.call(msg);
+  		m_insertClient.call(srv);
+  		return srv.response.id;
+
 	}
 
 	template<typename MsgType> 
@@ -154,7 +160,15 @@ public:
 
 		
 		mongo::BSONObj meta_query = BSON( "name" << _name );
-		return query<MsgType>(_results, mongo::BSONObj(), meta_query, _find_one);
+		return query<MsgType>(_results, EMPTY_BSON_OBJ, meta_query, _find_one);
+	}
+
+	template<typename MsgType> 
+	bool queryID(const std::string & _id, 
+					std::vector< boost::shared_ptr<MsgType> > & _results) {
+		
+		mongo::BSONObj msg_query = BSON( "_id" << mongo::OID(_id) );
+		return query<MsgType>(_results, msg_query, EMPTY_BSON_OBJ, true);
 	}
 
 	template<typename MsgType> 
@@ -181,16 +195,16 @@ public:
 		}
 
   		if(m_queryClient.call(msg)) {
-
   			ROS_INFO("Got back %li messages", msg.response.messages.size());
-  			for(size_t i = 0; i < msg.response.messages.size(); i ++) {
-  				_results.push_back(deserialise_message<MsgType>(msg.response.messages[i]));
-  			}
-  			return true;
+  			if(msg.response.messages.size() > 0) {
+	  			for(size_t i = 0; i < msg.response.messages.size(); i ++) {
+	  				_results.push_back(deserialise_message<MsgType>(msg.response.messages[i]));
+	  			}			  		
+	  			return true;
+	  		}
   		}
-  		else {
- 	 		return false;
- 	 	}
+
+		return false;
 
 	}
 
@@ -208,7 +222,7 @@ public:
 		builder.appendElements(_meta);
 		builder.append("name", _name);
 
-		return update<MsgType>(_msg, builder.obj(), mongo::BSONObj(), meta_query, _upsert);
+		return update<MsgType>(_msg, builder.obj(), EMPTY_BSON_OBJ, meta_query, _upsert);
 	}
 
 	template<typename MsgType> 
@@ -252,6 +266,21 @@ public:
 
 	}
 
+	bool deleteID(const std::string & _id) {
+
+  		//Create message with basic fields
+  		ros_datacentre_msgs::MongoDeleteMsg srv;
+  		srv.request.database = m_database;
+  		srv.request.collection = m_collection;
+  		srv.request.document_id = _id;
+  		 		
+  		//sent data over
+  		m_deleteClient.call(srv);
+  		return srv.response.success;
+	}
+
+
+
 protected:
 
 
@@ -260,14 +289,14 @@ protected:
 	ros::ServiceClient m_insertClient;
 	ros::ServiceClient m_updateClient;
 	ros::ServiceClient m_queryClient;
+	ros::ServiceClient m_deleteClient;
 
-	//an empty vector to save recreating one whenever meta info is not provided
-	static const StringPairs EMPTY_PAIR_LIST;
+	//an empty bson doc to save recreating one whenever one is not required
+	static const mongo::BSONObj EMPTY_BSON_OBJ;
 };
 
 
-const StringPairs MessageStoreProxy::EMPTY_PAIR_LIST =  StringPairs();
-
+const mongo::BSONObj MessageStoreProxy::EMPTY_BSON_OBJ =  mongo::BSONObj();
 
 
 
