@@ -116,6 +116,13 @@ target_link_libraries(example_ros_datacentre_cpp_client
   ${Boost_LIBRARIES}
 )
 
+catkin_add_gtest(ros_datacentre_cpp_test test/ros_datacentre_cpp_test.cpp)
+target_link_libraries(ros_datacentre_cpp_test
+  mongoclient
+  ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
+)
+
 #############
 ## Install ##
 #############
