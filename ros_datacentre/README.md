@@ -1,4 +1,4 @@
-ros_mongodb_datacentre
+ros_datacentre
 ==================
 
 This package wraps up MongoDB database server in ROS, allowing it to be used to store configuration parameters.
@@ -26,7 +26,7 @@ The start the datacentre:
 rosparam set datacentre_port 62345
 rosparam set datacentre_host bob # note that if using multiple machines, 'localhost' is no good
 
-rosrun ros_mongodb_datacentre mongodb_server.py
+rosrun ros_datacentre mongodb_server.py
 ```
 
 By default, the mongod database will be stored in `/opt/strands/ros_datacentre`. This can be overridden by setting the private parameter ~database_path for the node. If it is the first time that the database is used, be sure to first run
@@ -63,7 +63,7 @@ To start the config manager, make sure that you have the mongo db running then:
 
 
 ```
-rosrun ros_mongodb_datacentre config_manager.py
+rosrun ros_datacentre config_manager.py
 ```
 
 This will load all parameters onto the ros parameter server, which can be checked with:
