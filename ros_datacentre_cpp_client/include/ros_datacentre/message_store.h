@@ -294,10 +294,8 @@ protected:
 	ros::ServiceClient m_deleteClient;
 
 	//an empty bson doc to save recreating one whenever one is not required
-	static const mongo::BSONObj EMPTY_BSON_OBJ;
+    static const mongo::BSONObj EMPTY_BSON_OBJ;
 };
-
-
 
 }
 
