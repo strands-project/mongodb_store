@@ -13,6 +13,7 @@ from bson import json_util
 from ros_datacentre_msgs.msg import  StringPair, StringPairList
 from bson.objectid import ObjectId
 
+
 class MessageStore(object):
     def __init__(self):
         rospy.init_node("message_store")
@@ -42,8 +43,13 @@ class MessageStore(object):
         meta = dc_util.string_pair_list_to_dictionary(req.meta)
         # get requested collection from the db, creating if necessary
         collection = self._mongo_client[req.database][req.collection]
+
+        # try:
         obj_id = dc_util.store_message(collection, obj, meta)
-        return str(obj_id)        
+        return str(obj_id)   
+        # except Exception, e:
+            # print e    
+             
     insert_ros_srv.type=dc_srv.MongoInsertMsg
              
     def delete_ros_srv(self, req):
