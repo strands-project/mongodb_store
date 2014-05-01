@@ -74,18 +74,6 @@ def document_to_msg(document, TYPE):
     _fill_msg(msg,document)
     return meta
 
-""" De-rosify a msg """
-def sanitize_value(v):
-    if isinstance(v, rospy.Message):
-        return msg_to_document(v)
-    elif isinstance(v, genpy.rostime.Time):
-        return msg_to_document(v)
-    elif isinstance(v, genpy.rostime.Duration):
-         return msg_to_document(v)
-    elif isinstance(v, list):
-        return [sanitize_value(t) for t in v]
-    else:
-        return v
 
 # this version is from mongodb_log but creates non-recreatable entries
 # """ Sanitize the input value for addition to the database. Taken from mongodb_log """
@@ -103,14 +91,45 @@ def sanitize_value(v):
 #         return v
 
     
-"""
-Given a ROS message, turn it into something suitable for the datacentre
-"""
 def msg_to_document(msg):
+    """
+    Given a ROS message, turn it into something suitable for the datacentre
+    """
+
+    # print 'msg_to_document', dir(msg)
+
     d = {}
-    for f in msg.__slots__:
-        d[f] = sanitize_value(getattr(msg, f))
+
+    slot_types = []
+    if hasattr(msg,'_slot_types'):
+        slot_types = msg._slot_types
+    else:
+        slot_types = [None] * len(msg.__slots__)
+
+
+    for (attr, type) in zip(msg.__slots__, slot_types):
+        d[attr] = sanitize_value(attr, getattr(msg, attr), type)
+
     return d
+
+def sanitize_value(attr, v, type):
+    """ De-rosify a msg """
+
+    # print '---'
+    # print attr
+    # print v.__class__
+    # print type
+   
+    if isinstance(v, rospy.Message):
+        return msg_to_document(v)
+    elif isinstance(v, genpy.rostime.Time):
+        return msg_to_document(v)
+    elif isinstance(v, genpy.rostime.Duration):
+         return msg_to_document(v)
+    elif isinstance(v, list):
+        return [sanitize_value(None, t, t._type) for t in v]
+    else:
+        return v
 
 
 """
@@ -162,7 +181,10 @@ def fill_message(message, document):
                 lst.append(msg)
             setattr(message, slot, lst)    
         else:
-            setattr(message, slot, value)    
+            if isinstance(value, unicode):
+                setattr(message, slot, str(value))
+            else:
+                setattr(message, slot, value)    
 
 """
 Create a ROS message from the given dictionary, using fill_message.
