@@ -1,3 +1,5 @@
+#ifndef __MESSAGE_STORE__H
+#define __MESSAGE_STORE__H
 
 #include "ros/ros.h"
 #include "ros/console.h"
@@ -17,14 +19,6 @@
 
 
 namespace ros_datacentre {
-
-ros_datacentre_msgs::StringPair makePair(const std::string & _first, const std::string & _second) {
-	ros_datacentre_msgs::StringPair pair;
-	pair.first = _first;
-	pair.second = _second;
-	return pair;
-}
-
 
 typedef std::vector<ros_datacentre_msgs::StringPair> StringPairs;
 
@@ -107,6 +101,14 @@ public:
 
 
 	~MessageStoreProxy() {}
+
+    ros_datacentre_msgs::StringPair makePair(const std::string & _first, const std::string & _second)
+    {
+        ros_datacentre_msgs::StringPair pair;
+        pair.first = _first;
+        pair.second = _second;
+        return pair;
+    }
 
 
 	template<typename MsgType> 
@@ -296,11 +298,8 @@ protected:
 };
 
 
-const mongo::BSONObj MessageStoreProxy::EMPTY_BSON_OBJ =  mongo::BSONObj();
-
-
-
-
-
 
 }
+
+
+#endif
