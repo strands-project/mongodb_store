@@ -215,6 +215,8 @@ public:
 
 
 
+
+
 	template<typename MsgType> 
 	bool query(std::vector< std::pair<boost::shared_ptr<MsgType>, mongo::BSONObj> > & _messages,
 				const mongo::BSONObj & _message_query = mongo::BSONObj(),
@@ -284,6 +286,7 @@ public:
 
 	}
 
+
 	template<typename MsgType> 
 	bool updateID(const std::string & _id, 
 					const MsgType & _msg, 
@@ -292,6 +295,7 @@ public:
 		mongo::BSONObj msg_query = BSON( "_id" << mongo::OID(_id) );
 		return update<MsgType>(_msg, _meta, msg_query, EMPTY_BSON_OBJ, false);
 	}
+
 
 
 

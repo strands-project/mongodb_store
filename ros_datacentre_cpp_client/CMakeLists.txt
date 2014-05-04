@@ -105,6 +105,7 @@ include_directories(
 
 
 add_library(message_store src/message_store.cpp )
+
 add_executable(example_ros_datacentre_cpp_client src/example_ros_datacentre_cpp_client.cpp)
 add_executable(example_multi_event_log src/example_multi_event_log.cpp)
 # add_executable(pc_test src/point_cloud_test.cpp)
@@ -139,7 +140,15 @@ target_link_libraries(example_multi_event_log
   ${Boost_LIBRARIES}
 )
 
+target_link_libraries(example_multi_event_log
+  message_store
+  mongoclient
+  ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
+)
+
 # target_link_libraries(pc_test
+#    message_store
 #   mongoclient
 #   ${catkin_LIBRARIES}
 #   ${Boost_LIBRARIES}
