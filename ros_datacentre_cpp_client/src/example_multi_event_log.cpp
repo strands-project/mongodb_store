@@ -29,6 +29,8 @@ int main(int argc, char **argv)
 	// let's say we have a couple of things that we need to store together
     // these could be some sensor data, results of processing etc.
     Pose pose;
+    pose.position.z = 666;
+
     Point point;
     Quaternion quaternion;
     // note that everything that is pass to the message_store must be a ros message type
@@ -59,35 +61,50 @@ int main(int argc, char **argv)
 	// and add some descriptive information
 	mongo::BSONObjBuilder metaBuilder;
 	metaBuilder.append("description", "this wasn\'t great, was it?");
-	metaBuilder.append("result_time", mongo::Date_t(ros::Time::now().toSec()));
+	metaBuilder.append("result_time", mongo::Date_t(ros::Time::now().toSec() * 1000));
 
 	// and store
     messageStore.insert(spl, metaBuilder.obj());
 
-    // now let's get all our logged data back
-	vector< boost::shared_ptr<StringPairList> > results;
+    // now let's get all our logged data back, along with meta information
+	vector< pair<boost::shared_ptr<StringPairList>, mongo::BSONObj> > results;
+	
 	messageStore.query<StringPairList>(results);
        
-	// note, as it stands cpp clients can't get the meta back, but it can be added if required
+	
 
-
-	for(auto & message : results) {
+	for(auto & message_and_meta : results) {
 
 		// Hmmm... this code is ugly
 
-		ROS_INFO_STREAM("Got data back");
+		const boost::shared_ptr<StringPairList> & message = message_and_meta.first;
+		const mongo::BSONObj & meta = message_and_meta.second;
 
-		vector< boost::shared_ptr<Pose> > poses;
-		messageStore.queryID<Pose>(message->pairs[0].second, poses);
+  		if (meta.hasField("description")) {
+  			cout << meta["description"].toString() << endl;
+  		} 
 
-		vector< boost::shared_ptr<Point> > points;
-		messageStore.queryID<Point>(message->pairs[1].second, points);
+		char buff[20];
+
+		mongo::Date_t result_time;
+		meta["result_time"].Val(result_time);
+		time_t t(result_time.toTimeT());
+		strftime(buff, 20, "%Y-%m-%d %H:%M:%S", localtime(&t));
+
+		cout << "result time (local time from rostime): " << buff << endl;
+
+		mongo::Date_t inserted_at;
+		meta["inserted_at"].Val(inserted_at);
+		t = inserted_at.toTimeT();
+		strftime(buff, 20, "%Y-%m-%d %H:%M:%S", localtime(&t));
 		
-		vector< boost::shared_ptr<Quaternion> > quaternions;
-		messageStore.queryID<Quaternion>(message->pairs[2].second, quaternions);
-		
-		vector< boost::shared_ptr<Bool> > bools;
-		messageStore.queryID<Bool>(message->pairs[3].second, bools);
+		cout << "inserted at (local time from rostime): " << buff << endl;
+
+		// get the objects back
+		pair<boost::shared_ptr<Pose>, mongo::BSONObj> storedPose(messageStore.queryID<Pose>(message->pairs[0].second));
+		pair<boost::shared_ptr<Point>, mongo::BSONObj> storedPoint(messageStore.queryID<Point>(message->pairs[1].second));
+		pair<boost::shared_ptr<Quaternion>, mongo::BSONObj> storedQuaternion(messageStore.queryID<Quaternion>(message->pairs[2].second));		
+		pair<boost::shared_ptr<Bool>, mongo::BSONObj> storedBool(messageStore.queryID<Bool>(message->pairs[3].second));
 
 	}       
 
