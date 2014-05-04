@@ -15,12 +15,12 @@ class MessageStoreProxy:
 		update_service = service_prefix + '/update'
 		delete_service = service_prefix + '/delete'
 		query_ids_service = service_prefix + '/query_messages'
-		rospy.logdebug("Waiting for services...")
+		rospy.loginfo("Waiting for services...")
 		rospy.wait_for_service(insert_service)
 		rospy.wait_for_service(update_service)
 		rospy.wait_for_service(query_ids_service)
 		rospy.wait_for_service(delete_service)
-		rospy.logdebug("Done")
+		rospy.loginfo("Done")
 		self.insert_srv = rospy.ServiceProxy(insert_service, dc_srv.MongoInsertMsg)
 		self.update_srv = rospy.ServiceProxy(update_service, dc_srv.MongoUpdateMsg)
 		self.query_id_srv = rospy.ServiceProxy(query_ids_service, dc_srv.MongoQueryMsg)
