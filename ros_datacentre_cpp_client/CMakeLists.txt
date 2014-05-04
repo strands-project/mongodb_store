@@ -103,15 +103,16 @@ include_directories(
 #   src/${PROJECT_NAME}/ros_datacentre_cpp_client.cpp
 # )
 
-## Declare a cpp executable
-add_executable(example_ros_datacentre_cpp_client src/example_ros_datacentre_cpp_client.cpp )
-add_library(message_store src/message_store.cpp )
 
+add_library(message_store src/message_store.cpp )
+add_executable(example_ros_datacentre_cpp_client src/example_ros_datacentre_cpp_client.cpp)
+add_executable(example_multi_event_log src/example_multi_event_log.cpp)
 # add_executable(pc_test src/point_cloud_test.cpp)
 
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
+
 add_dependencies(example_ros_datacentre_cpp_client ros_datacentre_msgs_generate_messages_cpp )
 add_dependencies(message_store ros_datacentre_msgs_generate_messages_cpp )
 
@@ -121,8 +122,17 @@ target_link_libraries(message_store
   ${Boost_LIBRARIES}
 )
 
+
+
 # Specify libraries to link a library or executable target against
 target_link_libraries(example_ros_datacentre_cpp_client
+  message_store
+  mongoclient
+  ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
+)
+
+target_link_libraries(example_multi_event_log
   message_store
   mongoclient
   ${catkin_LIBRARIES}
@@ -157,7 +167,7 @@ target_link_libraries(ros_datacentre_cpp_test
 # )
 
 ## Mark executables and/or libraries for installation
-install(TARGETS example_ros_datacentre_cpp_client #pc_test
+install(TARGETS example_ros_datacentre_cpp_client example_multi_event_log #pc_test
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
