@@ -65,12 +65,13 @@ class MessageStore(object):
         docs = dc_util.query_message(collection, {"_id": ObjectId(req.document_id)}, find_one=True)
         if len(docs) != 1:
             return False
+
         message = docs[0]
         
         # Remove the doc
-        collection.remove(message)
+        collection.remove({"_id": ObjectId(req.document_id)})
         
-        # But keep it in "trash"
+        # But keep it into "trash"
         bk_collection = self._mongo_client[req.database][req.collection + "_Trash"]
         bk_collection.save(message)
         return True        
