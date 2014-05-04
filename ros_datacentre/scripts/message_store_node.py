@@ -12,6 +12,7 @@ import pymongo
 from bson import json_util
 from ros_datacentre_msgs.msg import  StringPair, StringPairList
 from bson.objectid import ObjectId
+from datetime import *
 
 class MessageStore(object):
     def __init__(self):
@@ -36,14 +37,23 @@ class MessageStore(object):
         """
         Receives a 
         """
+
+
         # deserialize data into object
         obj = dc_util.deserialise_message(req.message)        
         # convert input tuple to dict
         meta = dc_util.string_pair_list_to_dictionary(req.meta)
         # get requested collection from the db, creating if necessary
         collection = self._mongo_client[req.database][req.collection]
+
+        # try:
+        meta['inserted_at'] = datetime.utcfromtimestamp(rospy.get_rostime().to_sec())
+        meta['inserted_by'] = req._connection_header['callerid']
         obj_id = dc_util.store_message(collection, obj, meta)
-        return str(obj_id)        
+        return str(obj_id)   
+        # except Exception, e:
+            # print e    
+             
     insert_ros_srv.type=dc_srv.MongoInsertMsg
              
     def delete_ros_srv(self, req):
@@ -87,7 +97,11 @@ class MessageStore(object):
         # deserialize data into object
         obj = dc_util.deserialise_message(req.message)        
       
-        (obj_id, altered) = dc_util.update_message(collection, obj_query, obj, dc_util.string_pair_list_to_dictionary(req.meta), req.upsert)
+        meta = dc_util.string_pair_list_to_dictionary(req.meta)
+        meta['last_updated_at'] = datetime.utcfromtimestamp(rospy.get_rostime().to_sec())
+        meta['last_updated_by'] = req._connection_header['callerid']
+      
+        (obj_id, altered) = dc_util.update_message(collection, obj_query, obj, meta, req.upsert)
 
         return str(obj_id), altered
     update_ros_srv.type=dc_srv.MongoUpdateMsg
