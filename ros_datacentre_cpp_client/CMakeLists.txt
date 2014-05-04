@@ -82,7 +82,7 @@ find_package(Boost REQUIRED COMPONENTS system thread program_options filesystem)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
  INCLUDE_DIRS include
-#  LIBRARIES ros_datacentre_cpp_client
+ LIBRARIES message_store
 #  CATKIN_DEPENDS geometry_msgs ros_datacentre_msgs
 #  DEPENDS system_lib
 )
@@ -155,7 +155,9 @@ target_link_libraries(example_multi_event_log
 # )
 
 catkin_add_gtest(ros_datacentre_cpp_test tests/ros_datacentre_cpp_test.cpp)
+
 target_link_libraries(ros_datacentre_cpp_test
+  message_store 
   mongoclient
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
@@ -176,7 +178,7 @@ target_link_libraries(ros_datacentre_cpp_test
 # )
 
 ## Mark executables and/or libraries for installation
-install(TARGETS example_ros_datacentre_cpp_client example_multi_event_log #pc_test
+install(TARGETS example_ros_datacentre_cpp_client example_multi_event_log message_store #pc_test
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

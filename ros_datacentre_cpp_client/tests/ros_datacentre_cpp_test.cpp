@@ -1,5 +1,6 @@
 #include "ros_datacentre/message_store.h"
 #include "geometry_msgs/Pose.h"
+
 #include <boost/foreach.hpp>
 #include <gtest/gtest.h>
 
