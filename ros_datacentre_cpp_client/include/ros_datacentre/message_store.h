@@ -76,6 +76,9 @@ const std::string get_ros_type(const MsgType & _msg) {
 	return get_ros_type<MsgType>();
 }
 
+ros_datacentre_msgs::StringPair makePair(const std::string & _first, const std::string & _second);
+
+
 class MessageStoreProxy
 {
 public:
@@ -112,14 +115,6 @@ public:
 
 
 	~MessageStoreProxy() {}
-
-    ros_datacentre_msgs::StringPair makePair(const std::string & _first, const std::string & _second)
-    {
-        ros_datacentre_msgs::StringPair pair;
-        pair.first = _first;
-        pair.second = _second;
-        return pair;
-    }
 
 
 	template<typename MsgType> 
