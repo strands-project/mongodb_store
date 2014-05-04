@@ -8,7 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   geometry_msgs
   ros_datacentre_msgs
-  pcl_ros
+  # pcl_ros
 )
 
 ## System dependencies are found with CMake's conventions
@@ -107,7 +107,7 @@ include_directories(
 add_executable(example_ros_datacentre_cpp_client src/example_ros_datacentre_cpp_client.cpp )
 add_library(message_store src/message_store.cpp )
 
-add_executable(pc_test src/point_cloud_test.cpp)
+# add_executable(pc_test src/point_cloud_test.cpp)
 
 
 ## Add cmake target dependencies of the executable/library
@@ -129,11 +129,11 @@ target_link_libraries(example_ros_datacentre_cpp_client
   ${Boost_LIBRARIES}
 )
 
-target_link_libraries(pc_test
-  mongoclient
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
-)
+# target_link_libraries(pc_test
+#   mongoclient
+#   ${catkin_LIBRARIES}
+#   ${Boost_LIBRARIES}
+# )
 
 catkin_add_gtest(ros_datacentre_cpp_test tests/ros_datacentre_cpp_test.cpp)
 target_link_libraries(ros_datacentre_cpp_test
@@ -157,7 +157,7 @@ target_link_libraries(ros_datacentre_cpp_test
 # )
 
 ## Mark executables and/or libraries for installation
-install(TARGETS example_ros_datacentre_cpp_client pc_test
+install(TARGETS example_ros_datacentre_cpp_client #pc_test
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
