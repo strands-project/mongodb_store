@@ -68,6 +68,13 @@ class MessageStoreProxy:
 
 		return self.update(message, meta_copy, {}, meta_query, upsert)		
 
+	def update_id(self, id, message, meta = {}, upsert = False):
+
+		msg_query = {'_id': ObjectId(id)}
+		meta_query = {}
+
+		return self.update(message, meta, msg_query, meta_query, upsert)		
+
 	def update(self, message, meta = {}, message_query = {}, meta_query = {},  upsert = False):
 		# serialise the json queries to strings using json_util.dumps
 		message_query_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json_util.dumps(message_query)),)
