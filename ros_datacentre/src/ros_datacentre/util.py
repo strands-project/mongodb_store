@@ -3,6 +3,7 @@ import genpy
 from std_srvs.srv import Empty
 import yaml
 from bson import json_util
+from bson.binary import Binary
 import copy
 import StringIO
 from ros_datacentre_msgs.msg import SerialisedMessage
@@ -128,6 +129,8 @@ def sanitize_value(attr, v, type):
          return msg_to_document(v)
     elif isinstance(v, list):
         return [sanitize_value(None, t, t._type) for t in v]
+    elif type == "uint8[]":
+        return Binary(v) 
     else:
         return v
 
