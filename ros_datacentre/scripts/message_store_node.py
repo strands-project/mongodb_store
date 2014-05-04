@@ -97,7 +97,11 @@ class MessageStore(object):
         # deserialize data into object
         obj = dc_util.deserialise_message(req.message)        
       
-        (obj_id, altered) = dc_util.update_message(collection, obj_query, obj, dc_util.string_pair_list_to_dictionary(req.meta), req.upsert)
+        meta = dc_util.string_pair_list_to_dictionary(req.meta)
+        meta['last_updated_at'] = datetime.utcfromtimestamp(rospy.get_rostime().to_sec())
+        meta['last_updated_by'] = req._connection_header['callerid']
+      
+        (obj_id, altered) = dc_util.update_message(collection, obj_query, obj, meta, req.upsert)
 
         return str(obj_id), altered
     update_ros_srv.type=dc_srv.MongoUpdateMsg
