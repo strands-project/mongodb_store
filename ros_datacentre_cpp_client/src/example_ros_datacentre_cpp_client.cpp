@@ -3,6 +3,7 @@
 #include <boost/foreach.hpp>
 
 #include <sstream>
+#include <cassert>
 
 using namespace geometry_msgs;
 using namespace ros_datacentre;
@@ -21,9 +22,16 @@ int main(int argc, char **argv)
 	//This is the message we want to store
 	Pose p;
 	string name("my pose");
-	//Insert something with a name
+	//Insert something with a name, storing id too
 	string id(messageStore.insertNamed(name, p));
 	cout<<"Pose \""<<name<<"\" inserted with id "<<id<<endl;
+
+	p.position.z = 666;
+	messageStore.updateID(id, p);
+
+	// now test it worked
+	assert(messageStore.queryID<Pose>(id).first->position.z == 666);
+
 
 
 	vector< boost::shared_ptr<Pose> > results;
