@@ -20,6 +20,8 @@ if __name__ == '__main__':
         pose = Pose(Point(0, 1, 2), Quaternion(3, 4,  5, 6))
         point = Point(7, 8, 9)
         quaternion = Quaternion(10, 11, 12, 13)
+        # note that everything that is pass to the message_store must be a ros message type
+        #therefore use std_msg types for standard data types like float, int, bool, string etc
         result = Bool(True)
 
 
@@ -37,6 +39,7 @@ if __name__ == '__main__':
         for pair in stored:
             spl.pairs.append(StringPair(pair[0], pair[1]))
 
+        # and add some meta information
         meta = {}
         meta['description'] = "this wasn't great"    
         meta['result_time'] = datetime.utcfromtimestamp(rospy.get_rostime().to_sec())

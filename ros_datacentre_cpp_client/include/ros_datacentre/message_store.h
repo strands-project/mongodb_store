@@ -71,6 +71,17 @@ boost::shared_ptr<MsgType> deserialise_message(ros_datacentre_msgs::SerialisedMe
 	return message;
 }
 
+
+template<typename MsgType> 
+const std::string get_ros_type() {
+	return ros::message_traits::DataType<MsgType>::value();
+}
+
+template<typename MsgType> 
+const std::string get_ros_type(const MsgType & _msg) {
+	return get_ros_type<MsgType>();
+}
+
 class MessageStoreProxy
 {
 public:
@@ -110,8 +121,8 @@ public:
 
 
 	template<typename MsgType> 
-	std::string insert(const MsgType & _msg) {
-		return insert(_msg, m_database, m_collection);
+	std::string insert(const MsgType & _msg, const mongo::BSONObj & _meta = mongo::BSONObj()) {
+		return insert(_msg, m_database, m_collection, _meta);
 	}
 
 
@@ -171,6 +182,9 @@ public:
 		return query<MsgType>(_results, msg_query, EMPTY_BSON_OBJ, true);
 	}
 
+
+
+
 	template<typename MsgType> 
 	bool query(std::vector< boost::shared_ptr<MsgType> > & _results,
 				const mongo::BSONObj & _message_query = mongo::BSONObj(),
@@ -181,7 +195,7 @@ public:
   		ros_datacentre_msgs::MongoQueryMsg msg;
   		msg.request.database = m_database;
   		msg.request.collection = m_collection;
-  		msg.request.type = ros::message_traits::DataType<MsgType>::value();
+  		msg.request.type = get_ros_type<MsgType>();
   		msg.request.single = _find_one;
   	
 		//if there's no message then no copying is necessary
@@ -195,7 +209,7 @@ public:
 		}
 
   		if(m_queryClient.call(msg)) {
-  			ROS_INFO("Got back %li messages", msg.response.messages.size());
+  			ROS_DEBUG("Got back %li messages", msg.response.messages.size());
   			if(msg.response.messages.size() > 0) {
 	  			for(size_t i = 0; i < msg.response.messages.size(); i ++) {
 	  				_results.push_back(deserialise_message<MsgType>(msg.response.messages[i]));
