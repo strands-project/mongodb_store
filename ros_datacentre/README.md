@@ -121,3 +121,14 @@ HOSTNAME=yourhost roslaunch ros_datacentre datacentre.launch db_path:=/path/to/d
 
 The HOSTNAME env variable is required; db_path will default to /opt/strands/ros_datacentre and db_port will default to 62345. 
 
+
+Replication
+-----------
+
+Replication of the message store parts of the datacentre is done manually to allow different content to appear on different hosts. A list of hosts and ports where replications should be made can be set via the `ros_datacentre_extras` parameter:
+
+```yaml
+ros_datacentre_extras: [["localhost", 62344], ["localhost", 62333]]
+```
+
+Inserts and updates are performed acorss the main and replicant datacentres, queries are performed on the main first, and if nothing found, the replicants are tried.

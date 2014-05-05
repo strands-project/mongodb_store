@@ -25,6 +25,18 @@ class MessageStore(object):
         self._mongo_client=pymongo.MongoClient(rospy.get_param("datacentre_host"),
                                                rospy.get_param("datacentre_port") )
 
+
+        extras = rospy.get_param('ros_datacentre_extras', [])
+        self.extra_clients = []
+        for extra in extras:
+            try:
+                self.extra_clients.append(pymongo.MongoClient(extra[0], extra[1]))
+            except pymongo.errors.ConnectionFailure, e:
+                rospy.logwarn('Could not connect to extra datacentre at %s:%s' % (extra[0], extra[1]))
+            
+        rospy.loginfo('Replicating content to a futher %s datacentres',len(self.extra_clients))
+
+
         # advertise ros services
         for attr in dir(self):
             if attr.endswith("_ros_srv"):
