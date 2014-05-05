@@ -84,21 +84,23 @@ int main(int argc, char **argv)
   			cout << meta["description"].toString() << endl;
   		} 
 
-		char buff[20];
+  		// comment this out as toTimeT() doesn't seem to work on Ubuntu...
 
-		mongo::Date_t result_time;
-		meta["result_time"].Val(result_time);
-		time_t t(result_time.toTimeT());
-		strftime(buff, 20, "%Y-%m-%d %H:%M:%S", localtime(&t));
+		// char buff[20];
 
-		cout << "result time (local time from rostime): " << buff << endl;
+		// mongo::Date_t result_time;
+		// meta["result_time"].Val(result_time);
+		// time_t t(result_time.toTimeT());
+		// strftime(buff, 20, "%Y-%m-%d %H:%M:%S", localtime(&t));
 
-		mongo::Date_t inserted_at;
-		meta["inserted_at"].Val(inserted_at);
-		t = inserted_at.toTimeT();
-		strftime(buff, 20, "%Y-%m-%d %H:%M:%S", localtime(&t));
+		// cout << "result time (local time from rostime): " << buff << endl;
+
+		// mongo::Date_t inserted_at;
+		// meta["inserted_at"].Val(inserted_at);
+		// t = inserted_at.toTimeT();
+		// strftime(buff, 20, "%Y-%m-%d %H:%M:%S", localtime(&t));
 		
-		cout << "inserted at (local time from rostime): " << buff << endl;
+		// cout << "inserted at (local time from rostime): " << buff << endl;
 
 		// get the objects back
 		pair<boost::shared_ptr<Pose>, mongo::BSONObj> storedPose(messageStore.queryID<Pose>(message->pairs[0].second));

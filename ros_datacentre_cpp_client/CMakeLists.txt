@@ -104,6 +104,9 @@ include_directories(
 # )
 
 
+
+add_definitions(-std=c++0x)
+
 add_library(message_store src/message_store.cpp )
 
 add_executable(example_ros_datacentre_cpp_client src/example_ros_datacentre_cpp_client.cpp)
