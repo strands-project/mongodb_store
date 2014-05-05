@@ -143,12 +143,20 @@ def sanitize_value(attr, v, type):
         return v
 
 
+
+
 """
-Store a ROS message into the DB
+Update ROS message into the DB
 """    
-def store_message(collection, msg, meta):
+def store_message(collection, msg, meta, oid=None):
     doc=msg_to_document(msg)
     doc["_meta"]=meta
+    #  also store type information
+    doc["_meta"]["stored_class"] = msg.__module__ + "." + msg.__class__.__name__
+    doc["_meta"]["stored_type"] = msg._type
+    if oid != None:
+        doc["_id"] = oid
+
     return collection.insert(doc)
 
 # """
@@ -221,17 +229,7 @@ def query_message(collection, query_doc, find_one):
         return [ result for result in collection.find(query_doc) ]
 
 
-"""
-Update ROS message into the DB
-"""    
-def store_message(collection, msg, meta):
-    doc=msg_to_document(msg)
-    doc["_meta"]=meta
-    #  also store type information
-    doc["_meta"]["stored_class"] = msg.__module__ + "." + msg.__class__.__name__
-    doc["_meta"]["stored_type"] = msg._type
-       
-    return collection.insert(doc)
+
 
 
 """

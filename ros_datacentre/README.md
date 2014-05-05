@@ -132,3 +132,12 @@ ros_datacentre_extras: [["localhost", 62344], ["localhost", 62333]]
 ```
 
 Inserts and updates are performed acorss the main and replicant datacentres, queries are performed on the main first, and if nothing found, the replicants are tried.
+
+You can launch additional datacentres as follows, e.g.
+
+```bash
+rosrun ros_datacentre mongodb_server.py _master:=false _database_path:=/opt/strands/strands_datacentre_62344 _host:=localhost _port:=62344
+rosrun ros_datacentre mongodb_server.py _master:=false _database_path:=/opt/strands/strands_datacentre_62333 _host:=localhost _port:=62333
+```
+
+You can test if this works by adding some things to the message store, deleting them from the master using RoboMongo (not the message store as the deletes are replicated), then running queries.

@@ -62,6 +62,13 @@ class MessageStore(object):
         meta['inserted_at'] = datetime.utcfromtimestamp(rospy.get_rostime().to_sec())
         meta['inserted_by'] = req._connection_header['callerid']
         obj_id = dc_util.store_message(collection, obj, meta)
+
+
+        # also do insert to extra datacentres, making sure object ids are consistent
+        for extra_client in self.extra_clients:
+            extra_collection = extra_client[req.database][req.collection]            
+            dc_util.store_message(extra_collection, obj, meta, obj_id)
+
         return str(obj_id)   
         # except Exception, e:
             # print e    
@@ -86,6 +93,16 @@ class MessageStore(object):
         # But keep it into "trash"
         bk_collection = self._mongo_client[req.database][req.collection + "_Trash"]
         bk_collection.save(message)
+
+
+        # also repeat in extras
+        for extra_client in self.extra_clients:
+            extra_collection = extra_client[req.database][req.collection]            
+            extra_collection.remove({"_id": ObjectId(req.document_id)})
+            extra_bk_collection = extra_client[req.database][req.collection + "_Trash"]
+            extra_bk_collection.save(message)
+
+
         return True        
     delete_ros_srv.type=dc_srv.MongoDeleteMsg
              
@@ -116,6 +133,11 @@ class MessageStore(object):
       
         (obj_id, altered) = dc_util.update_message(collection, obj_query, obj, meta, req.upsert)
 
+        # also do update to extra datacentres
+        for extra_client in self.extra_clients:
+            extra_collection = extra_client[req.database][req.collection]            
+            dc_util.update_message(extra_collection, obj_query, obj, meta, req.upsert)
+
         return str(obj_id), altered
     update_ros_srv.type=dc_srv.MongoUpdateMsg
        
@@ -130,6 +152,7 @@ class MessageStore(object):
             obj_query["_meta." + k] = v
 
         return obj_query
+
 
     def query_messages_ros_srv(self, req):
         """
@@ -149,6 +172,17 @@ class MessageStore(object):
         
         # this is a list of entries in dict format including meta
         entries =  dc_util.query_message(collection, obj_query, req.single)
+
+        # keep trying clients until we find an answer
+        for extra_client in self.extra_clients:
+            if len(entries) == 0:
+                extra_collection = extra_client[req.database][req.collection]            
+                entries =  dc_util.query_message(extra_collection, obj_query, req.single)
+                if len(entries) > 0:
+                    rospy.loginfo("found result in extra datacentre")             
+            else:
+                break
+
 
         # rospy.logdebug("entries: %s", entries) 
 
