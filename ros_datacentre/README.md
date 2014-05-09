@@ -155,7 +155,7 @@ rosrun ros_datacentre replicator_node.py
 
 (which is included in `datacentre.launch`)
 
-allows you to bulk copy or move entries from message store collections to the mongod instances defined under `ros_datacentre_extras`. The client accepts a list of collection names and uses the `meta["inserted_at"]` field of the message store entries to replicate or move all entries that were inserted before a particular time. There is an example client that does this for a list of collections specified on the command line. This *moves* entries inserted 24 hours ago or earlier.
+allows you to bulk copy or move entries from message store collections to the mongod instances defined under `ros_datacentre_extras`. The client accepts a list of collection names and uses the `meta["inserted_at"]` field of the message store entries to replicate or move all entries that were inserted before a particular time. If no time is provided then the default is 24 hours ago. There is an example client that does this for a list of collections specified on the command line. This *moves* entries inserted 24 hours ago or earlier.
 
 ```bash
 rosrun ros_datacentre replicator_client.py message_store robblog scheduling_problems
