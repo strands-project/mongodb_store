@@ -23,9 +23,10 @@ if __name__ == '__main__':
 
     print collections
 
-    # a_while_ago = rospy.get_rostime() - rospy.Duration(60 * 5)
-    a_while_ago = rospy.get_rostime()
-    goal = MoveEntriesGoal(collections=collections, move_before=a_while_ago)
+    a_while_ago = rospy.get_rostime() - rospy.Duration(60 * 30)
+    # a_while_ago = rospy.get_rostime()
+    goal = MoveEntriesGoal(collections=collections, move_before=a_while_ago, delete_after_move=True)
+
 
     client.send_goal(goal, feedback_cb=feedback)
     client.wait_for_result()

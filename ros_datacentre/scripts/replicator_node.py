@@ -71,6 +71,10 @@ class Replicator(object):
         # don't use the connections, just sanity check their existence
         master, extras = self.make_connections()
         
+        if len(extras) == 0:
+            rospy.logwarn('No datacentres to move to, not performing move')
+            self.server.set_aborted()    
+            return 
 
         completed = []
         feedback = MoveEntriesFeedback(completed=completed)
@@ -84,10 +88,12 @@ class Replicator(object):
 
         self.do_restore(extras)
 
-
+        if goal.delete_after_move:  
+            for collection in goal.collections:                    
+                self.do_delete(collection, master, less_time_time)
 
         # clean up
-        # self.remove_path()
+        self.remove_path()
 
         self.server.set_succeeded()    
 
@@ -98,20 +104,28 @@ class Replicator(object):
             subprocess.call(rest_args)    
 
 
+    def do_delete(self, collection, master, less_time_time=None, db='message_store'):       
+        coll = master[db][collection]
+        spec = None
+        if less_time_time is not None:
+            spec = {"_meta.inserted_at": { "$lt": datetime.utcfromtimestamp(less_time_time.to_sec())}}
+        coll.remove(spec)
+
+
+
     def do_dump(self, collection, master, less_time_time=None, db='message_store'):       
         # dump collection
 
-        print 'dumping ', collection
+        # print 'dumping ', collection
 
         args = ['mongodump',  '--host',  master.host, '--port',  str(master.port), '--db', db, '--collection', collection, '-o', self.dump_path]
 
         if less_time_time is not None:
             # match only objects with an insterted data less than this
-            print 'addoimg'
             args.append('--query')
             args.append('{ \"_meta.inserted_at\": { $lt: new Date(%s)}}' % (less_time_time.secs * 1000))
 
-        print args
+        # print args
 
         subprocess.call(args)
 
