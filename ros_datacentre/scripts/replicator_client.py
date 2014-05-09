@@ -23,7 +23,8 @@ if __name__ == '__main__':
 
     print collections
 
-    twenty_four_hrs_ago = rospy.get_rostime() - rospy.Duration(60 * 60 * 24)
+    # but this is the default anyway
+    twenty_four_hrs_ago = rospy.Duration(60 * 60 * 24)
     goal = MoveEntriesGoal(collections=collections, move_before=twenty_four_hrs_ago, delete_after_move=True)
 
 

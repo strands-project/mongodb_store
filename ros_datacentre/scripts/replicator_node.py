@@ -79,11 +79,7 @@ class Replicator(object):
         completed = []
         feedback = MoveEntriesFeedback(completed=completed)
         
-        twenty_four_hrs_ago = rospy.get_rostime() - rospy.Duration(60 * 60 * 24)
-        less_time_time = twenty_four_hrs_ago
-
-        if goal.move_before.secs > 0:
-            less_time_time = goal.move_before
+        less_time_time = rospy.get_rostime() - goal.move_before
 
         for collection in goal.collections:                    
             self.do_dump(collection, master, less_time_time)
