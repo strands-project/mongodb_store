@@ -5,6 +5,7 @@ find_package(catkin REQUIRED COMPONENTS message_generation actionlib actionlib_m
 
 add_message_files(
   FILES
+  StringList.msg
   StringPair.msg
   StringPairList.msg
   SerialisedMessage.msg

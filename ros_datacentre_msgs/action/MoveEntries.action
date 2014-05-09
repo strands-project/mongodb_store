@@ -1,5 +1,5 @@
 # the collections to move entries from
-string[] collections
+StringList collections
 # only entries before rospy.get_rostime() - move_before are moved. if 0, all are moved
 duration move_before
 bool delete_after_move
