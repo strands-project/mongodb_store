@@ -15,8 +15,9 @@ from bson.objectid import ObjectId
 from datetime import *
 
 class MessageStore(object):
-    def __init__(self):
-        rospy.init_node("message_store")
+    def __init__(self, replicate_on_write=False):
+
+        self.replicate_on_write = replicate_on_write
 
         have_dc = dc_util.wait_for_mongo()
         if not have_dc:
@@ -33,9 +34,11 @@ class MessageStore(object):
                 self.extra_clients.append(pymongo.MongoClient(extra[0], extra[1]))
             except pymongo.errors.ConnectionFailure, e:
                 rospy.logwarn('Could not connect to extra datacentre at %s:%s' % (extra[0], extra[1]))
-            
-        rospy.loginfo('Replicating content to a futher %s datacentres',len(self.extra_clients))
 
+        if self.replicate_on_write:            
+            rospy.loginfo('Replicating content to a futher %s datacentres',len(self.extra_clients))
+        else:
+            rospy.loginfo('Querying content in a futher %s datacentres',len(self.extra_clients))
 
         # advertise ros services
         for attr in dir(self):
@@ -64,10 +67,11 @@ class MessageStore(object):
         obj_id = dc_util.store_message(collection, obj, meta)
 
 
-        # also do insert to extra datacentres, making sure object ids are consistent
-        for extra_client in self.extra_clients:
-            extra_collection = extra_client[req.database][req.collection]            
-            dc_util.store_message(extra_collection, obj, meta, obj_id)
+        if self.replicate_on_write:            
+            # also do insert to extra datacentres, making sure object ids are consistent
+            for extra_client in self.extra_clients:
+                extra_collection = extra_client[req.database][req.collection]            
+                dc_util.store_message(extra_collection, obj, meta, obj_id)
 
         return str(obj_id)   
         # except Exception, e:
@@ -133,10 +137,11 @@ class MessageStore(object):
       
         (obj_id, altered) = dc_util.update_message(collection, obj_query, obj, meta, req.upsert)
 
-        # also do update to extra datacentres
-        for extra_client in self.extra_clients:
-            extra_collection = extra_client[req.database][req.collection]            
-            dc_util.update_message(extra_collection, obj_query, obj, meta, req.upsert)
+        if self.replicate_on_write:            
+            # also do update to extra datacentres
+            for extra_client in self.extra_clients:
+                extra_collection = extra_client[req.database][req.collection]            
+                dc_util.update_message(extra_collection, obj_query, obj, meta, req.upsert)
 
         return str(obj_id), altered
     update_ros_srv.type=dc_srv.MongoUpdateMsg
@@ -208,6 +213,8 @@ class MessageStore(object):
 
 
 if __name__ == '__main__':
+    rospy.init_node("message_store")
+
     store = MessageStore()
     
     rospy.spin()

@@ -1,1 +1,2 @@
-ros_datacentre_extras: [["localhost", 62344], ["localhost", 62333]]
+# ros_datacentre_extras: [["localhost", 62344], ["localhost", 62333]]
+ros_datacentre_extras: [["localhost", 62333]]

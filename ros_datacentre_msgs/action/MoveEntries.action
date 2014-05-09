@@ -1,0 +1,9 @@
+# the collections to move entries from
+string[] collections
+# only entries before this are moved. if 0, all are moved
+time move_before
+---
+
+---
+# the collections which have been operated on so far
+string[] completed
