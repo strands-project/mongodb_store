@@ -15,8 +15,9 @@ from bson.objectid import ObjectId
 from datetime import *
 
 class MessageStore(object):
-    def __init__(self):
-        rospy.init_node("message_store")
+    def __init__(self, replicate_on_write=False):
+
+        self.replicate_on_write = replicate_on_write
 
         have_dc = dc_util.wait_for_mongo()
         if not have_dc:
@@ -24,6 +25,20 @@ class MessageStore(object):
 
         self._mongo_client=pymongo.MongoClient(rospy.get_param("datacentre_host"),
                                                rospy.get_param("datacentre_port") )
+
+
+        extras = rospy.get_param('ros_datacentre_extras', [])
+        self.extra_clients = []
+        for extra in extras:
+            try:
+                self.extra_clients.append(pymongo.MongoClient(extra[0], extra[1]))
+            except pymongo.errors.ConnectionFailure, e:
+                rospy.logwarn('Could not connect to extra datacentre at %s:%s' % (extra[0], extra[1]))
+
+        if self.replicate_on_write:            
+            rospy.loginfo('Replicating content to a futher %s datacentres',len(self.extra_clients))
+        else:
+            rospy.loginfo('Querying content in a futher %s datacentres',len(self.extra_clients))
 
         # advertise ros services
         for attr in dir(self):
@@ -50,6 +65,14 @@ class MessageStore(object):
         meta['inserted_at'] = datetime.utcfromtimestamp(rospy.get_rostime().to_sec())
         meta['inserted_by'] = req._connection_header['callerid']
         obj_id = dc_util.store_message(collection, obj, meta)
+
+
+        if self.replicate_on_write:            
+            # also do insert to extra datacentres, making sure object ids are consistent
+            for extra_client in self.extra_clients:
+                extra_collection = extra_client[req.database][req.collection]            
+                dc_util.store_message(extra_collection, obj, meta, obj_id)
+
         return str(obj_id)   
         # except Exception, e:
             # print e    
@@ -74,6 +97,16 @@ class MessageStore(object):
         # But keep it into "trash"
         bk_collection = self._mongo_client[req.database][req.collection + "_Trash"]
         bk_collection.save(message)
+
+
+        # also repeat in extras
+        for extra_client in self.extra_clients:
+            extra_collection = extra_client[req.database][req.collection]            
+            extra_collection.remove({"_id": ObjectId(req.document_id)})
+            extra_bk_collection = extra_client[req.database][req.collection + "_Trash"]
+            extra_bk_collection.save(message)
+
+
         return True        
     delete_ros_srv.type=dc_srv.MongoDeleteMsg
              
@@ -104,6 +137,12 @@ class MessageStore(object):
       
         (obj_id, altered) = dc_util.update_message(collection, obj_query, obj, meta, req.upsert)
 
+        if self.replicate_on_write:            
+            # also do update to extra datacentres
+            for extra_client in self.extra_clients:
+                extra_collection = extra_client[req.database][req.collection]            
+                dc_util.update_message(extra_collection, obj_query, obj, meta, req.upsert)
+
         return str(obj_id), altered
     update_ros_srv.type=dc_srv.MongoUpdateMsg
        
@@ -118,6 +157,7 @@ class MessageStore(object):
             obj_query["_meta." + k] = v
 
         return obj_query
+
 
     def query_messages_ros_srv(self, req):
         """
@@ -137,6 +177,17 @@ class MessageStore(object):
         
         # this is a list of entries in dict format including meta
         entries =  dc_util.query_message(collection, obj_query, req.single)
+
+        # keep trying clients until we find an answer
+        for extra_client in self.extra_clients:
+            if len(entries) == 0:
+                extra_collection = extra_client[req.database][req.collection]            
+                entries =  dc_util.query_message(extra_collection, obj_query, req.single)
+                if len(entries) > 0:
+                    rospy.loginfo("found result in extra datacentre")             
+            else:
+                break
+
 
         # rospy.logdebug("entries: %s", entries) 
 
@@ -162,6 +213,8 @@ class MessageStore(object):
 
 
 if __name__ == '__main__':
+    rospy.init_node("message_store")
+
     store = MessageStore()
     
     rospy.spin()

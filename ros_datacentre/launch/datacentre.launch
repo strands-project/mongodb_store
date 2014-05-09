@@ -17,6 +17,8 @@
 
   <node name="message_store" pkg="ros_datacentre" type="message_store_node.py" output="screen"/>
 
+  <node name="replicator_node" pkg="ros_datacentre" type="replicator_node.py" output="screen"/>
+
   <!-- rosout and diagnostic topic logger -->
   <!-- <node name="diagnostics_logger" pkg="strands_diagnostics" type="logger" output="screen"/> -->
 </launch>

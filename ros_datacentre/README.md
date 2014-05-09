@@ -121,3 +121,45 @@ HOSTNAME=yourhost roslaunch ros_datacentre datacentre.launch db_path:=/path/to/d
 
 The HOSTNAME env variable is required; db_path will default to /opt/strands/ros_datacentre and db_port will default to 62345. 
 
+
+Replication
+===========
+
+If the constructor arcgument to the message store node `replicate_on_write` is set to true, replication of the message store parts of the datacentre is done manually to allow different content to appear on different hosts. A list of hosts and ports where replications should be made can be set via the `ros_datacentre_extras` parameter:
+
+```yaml
+ros_datacentre_extras: [["localhost", 62344], ["localhost", 62333]]
+```
+
+Inserts and updates are performed acorss the main and replicant datacentres.
+
+If `ros_datacentre_extras` is set (regardless of `replicate_on_write`), queries are performed on the main first, and if nothing found, the replicants are tried.
+
+You can launch additional datacentres as follows, e.g.
+
+```bash
+rosrun ros_datacentre mongodb_server.py _master:=false _database_path:=/opt/strands/strands_datacentre_62344 _host:=localhost _port:=62344
+rosrun ros_datacentre mongodb_server.py _master:=false _database_path:=/opt/strands/strands_datacentre_62333 _host:=localhost _port:=62333
+```
+
+You can test if this works by adding some things to the message store, deleting them from the master using RoboMongo (not the message store as the deletes are replicated), then running queries.
+
+Action Server for Replication
+-----------------------------
+
+The `MoveEntries` action and the corresponding action server:
+
+```bash
+rosrun ros_datacentre replicator_node.py 
+```
+
+(which is included in `datacentre.launch`)
+
+allows you to bulk copy or move entries from message store collections to the mongod instances defined under `ros_datacentre_extras`. The client accepts a list of collection names and uses the `meta["inserted_at"]` field of the message store entries to replicate or move all entries that were inserted before a particular time. If no time is provided then the default is 24 hours ago. There is an example client that does this for a list of collections specified on the command line. This *moves* entries inserted 24 hours ago or earlier.
+
+```bash
+rosrun ros_datacentre replicator_client.py message_store robblog scheduling_problems
+```
+
+**NOTE THAT this all makes `update` operations a bit uncertain, so please do not use this type of replication on collections you plan to use update on.**
+
