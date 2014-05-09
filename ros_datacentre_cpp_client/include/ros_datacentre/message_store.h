@@ -1,3 +1,5 @@
+#ifndef __MESSAGE_STORE__H
+#define __MESSAGE_STORE__H
 
 #include "ros/ros.h"
 #include "ros/console.h"
@@ -12,19 +14,11 @@
 #include "mongo/client/dbclient.h"
 
 #include  <boost/make_shared.hpp> 
-
+#include <assert.h>
 
 
 
 namespace ros_datacentre {
-
-ros_datacentre_msgs::StringPair makePair(const std::string & _first, const std::string & _second) {
-	ros_datacentre_msgs::StringPair pair;
-	pair.first = _first;
-	pair.second = _second;
-	return pair;
-}
-
 
 typedef std::vector<ros_datacentre_msgs::StringPair> StringPairs;
 
@@ -71,6 +65,20 @@ boost::shared_ptr<MsgType> deserialise_message(ros_datacentre_msgs::SerialisedMe
 	return message;
 }
 
+
+template<typename MsgType> 
+const std::string get_ros_type() {
+	return ros::message_traits::DataType<MsgType>::value();
+}
+
+template<typename MsgType> 
+const std::string get_ros_type(const MsgType & _msg) {
+	return get_ros_type<MsgType>();
+}
+
+ros_datacentre_msgs::StringPair makePair(const std::string & _first, const std::string & _second);
+
+
 class MessageStoreProxy
 {
 public:
@@ -79,9 +87,9 @@ public:
 
 	**/
 	MessageStoreProxy(ros::NodeHandle handle, 
-		const std::string & _servicePrefix = "/message_store", 
-		const std::string & _database = "message_store", 
-		const std::string & _collection = "message_store") :
+		const std::string & _collection = "message_store",
+		const std::string & _database = "message_store", 		
+		const std::string & _servicePrefix = "/message_store") :
 		m_insertClient(handle.serviceClient<ros_datacentre_msgs::MongoInsertMsg>(_servicePrefix + "/insert")),
 		m_updateClient(handle.serviceClient<ros_datacentre_msgs::MongoUpdateMsg>(_servicePrefix + "/update")),
 		m_queryClient(handle.serviceClient<ros_datacentre_msgs::MongoQueryMsg>(_servicePrefix + "/query_messages")),
@@ -110,8 +118,8 @@ public:
 
 
 	template<typename MsgType> 
-	std::string insert(const MsgType & _msg) {
-		return insert(_msg, m_database, m_collection);
+	std::string insert(const MsgType & _msg, const mongo::BSONObj & _meta = mongo::BSONObj()) {
+		return insert(_msg, m_database, m_collection, _meta);
 	}
 
 
@@ -155,33 +163,72 @@ public:
 
 	template<typename MsgType> 
 	bool queryNamed(const std::string & _name, 
-					std::vector< boost::shared_ptr<MsgType> > & _results, 
+					std::vector< boost::shared_ptr<MsgType> > & _messages, 
 					bool _find_one = true) {
 
 		
 		mongo::BSONObj meta_query = BSON( "name" << _name );
-		return query<MsgType>(_results, EMPTY_BSON_OBJ, meta_query, _find_one);
+		return query<MsgType>(_messages, EMPTY_BSON_OBJ, meta_query, _find_one);
 	}
+
+	template<typename MsgType> 
+	std::pair<boost::shared_ptr<MsgType>, mongo::BSONObj> queryNamed(const std::string & _name, bool _find_one = true) {
+
+		std::vector< std::pair<boost::shared_ptr<MsgType>, mongo::BSONObj> > msg_and_metas;
+		mongo::BSONObj meta_query = BSON( "name" << _name );
+		bool result = query(msg_and_metas, EMPTY_BSON_OBJ, meta_query, true, true);
+
+		if(result) {
+			return msg_and_metas[0];
+		}
+		else {
+			return std::make_pair(boost::make_shared<MsgType>(), EMPTY_BSON_OBJ);
+		}
+	}
+
+
+
 
 	template<typename MsgType> 
 	bool queryID(const std::string & _id, 
-					std::vector< boost::shared_ptr<MsgType> > & _results) {
+					std::vector< boost::shared_ptr<MsgType> > & _messages) {
 		
 		mongo::BSONObj msg_query = BSON( "_id" << mongo::OID(_id) );
-		return query<MsgType>(_results, msg_query, EMPTY_BSON_OBJ, true);
+		return query<MsgType>(_messages, msg_query, EMPTY_BSON_OBJ, true);
 	}
 
+
 	template<typename MsgType> 
-	bool query(std::vector< boost::shared_ptr<MsgType> > & _results,
+	std::pair<boost::shared_ptr<MsgType>, mongo::BSONObj> queryID(const std::string & _id) {
+		mongo::BSONObj msg_query = BSON( "_id" << mongo::OID(_id) );
+
+		std::vector< std::pair<boost::shared_ptr<MsgType>, mongo::BSONObj> > msg_and_metas;
+		bool result = query(msg_and_metas, msg_query, EMPTY_BSON_OBJ, true, true);
+
+		if(result) {
+			return msg_and_metas[0];
+		}
+		else {
+			return std::make_pair(boost::make_shared<MsgType>(), EMPTY_BSON_OBJ);
+		}
+	}
+
+
+
+
+
+	template<typename MsgType> 
+	bool query(std::vector< std::pair<boost::shared_ptr<MsgType>, mongo::BSONObj> > & _messages,
 				const mongo::BSONObj & _message_query = mongo::BSONObj(),
 				const mongo::BSONObj & _meta_query = mongo::BSONObj(),
-				bool _find_one = false) {
+				bool _find_one = false,
+				bool _decode_metas = true) {
 
 		//Create message with basic fields
   		ros_datacentre_msgs::MongoQueryMsg msg;
   		msg.request.database = m_database;
   		msg.request.collection = m_collection;
-  		msg.request.type = ros::message_traits::DataType<MsgType>::value();
+  		msg.request.type = get_ros_type<MsgType>();
   		msg.request.single = _find_one;
   	
 		//if there's no message then no copying is necessary
@@ -195,18 +242,61 @@ public:
 		}
 
   		if(m_queryClient.call(msg)) {
-  			ROS_INFO("Got back %li messages", msg.response.messages.size());
+  			ROS_DEBUG("Got back %li messages", msg.response.messages.size());
   			if(msg.response.messages.size() > 0) {
+
+  				assert(msg.response.messages.size() == msg.response.metas.size());
+
 	  			for(size_t i = 0; i < msg.response.messages.size(); i ++) {
-	  				_results.push_back(deserialise_message<MsgType>(msg.response.messages[i]));
-	  			}			  		
+
+	  				if(_decode_metas && msg.response.metas[i].pairs[0].first == ros_datacentre_msgs::MongoQueryMsgRequest::JSON_QUERY) {
+	  					_messages.push_back(std::make_pair(deserialise_message<MsgType>(msg.response.messages[i]), mongo::fromjson(msg.response.metas[i].pairs[0].second)));		
+					}	  			
+					else {
+						if(_decode_metas) {
+							ROS_WARN("Can't handle non-json meta in cpp at the moment");
+						}
+						_messages.push_back(std::make_pair(deserialise_message<MsgType>(msg.response.messages[i]), EMPTY_BSON_OBJ));		
+					}
+
+				}
+
 	  			return true;
 	  		}
   		}
 
 		return false;
+	}
+
+	template<typename MsgType> 
+	bool query(std::vector< boost::shared_ptr<MsgType> > & _messages,
+				const mongo::BSONObj & _message_query = mongo::BSONObj(),
+				const mongo::BSONObj & _meta_query = mongo::BSONObj(),
+				bool _find_one = false) {
+
+		// call other query method, but ignore metas
+		std::vector< std::pair<boost::shared_ptr<MsgType>, mongo::BSONObj> > msg_and_metas;
+		bool result = query(msg_and_metas, _message_query, _meta_query, _find_one, false);
+
+		for(auto & msg_and_meta : msg_and_metas) {
+			_messages.push_back(msg_and_meta.first);
+		}
+
+		return result;
 
 	}
+
+
+	template<typename MsgType> 
+	bool updateID(const std::string & _id, 
+					const MsgType & _msg, 
+					const mongo::BSONObj & _meta = mongo::BSONObj()) {
+
+		mongo::BSONObj msg_query = BSON( "_id" << mongo::OID(_id) );
+		return update<MsgType>(_msg, _meta, msg_query, EMPTY_BSON_OBJ, false);
+	}
+
+
 
 
 	template<typename MsgType> 
@@ -292,15 +382,10 @@ protected:
 	ros::ServiceClient m_deleteClient;
 
 	//an empty bson doc to save recreating one whenever one is not required
-	static const mongo::BSONObj EMPTY_BSON_OBJ;
+    static const mongo::BSONObj EMPTY_BSON_OBJ;
 };
 
-
-const mongo::BSONObj MessageStoreProxy::EMPTY_BSON_OBJ =  mongo::BSONObj();
-
-
-
-
-
-
 }
+
+
+#endif

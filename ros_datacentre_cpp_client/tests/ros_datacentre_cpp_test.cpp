@@ -1,5 +1,6 @@
 #include "ros_datacentre/message_store.h"
 #include "geometry_msgs/Pose.h"
+
 #include <boost/foreach.hpp>
 #include <gtest/gtest.h>
 
@@ -16,7 +17,7 @@ TEST(ROSDatacentre, cppTest)
 	ros::NodeHandle nh;
 
 	//Create object which does the work for us.
-	MessageStoreProxy messageStore(nh);
+	MessageStoreProxy messageStore(nh, "test_collection");
 
 	//This is the message we want to store
 	Pose stored;
@@ -45,7 +46,7 @@ TEST(ROSDatacentre, cppTest)
 
 		BOOST_FOREACH( boost::shared_ptr<Pose> p,  results)
 		{
-			ROS_INFO_STREAM("Got by ID: " << *p);
+			//ROS_INFO_STREAM("Got by ID: " << *p);
 		}
 
 	}
@@ -83,7 +84,7 @@ TEST(ROSDatacentre, cppTest)
         EXPECT_EQ(stored.orientation.w, results[0]->orientation.w);
 	}
 	else {
-		ADD_FAILURE() << "Name query didn't find: " << name;
+		ADD_FAILURE() << "ID query didn't find: " << id;
 	}
 
 	// try to get it back with an incorrect name, so get None instead	
@@ -99,7 +100,7 @@ TEST(ROSDatacentre, cppTest)
 
 	// get all poses, should be at least one
 	results.clear();
-	messageStore.query<Pose>(results);
+	EXPECT_TRUE(messageStore.query<Pose>(results));
 	EXPECT_GT(results.size(), 0);
 
 

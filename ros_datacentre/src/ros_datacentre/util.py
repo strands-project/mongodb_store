@@ -2,8 +2,7 @@ import rospy
 import genpy
 from std_srvs.srv import Empty
 import yaml
-from bson import json_util
-from bson.binary import Binary
+from bson import json_util, Binary
 import copy
 import StringIO
 from ros_datacentre_msgs.msg import SerialisedMessage
@@ -121,6 +120,13 @@ def sanitize_value(attr, v, type):
     # print v.__class__
     # print type
    
+    if isinstance(v, str) and type == 'uint8[]':
+        # print 'this one'
+        # v = list(bytearray(v))
+        v = Binary(v)
+        # v = bytearray(v)
+        # v = unicode(v)
+
     if isinstance(v, rospy.Message):
         return msg_to_document(v)
     elif isinstance(v, genpy.rostime.Time):
@@ -128,9 +134,10 @@ def sanitize_value(attr, v, type):
     elif isinstance(v, genpy.rostime.Duration):
          return msg_to_document(v)
     elif isinstance(v, list):
-        return [sanitize_value(None, t, t._type) for t in v]
-    elif type == "uint8[]":
-        return Binary(v) 
+        if hasattr(v[0], '_type'):
+            return [sanitize_value(None, t, t._type) for t in v]
+        else: 
+            return [sanitize_value(None, t, None) for t in v]
     else:
         return v
 

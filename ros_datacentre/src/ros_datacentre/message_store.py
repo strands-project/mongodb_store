@@ -15,12 +15,12 @@ class MessageStoreProxy:
 		update_service = service_prefix + '/update'
 		delete_service = service_prefix + '/delete'
 		query_ids_service = service_prefix + '/query_messages'
-		rospy.logdebug("Waiting for services...")
+		rospy.loginfo("Waiting for services...")
 		rospy.wait_for_service(insert_service)
 		rospy.wait_for_service(update_service)
 		rospy.wait_for_service(query_ids_service)
 		rospy.wait_for_service(delete_service)
-		rospy.logdebug("Done")
+		rospy.loginfo("Done")
 		self.insert_srv = rospy.ServiceProxy(insert_service, dc_srv.MongoInsertMsg)
 		self.update_srv = rospy.ServiceProxy(update_service, dc_srv.MongoUpdateMsg)
 		self.query_id_srv = rospy.ServiceProxy(query_ids_service, dc_srv.MongoQueryMsg)
@@ -67,6 +67,13 @@ class MessageStoreProxy:
 		meta_copy["name"] = name
 
 		return self.update(message, meta_copy, {}, meta_query, upsert)		
+
+	def update_id(self, id, message, meta = {}, upsert = False):
+
+		msg_query = {'_id': ObjectId(id)}
+		meta_query = {}
+
+		return self.update(message, meta, msg_query, meta_query, upsert)		
 
 	def update(self, message, meta = {}, message_query = {}, meta_query = {},  upsert = False):
 		# serialise the json queries to strings using json_util.dumps
