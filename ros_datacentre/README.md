@@ -144,8 +144,22 @@ rosrun ros_datacentre mongodb_server.py _master:=false _database_path:=/opt/stra
 
 You can test if this works by adding some things to the message store, deleting them from the master using RoboMongo (not the message store as the deletes are replicated), then running queries.
 
-Scheduled Replication
----------------------
+Action Server for Replication
+-----------------------------
 
+The `MoveEntries` action and the corresponding action server:
 
+```bash
+rosrun ros_datacentre replicator_node.py 
+```
+
+(which is included in `datacentre.launch`)
+
+allows you to bulk copy or move entries from message store collections to the mongod instances defined under `ros_datacentre_extras`. The client accepts a list of collection names and uses the `meta["inserted_at"]` field of the message store entries to replicate or move all entries that were inserted before a particular time. There is an example client that does this for a list of collections specified on the command line. This *moves* entries inserted 24 hours ago or earlier.
+
+```bash
+rosrun ros_datacentre replicator_client.py message_store robblog scheduling_problems
+```
+
+**NOTE THAT this all makes `update` operations a bit uncertain, so please do not use this type of replication on collections you plan to use update on.**
 
