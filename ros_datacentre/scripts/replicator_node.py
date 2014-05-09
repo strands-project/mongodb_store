@@ -75,8 +75,12 @@ class Replicator(object):
         completed = []
         feedback = MoveEntriesFeedback(completed=completed)
 
+        less_time_time = rospy.get_rostime()
+        if goal.move_before.secs > 0:
+            less_time_time = goal.move_before
+
         for collection in goal.collections:                    
-            self.do_dump(collection, master)
+            self.do_dump(collection, master, less_time_time)
 
         self.do_restore(extras)
 
@@ -94,9 +98,21 @@ class Replicator(object):
             subprocess.call(rest_args)    
 
 
-    def do_dump(self, collection, master, db='message_store'):       
+    def do_dump(self, collection, master, less_time_time=None, db='message_store'):       
         # dump collection
+
+        print 'dumping ', collection
+
         args = ['mongodump',  '--host',  master.host, '--port',  str(master.port), '--db', db, '--collection', collection, '-o', self.dump_path]
+
+        if less_time_time is not None:
+            # match only objects with an insterted data less than this
+            print 'addoimg'
+            args.append('--query')
+            args.append('{ \"_meta.inserted_at\": { $lt: new Date(%s)}}' % (less_time_time.secs * 1000))
+
+        print args
+
         subprocess.call(args)
 
 

@@ -2,6 +2,7 @@
 string[] collections
 # only entries before this are moved. if 0, all are moved
 time move_before
+bool delete_after_move
 ---
 
 ---
