@@ -135,10 +135,13 @@ def sanitize_value(attr, v, type):
     elif isinstance(v, genpy.rostime.Duration):
          return msg_to_document(v)
     elif isinstance(v, list):
-        if hasattr(v[0], '_type'):
-            return [sanitize_value(None, t, t._type) for t in v]
-        else: 
-            return [sanitize_value(None, t, None) for t in v]
+        result = []
+        for t in v:            
+            if hasattr(t, '_type'):
+                result.append(sanitize_value(None, t, t._type))
+            else: 
+                result.append(sanitize_value(None, t, None))
+        return result
     else:
         return v
 
