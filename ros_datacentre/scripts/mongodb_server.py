@@ -19,18 +19,28 @@ import pymongo
 class MongoServer(object):
     def __init__(self):
         rospy.init_node("mongodb_server", anonymous=True)#, disable_signals=True)
-        rospy.on_shutdown(self._on_node_shutdown)
+      
+ 
+        # Has the db already gone down, before the ros node?
+        self._gone_down = False
+
+        self._ready = False # is the db ready: when mongo says "waiting for connection"
 
         # Get the database path
         self._db_path = rospy.get_param("~database_path", "/opt/ros/ros_datacentre")
+        is_master = rospy.get_param("~master", True)
 
         # What server does mongodb reside
-        self._mongo_host = rospy.get_param("datacentre_host", "localhost")
-        rospy.set_param("datacentre_host",self._mongo_host)
-        self._mongo_port = rospy.get_param("datacentre_port", 27017)
-        rospy.set_param("datacentre_port",self._mongo_port)
+        if is_master:
+            self._mongo_host = rospy.get_param("datacentre_host", "localhost")
+            rospy.set_param("datacentre_host",self._mongo_host)
+            self._mongo_port = rospy.get_param("datacentre_port", 27017)
+            rospy.set_param("datacentre_port",self._mongo_port)            
+        else:
+            self._mongo_host = rospy.get_param("~host")     
+            self._mongo_port = rospy.get_param("~port")
+
         rospy.loginfo("Mongo server address: "+self._mongo_host+":"+str(self._mongo_port))
-    
 
         # Check that mongodb is installed
         try:
@@ -51,10 +61,7 @@ class MongoServer(object):
         self._shutdown_srv = rospy.Service("/datacentre/shutdown", Empty, self._shutdown_srv_cb)
         self._wait_ready_srv = rospy.Service("/datacentre/wait_ready",Empty,self._wait_ready_srv_cb)
 
-        # Has the db already gone down, before the ros node?
-        self._gone_down = False
-
-        self._ready = False # is the db ready: when mongo says "waiting for connection"
+        rospy.on_shutdown(self._on_node_shutdown)
         
         # Start the mongodb server
         self._mongo_loop()
@@ -105,7 +112,7 @@ class MongoServer(object):
             return
         try:
             c = pymongo.MongoClient(self._mongo_host,self._mongo_port)
-        except ConnectionError, c:
+        except pymongo.errors.ConnectionFailure, c:
             pass
         try:
             c.admin.command("shutdown")

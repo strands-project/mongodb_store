@@ -1,10 +1,11 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(ros_datacentre_msgs)
 
-find_package(catkin REQUIRED COMPONENTS message_generation)
+find_package(catkin REQUIRED COMPONENTS message_generation actionlib actionlib_msgs)
 
 add_message_files(
   FILES
+  StringList.msg
   StringPair.msg
   StringPairList.msg
   SerialisedMessage.msg
@@ -18,7 +19,13 @@ add_service_files(
   MongoDeleteMsg.srv
 )
 
-generate_messages()
+add_action_files(
+  FILES
+  MoveEntries.action
+)
+
+
+generate_messages(DEPENDENCIES actionlib_msgs)
 
 catkin_package(
  CATKIN_DEPENDS message_generation
