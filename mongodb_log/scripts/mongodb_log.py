@@ -234,8 +234,15 @@ class WorkerProcess(object):
                         #print(self.sep + threading.current_thread().getName() + "@" + topic+": ")
                         #pprint.pprint(doc)
                         meta = {}    
-                        meta["recorded"] = ctime or datetime.now()
+                        # switched to use inserted_at to match message_store
+                        # meta["recorded"] = ctime or datetime.now()
                         meta["topic"]    = topic
+
+                        if ctime is not None:
+                            meta['inserted_at'] = datetime.utcfromtimestamp(ctime)
+                        else:
+                            meta['inserted_at'] = datetime.utcfromtimestamp(rospy.get_rostime().to_sec())
+
 
                         ros_datacentre.util.store_message(self.collection, msg, meta)                    
 
