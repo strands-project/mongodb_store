@@ -20,6 +20,13 @@ import catkin_pkg.package
 catkin_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
 catkin_package = catkin_pkg.package.parse_package(os.path.join(catkin_dir, catkin_pkg.package.PACKAGE_MANIFEST_FILENAME))
 
+def skip(app, what, name, obj, skip, options):
+    if name == "__init__":
+        return False
+    return skip
+
+def setup(app):
+    app.connect("autodoc-skip-member", skip)
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -42,6 +49,7 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.pngmath',
     'sphinx.ext.viewcode',
+#    'sphinx.ext.napoleon',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
