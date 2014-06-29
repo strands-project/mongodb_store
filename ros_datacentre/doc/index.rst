@@ -1,22 +1,14 @@
-.. ros_datacentre documentation master file, created by
-   sphinx-quickstart on Fri May 30 09:55:39 2014.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+ROS Datacentre
+==============
 
-Welcome to ros_datacentre's documentation!
-==========================================
+The ROS datacentre package provides a ROS wrapping of the MongoDB database server, and provides utility functions and classes to flexibly store and retrieve ROS messages.
 
 Contents:
 
 .. toctree::
    :maxdepth: 2
 
+  Introducing the "Message Store" <message_store>
+  Message Store Proxy API <message_store_proxy>
 
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
 
