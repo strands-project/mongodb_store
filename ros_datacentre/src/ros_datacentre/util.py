@@ -3,6 +3,7 @@ import genpy
 from std_srvs.srv import Empty
 import yaml
 from bson import json_util, Binary
+import json
 
 import copy
 import StringIO
@@ -454,7 +455,7 @@ def string_pair_list_to_dictionary(spl):
     """
     if len(spl.pairs) > 0 and spl.pairs[0].first == MongoQueryMsgRequest.JSON_QUERY:
         # print "looks like %s", spl.pairs[0].second
-        return json_util.loads(spl.pairs[0].second)
+        return json.loads(spl.pairs[0].second, object_hook=json_util.object_hook)
     # else use the string pairs
     else:
         return string_pair_list_to_dictionary_no_json(spl.pairs)

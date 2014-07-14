@@ -14,6 +14,7 @@ import ros_datacentre.util as dc_util
 from ros_datacentre.srv import *
 import pymongo
 import bson.json_util 
+import json
 
 class MongoBridge(object):
     def __init__(self):
@@ -35,22 +36,22 @@ class MongoBridge(object):
 
     def find_ros_srv(self, req):
         collection = self._mongo_client[req.db][req.collection]
-        res=collection.find(bson.json_util.loads(req.query))
+        res=collection.find(json.loads(req.query, object_hook=json_util.object_hook))
         docs=[i for i in res]
-        return bson.json_util.dumps(docs)
+        return json.dumps(docs, default=json_util.default)
     find_ros_srv.type=MongoFind
 
     def update_ros_srv(self,req):
         collection = self._mongo_client[req.db][req.collection]
-        res=collection.update(bson.json_util.loads(req.query),
-                              bson.json_util.loads(req.update))
-        return bson.json_util.dumps(docs)
+        res=collection.update(json.loads(req.query, object_hook=json_util.object_hook),
+                              json.loads(req.update, object_hook=json_util.object_hook))
+        return json.dumps(docs, default=json_util.default)
     update_ros_srv.type=MongoUpdate
                                                
     def insert_ros_srv(self,req):
         collection = self._mongo_client[req.db][req.collection]
-        res=collection.insert(bson.json_util.loads(req.document))
-        return bson.json_util.dumps(res)
+        res=collection.insert(json.loads(req.document, object_hook=json_util.object_hook))
+        return json.dumps(res, default=json_util.default)
     insert_ros_srv.type=MongoInsert
                                               
 
