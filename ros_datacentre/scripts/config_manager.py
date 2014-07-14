@@ -70,7 +70,7 @@ class ConfigManager(object):
         if not ros_datacentre.util.wait_for_mongo():
             sys.exit(1)
         
-        self._mongo_client = pymongo.MongoClient(rospy.get_param("datacentre_host","localhost"),
+        self._mongo_client = pymongo.Connection(rospy.get_param("datacentre_host","localhost"),
                                                  int(rospy.get_param("datacentre_port")))
 
         self._database=self._mongo_client.config

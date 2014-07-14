@@ -42,12 +42,6 @@ def check_for_pymongo():
         print("Can't import pymongo, this is needed by ros_datacentre.")
         print("Make sure it is installed (sudo pip install pymongo)")
         return False
-
-    if not "MongoClient" in dir(pymongo):
-        print ("ERROR!!!")
-        print("Can't import required version of pymongo. We need >= 2.3")
-        print("Make sure it is installed (sudo pip install pymongo) not apt-get")
-        return False
     
     return True
 

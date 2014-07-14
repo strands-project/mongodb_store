@@ -111,7 +111,7 @@ class MongoServer(object):
             rospy.logwarn("It looks like Mongo already died. Watch out as the DB might need recovery time at next run.")
             return
         try:
-            c = pymongo.MongoClient(self._mongo_host,self._mongo_port)
+            c = pymongo.Connection(self._mongo_host,self._mongo_port)
         except pymongo.errors.ConnectionFailure, c:
             pass
         try:
