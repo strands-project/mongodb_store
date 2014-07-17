@@ -6,6 +6,8 @@ import sys
 import os
 import collections
 import json
+import xmlrpclib
+from bson.binary import Binary
 
 import ros_datacentre.util
 
@@ -18,7 +20,48 @@ if not ros_datacentre.util.check_for_pymongo():
 
 import pymongo
 
+class MongoTransformer(pymongo.son_manipulator.SONManipulator):
+    def __init__(self):
+        pass
+    
+    def transform_incoming(self, son, collection):
+        if isinstance(son, list):
+            return self.transform_incoming_list(son, collection)
+        elif isinstance(son, dict):
+            for (key, value) in son.items():
+                son[key] = self.transform_incoming(value, collection)
+        elif isinstance(son, xmlrpclib.Binary):
+            son = {'__xmlrpclib_object':'xmlrpclib.Binary',
+                   'data': Binary(son.data)} 
+        return son
 
+    def transform_incoming_list(self, lst, collection):
+        new_lst = map(lambda x: self.transform_incoming(x, collection),
+                  lst)
+        return new_lst
+    
+    def transform_outgoing(self, son, collection):
+        if isinstance(son, list):
+            return self.transform_outgoing_list(son, collection)
+        elif isinstance(son, dict):
+            for (key, value) in son.items():
+                son[key] = self.transform_outgoing(value, collection)
+    
+            if "__xmlrpclib_object" in son:
+                if son["__xmlrpclib_object"] == "xmlrpclib.Binary":
+                    b = xmlrpclib.Binary(son['data'])
+                    return b
+                else:
+                    raise Exception("Unhandled xmlrpclib type.")
+            else:
+                return son
+        return son
+    
+    def transform_outgoing_list(self, lst, collection):
+        new_lst = map(lambda x: self.transform_outgoing(x, collection),
+                  lst)
+        return new_lst
+    
 class ConfigManager(object):
     def __init__(self):
         rospy.init_node("config_manager")
@@ -29,6 +72,9 @@ class ConfigManager(object):
         
         self._mongo_client = pymongo.MongoClient(rospy.get_param("datacentre_host","localhost"),
                                                  int(rospy.get_param("datacentre_port")))
+
+        self._database=self._mongo_client.config
+        self._database.add_son_manipulator(MongoTransformer())
 
         # Load the default settings from the defaults/ folder
         path = os.path.join(roslib.packages.get_pkg_dir('ros_datacentre'),"defaults")
@@ -52,7 +98,7 @@ class ConfigManager(object):
                 defaults.extend(flatten(p,c="",f_name=f))
 
         # Copy the defaults into the DB if not there already
-        defaults_collection = self._mongo_client.config.defaults
+        defaults_collection = self._database.defaults
         for param,val,filename in defaults:
             existing = defaults_collection.find_one({"path":param})
             if existing is None:
@@ -72,8 +118,8 @@ class ConfigManager(object):
         
                 
         # Load the settings onto the ros parameter server
-        defaults_collection = self._mongo_client.config.defaults
-        local_collection = self._mongo_client.config.local
+        defaults_collection = self._database.defaults
+        local_collection = self._database.local
         for param in defaults_collection.find():
             name=param["path"]
             val=param["value"]
@@ -108,7 +154,7 @@ class ConfigManager(object):
         print "#"*10
         print "Defaults:"
         print
-        for param in self._mongo_client.config.defaults.find():
+        for param in self._database.defaults.find():
             name=param["path"]
             val=param["value"]
             filename=param["from_file"]
@@ -143,7 +189,7 @@ class ConfigManager(object):
         if not (new.has_key("path") and new.has_key("value")):
             rospy.logerr("Trying to set parameter but not giving full spec")
             return SetParamResponse(False)
-        config_db_local = self._mongo_client.config.local
+        config_db_local = self._database.local
         value = config_db_local.find_one({"path":new["path"]})
         if value is None:
             # insert it
@@ -154,18 +200,16 @@ class ConfigManager(object):
             pass
         return SetParamResponse(True)
 
-    #This will take the current value from the rosparam server and save it into the DB
+    # This will take the current value from the rosparam server and save it into the DB
     def _saveparam_srv_cb(self,req):
         if not rospy.has_param(req.param):
-            rospy.logerr("Trying to set parameter but not giving full spec")
+            rospy.logerr("Trying to set a parameter from ros parameter server, but it is not on server.")
             return SetParamResponse(False)
         val=rospy.get_param(req.param)
-        if type(val) is str:
-            mystring='{"path":"'+ str(req.param) +'","value":"'+ val +'"}'
-        else:
-            mystring='{"path":"'+ str(req.param) +'","value":'+ str(val) +'}'
-        new = json.loads(mystring)
-        config_db_local = self._mongo_client.config.local
+        new={}
+        new['path']=str(req.param)
+        new['value']=val
+        config_db_local = self._database.local
         value = config_db_local.find_one({"path":new["path"]})
         if value is None:
             # insert it
@@ -173,7 +217,7 @@ class ConfigManager(object):
         else:
             # update it
             config_db_local.update(value,{"$set":new})
-            pass
+
         return SetParamResponse(True)
    
 
