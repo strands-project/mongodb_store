@@ -31,8 +31,8 @@ class MongoTransformer(pymongo.son_manipulator.SONManipulator):
             for (key, value) in son.items():
                 son[key] = self.transform_incoming(value, collection)
         elif isinstance(son, xmlrpclib.Binary):
-            son = {'__xmlrpclib_object':'xmlrpclib.Binary',
-                   'data': Binary(son.data)} 
+            return {'__xmlrpclib_object':'xmlrpclib.Binary',
+                   'data': Binary(son.data)}
         return son
 
     def transform_incoming_list(self, lst, collection):
@@ -100,7 +100,8 @@ class ConfigManager(object):
         # Copy the defaults into the DB if not there already
         defaults_collection = self._database.defaults
         for param,val,filename in defaults:
-            existing = defaults_collection.find_one({"path":param})
+            existing = defaults_collection.find_one({"path":param}, manipulate=False)
+            existing_value = self._database._fix_outgoing(existing['value'], defaults_collection)
             if existing is None:
                 rospy.loginfo("New default parameter for %s"%param)
                 defaults_collection.insert({"path":param,
@@ -112,10 +113,20 @@ class ConfigManager(object):
                 # Delete the entry so that it can be fixed...
                 defaults_collection.remove(existing)
                 rospy.signal_shutdown("Default parameter set error")
-            elif existing["value"]!=val:
+            else: #if str(existing_value) != str(val):
+                for i,j in zip(str(existing_value),str(val)):
+                    if i !=j:
+                        break
+                else:
+                    if len(str(existing_value)) == len(str(val)):
+                        continue
+
                 rospy.loginfo("Updating stored default for %s"%param)
-                defaults_collection.update(existing,{"$set":{"value":val}})
-        
+                new={}
+                new.update(existing)
+                new['value']=val
+                defaults_collection.update(existing, new, manipulate=True)
+                
                 
         # Load the settings onto the ros parameter server
         defaults_collection = self._database.defaults
@@ -190,13 +201,14 @@ class ConfigManager(object):
             rospy.logerr("Trying to set parameter but not giving full spec")
             return SetParamResponse(False)
         config_db_local = self._database.local
-        value = config_db_local.find_one({"path":new["path"]})
+        value = config_db_local.find_one({"path":new["path"]}, manipulate=False)
         if value is None:
             # insert it
             config_db_local.insert(new)
         else:
             # update it
-            config_db_local.update(value,{"$set":new})
+            new['_id']=value['_id']
+            config_db_local.update(value,new, manipulate=True)
             pass
         return SetParamResponse(True)
 
@@ -210,13 +222,14 @@ class ConfigManager(object):
         new['path']=str(req.param)
         new['value']=val
         config_db_local = self._database.local
-        value = config_db_local.find_one({"path":new["path"]})
+        value = config_db_local.find_one({"path":new["path"]}, manipulate=False)
         if value is None:
             # insert it
             config_db_local.insert(new)
         else:
             # update it
-            config_db_local.update(value,{"$set":new})
+            new['_id']=value['_id']
+            config_db_local.update(value, new, manipulate=True)
 
         return SetParamResponse(True)
    
