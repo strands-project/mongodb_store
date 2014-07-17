@@ -71,8 +71,10 @@ import roslib.message
 import rostopic
 
 
-from pymongo import Connection, SLOW_ONLY
+from pymongo import SLOW_ONLY
 from pymongo.errors import InvalidDocument, InvalidStringData
+
+MongoClient = ros_datacentre.util.import_MongoClient()
 
 BACKLOG_WARN_LIMIT = 100
 STATS_LOOPTIME     = 10
@@ -140,7 +142,7 @@ class WorkerProcess(object):
         if use_setproctitle: 
             setproctitle("mongodb_log %s" % self.topic)
 
-        self.mongoconn = Connection(self.mongodb_host, self.mongodb_port)
+        self.mongoconn = MongoClient(self.mongodb_host, self.mongodb_port)
         self.mongodb = self.mongoconn[self.mongodb_name]
         self.mongodb.set_profiling_level = SLOW_ONLY
 

@@ -47,6 +47,27 @@ def check_for_pymongo():
     return True
 
 """
+Pick an object to use as MongoClient based on the currently installed pymongo
+version. Use this instead of importing Connection or MongoClient from pymongo
+directly.
+
+Example:
+    MongoClient = util.importMongoClient()
+"""
+def import_MongoClient():
+    import pymongo
+    if pymongo.version >= '2.4':
+        def mongo_client_wrapper(*args, **kwargs):
+            return pymongo.MongoClient(*args, **kwargs)
+        return mongo_client_wrapper
+    else:
+        import functools
+        def mongo_client_wrapper(*args, **kwargs):
+            return pymongo.Connection(*args, **kwargs)
+        return functools.partial(mongo_client_wrapper, safe=True)
+
+
+"""
 Given a ROS msg and a dictionary of the right values, fill in the msg
 """
 def _fill_msg(msg,dic):

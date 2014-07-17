@@ -13,6 +13,8 @@ import ros_datacentre.util
 
 if not ros_datacentre.util.check_for_pymongo():
     sys.exit(1)
+
+MongoClient = ros_datacentre.util.import_MongoClient()
     
 import pymongo
 
@@ -111,7 +113,7 @@ class MongoServer(object):
             rospy.logwarn("It looks like Mongo already died. Watch out as the DB might need recovery time at next run.")
             return
         try:
-            c = pymongo.Connection(self._mongo_host,self._mongo_port)
+            c = MongoClient(self._mongo_host,self._mongo_port)
         except pymongo.errors.ConnectionFailure, c:
             pass
         try:

@@ -16,6 +16,8 @@ import pymongo
 import bson.json_util 
 import json
 
+MongoClient = dc_util.import_MongoClient()
+
 class MongoBridge(object):
     def __init__(self):
         rospy.init_node("mongo_bridge")
@@ -24,8 +26,8 @@ class MongoBridge(object):
         if not have_dc:
             raise Exception("No Datacentre?")
 
-        self._mongo_client=pymongo.Connection(rospy.get_param("datacentre_host"),
-                                              rospy.get_param("datacentre_port") )
+        self._mongo_client=pymongo.MongoClient(rospy.get_param("datacentre_host"),
+                                               rospy.get_param("datacentre_port") )
 
         # advertise ros services
         for attr in dir(self):

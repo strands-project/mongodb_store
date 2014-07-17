@@ -19,6 +19,7 @@ if not ros_datacentre.util.check_for_pymongo():
     sys.exit(1)
 
 import pymongo
+MongoClient = ros_datacentre.util.import_MongoClient()
 
 class MongoTransformer(pymongo.son_manipulator.SONManipulator):
     def __init__(self):
@@ -70,7 +71,7 @@ class ConfigManager(object):
         if not ros_datacentre.util.wait_for_mongo():
             sys.exit(1)
         
-        self._mongo_client = pymongo.Connection(rospy.get_param("datacentre_host","localhost"),
+        self._mongo_client = MongoClient(rospy.get_param("datacentre_host","localhost"),
                                                  int(rospy.get_param("datacentre_port")))
 
         self._database=self._mongo_client.config

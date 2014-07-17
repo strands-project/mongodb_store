@@ -14,6 +14,9 @@ import subprocess
 from ros_datacentre_msgs.msg import  MoveEntriesAction, MoveEntriesFeedback
 from datetime import *
 
+import ros_datacentre.util
+MongoClient = ros_datacentre.util.import_MongoClient()
+
 class Replicator(object):
     def __init__(self):
 
@@ -47,7 +50,7 @@ class Replicator(object):
         datacentre_port = rospy.get_param("datacentre_port") 
         master = None
         try:
-            master = pymongo.Connection(datacentre_host, datacentre_port)
+            master = MongoClient(datacentre_host, datacentre_port)
         except pymongo.errors.ConnectionFailure, e:
             rospy.logwarn('Could not connect to master datacentre at %s:%s' % (datacentre_host, datacentre_port))
             return None, None
@@ -57,7 +60,7 @@ class Replicator(object):
         extra_clients = []
         for extra in extras:
             try:
-                extra_clients.append(pymongo.Connection(extra[0], extra[1]))
+                extra_clients.append(MongoClient(extra[0], extra[1]))
             except pymongo.errors.ConnectionFailure, e:
                 rospy.logwarn('Could not connect to extra datacentre at %s:%s' % (extra[0], extra[1]))
 

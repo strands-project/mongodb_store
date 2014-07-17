@@ -15,6 +15,8 @@ from ros_datacentre_msgs.msg import  StringPair, StringPairList
 from bson.objectid import ObjectId
 from datetime import *
 
+MongoClient = dc_util.import_MongoClient()
+
 class MessageStore(object):
     def __init__(self, replicate_on_write=False):
 
@@ -24,7 +26,7 @@ class MessageStore(object):
         if not have_dc:
             raise Exception("No Datacentre?")
 
-        self._mongo_client=pymongo.Connection(rospy.get_param("datacentre_host"),
+        self._mongo_client=MongoClient(rospy.get_param("datacentre_host"),
                                               rospy.get_param("datacentre_port") )
 
 
@@ -32,7 +34,7 @@ class MessageStore(object):
         self.extra_clients = []
         for extra in extras:
             try:
-                self.extra_clients.append(pymongo.Connection(extra[0], extra[1]))
+                self.extra_clients.append(MongoClient(extra[0], extra[1]))
             except pymongo.errors.ConnectionFailure, e:
                 rospy.logwarn('Could not connect to extra datacentre at %s:%s' % (extra[0], extra[1]))
 
