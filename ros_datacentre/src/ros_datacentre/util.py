@@ -3,6 +3,7 @@ import genpy
 from std_srvs.srv import Empty
 import yaml
 from bson import json_util, Binary
+import json
 
 import copy
 import StringIO
@@ -42,14 +43,29 @@ def check_for_pymongo():
         print("Can't import pymongo, this is needed by ros_datacentre.")
         print("Make sure it is installed (sudo pip install pymongo)")
         return False
-
-    if not "MongoClient" in dir(pymongo):
-        print ("ERROR!!!")
-        print("Can't import required version of pymongo. We need >= 2.3")
-        print("Make sure it is installed (sudo pip install pymongo) not apt-get")
-        return False
     
     return True
+
+"""
+Pick an object to use as MongoClient based on the currently installed pymongo
+version. Use this instead of importing Connection or MongoClient from pymongo
+directly.
+
+Example:
+    MongoClient = util.importMongoClient()
+"""
+def import_MongoClient():
+    import pymongo
+    if pymongo.version >= '2.4':
+        def mongo_client_wrapper(*args, **kwargs):
+            return pymongo.MongoClient(*args, **kwargs)
+        return mongo_client_wrapper
+    else:
+        import functools
+        def mongo_client_wrapper(*args, **kwargs):
+            return pymongo.Connection(*args, **kwargs)
+        return functools.partial(mongo_client_wrapper, safe=True)
+
 
 """
 Given a ROS msg and a dictionary of the right values, fill in the msg
@@ -460,7 +476,7 @@ def string_pair_list_to_dictionary(spl):
     """
     if len(spl.pairs) > 0 and spl.pairs[0].first == MongoQueryMsgRequest.JSON_QUERY:
         # print "looks like %s", spl.pairs[0].second
-        return json_util.loads(spl.pairs[0].second)
+        return json.loads(spl.pairs[0].second, object_hook=json_util.object_hook)
     # else use the string pairs
     else:
         return string_pair_list_to_dictionary_no_json(spl.pairs)

@@ -4,6 +4,7 @@ import ros_datacentre.util as dc_util
 from ros_datacentre_msgs.msg import StringPair, StringPairList, SerialisedMessage
 from bson import json_util
 from bson.objectid import ObjectId
+import json
 import copy
 
 
@@ -87,7 +88,7 @@ class MessageStoreProxy:
 
 		"""
 		# assume meta is a dict, convert k/v to tuple pairs 
-		meta_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json_util.dumps(meta)),)
+		meta_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(meta, default=json_util.default)),)
 		serialised_msg = dc_util.serialise_message(message)
 		return self.insert_srv(self.database, self.collection, serialised_msg, StringPairList(meta_tuple)).id
 
@@ -192,9 +193,9 @@ class MessageStoreProxy:
 		 
 		"""
 		# serialise the json queries to strings using json_util.dumps
-		message_query_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json_util.dumps(message_query)),)
-		meta_query_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json_util.dumps(meta_query)),)
-		meta_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json_util.dumps(meta)),)
+		message_query_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(message_query, default=json_util.default)),)
+		meta_query_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(meta_query, default=json_util.default)),)
+		meta_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(meta, default=json_util.default)),)
 		return self.update_srv(self.database, self.collection, upsert, StringPairList(message_query_tuple), StringPairList(meta_query_tuple), dc_util.serialise_message(message), StringPairList(meta_tuple))		
 
 
@@ -217,8 +218,8 @@ class MessageStoreProxy:
 		# assume meta is a dict, convert k/v to tuple pairs for ROS msg type
 
 		# serialise the json queries to strings using json_util.dumps
-		message_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json_util.dumps(message_query)),)
-		meta_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json_util.dumps(meta_query)),)
+		message_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(message_query, default=json_util.default)),)
+		meta_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(meta_query, default=json_util.default)),)
 
 		# a tuple of SerialisedMessages
 		response = self.query_id_srv(self.database, self.collection, type, single, StringPairList(message_tuple), StringPairList(meta_tuple))		

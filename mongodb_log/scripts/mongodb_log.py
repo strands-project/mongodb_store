@@ -42,6 +42,7 @@ import sys
 import time
 import pprint
 import string
+import signal
 import subprocess
 from threading import Thread, Timer
 from multiprocessing import Process, Lock, Condition, Queue, Value, current_process, Event
@@ -70,8 +71,10 @@ import roslib.message
 import rostopic
 
 
-from pymongo import Connection, SLOW_ONLY
+from pymongo import SLOW_ONLY
 from pymongo.errors import InvalidDocument, InvalidStringData
+
+MongoClient = ros_datacentre.util.import_MongoClient()
 
 BACKLOG_WARN_LIMIT = 100
 STATS_LOOPTIME     = 10
@@ -139,7 +142,7 @@ class WorkerProcess(object):
         if use_setproctitle: 
             setproctitle("mongodb_log %s" % self.topic)
 
-        self.mongoconn = Connection(self.mongodb_host, self.mongodb_port)
+        self.mongoconn = MongoClient(self.mongodb_host, self.mongodb_port)
         self.mongodb = self.mongoconn[self.mongodb_name]
         self.mongodb.set_profiling_level = SLOW_ONLY
 
@@ -148,7 +151,9 @@ class WorkerProcess(object):
 
         self.queue.cancel_join_thread()
 
-
+        # clear signal handlers in this child process, rospy will handle signals for us
+        signal.signal(signal.SIGTERM, signal.SIG_DFL)
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
 
         worker_node_name = WORKER_NODE_NAME % (self.nodename_prefix, self.id, self.collname)
         # print "Calling init_node with %s from process %s" % (worker_node_name, mp.current_process())
@@ -364,11 +369,6 @@ class MongoWriter(object):
             self.ros_master = rosgraph.masterapi.Master(NODE_NAME_TEMPLATE % self.nodename_prefix)
             self.update_topics(restart=False)
 
-        node_name = NODE_NAME_TEMPLATE % self.nodename_prefix
-        # print "Calling init_node with %s from process %s" % (node_name, mp.current_process())
-        
-        rospy.init_node(node_name, anonymous=True)
-
         self.start_all_topics_timer()
 
     def subscribe_topics(self, topics):
@@ -457,13 +457,13 @@ class MongoWriter(object):
     def run(self):
         looping_threshold = timedelta(0, STATS_LOOPTIME,  0)
 
-        while not rospy.is_shutdown() and not self.quit:
+        while not self.quit:
             started = datetime.now()        
 
             # the following code makes sure we run once per STATS_LOOPTIME, taking
             # varying run-times and interrupted sleeps into account
             td = datetime.now() - started
-            while not rospy.is_shutdown() and not self.quit and td < looping_threshold:
+            while not self.quit and td < looping_threshold:
                 sleeptime = STATS_LOOPTIME - (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / 10**6
                 if sleeptime > 0: sleep(sleeptime)
                 td = datetime.now() - started
@@ -576,8 +576,13 @@ def main(argv):
                               no_specific=options.no_specific,
                               nodename_prefix=options.nodename_prefix)
 
+    def signal_handler(signal, frame):
+        mongowriter.shutdown()
+
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
+
     mongowriter.run()
-    mongowriter.shutdown()
 
 if __name__ == "__main__":
     main(sys.argv)
