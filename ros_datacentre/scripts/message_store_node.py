@@ -9,10 +9,13 @@ import rospy
 import ros_datacentre_msgs.srv as dc_srv
 import ros_datacentre.util as dc_util
 import pymongo
+import json
 from bson import json_util
 from ros_datacentre_msgs.msg import  StringPair, StringPairList
 from bson.objectid import ObjectId
 from datetime import *
+
+MongoClient = dc_util.import_MongoClient()
 
 class MessageStore(object):
     def __init__(self, replicate_on_write=False):
@@ -23,15 +26,15 @@ class MessageStore(object):
         if not have_dc:
             raise Exception("No Datacentre?")
 
-        self._mongo_client=pymongo.MongoClient(rospy.get_param("datacentre_host"),
-                                               rospy.get_param("datacentre_port") )
+        self._mongo_client=MongoClient(rospy.get_param("datacentre_host"),
+                                              rospy.get_param("datacentre_port") )
 
 
         extras = rospy.get_param('ros_datacentre_extras', [])
         self.extra_clients = []
         for extra in extras:
             try:
-                self.extra_clients.append(pymongo.MongoClient(extra[0], extra[1]))
+                self.extra_clients.append(MongoClient(extra[0], extra[1]))
             except pymongo.errors.ConnectionFailure, e:
                 rospy.logwarn('Could not connect to extra datacentre at %s:%s' % (extra[0], extra[1]))
 
@@ -205,7 +208,7 @@ class MessageStore(object):
             # add ObjectID into meta as it might be useful later
             entry["_meta"]["_id"] = entry["_id"]
             # serialise meta
-            metas = metas + (StringPairList([StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json_util.dumps(entry["_meta"]))]), )
+            metas = metas + (StringPairList([StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(entry["_meta"], default=json_util.default))]), )
 
         return [serialised_messages, metas]
         
