@@ -102,7 +102,6 @@ class ConfigManager(object):
         defaults_collection = self._database.defaults
         for param,val,filename in defaults:
             existing = defaults_collection.find_one({"path":param}, manipulate=False)
-            existing_value = self._database._fix_outgoing(existing['value'], defaults_collection)
             if existing is None:
                 rospy.loginfo("New default parameter for %s"%param)
                 defaults_collection.insert({"path":param,
@@ -115,6 +114,7 @@ class ConfigManager(object):
                 defaults_collection.remove(existing)
                 rospy.signal_shutdown("Default parameter set error")
             else: #if str(existing_value) != str(val):
+                existing_value = self._database._fix_outgoing(existing['value'], defaults_collection)
                 for i,j in zip(str(existing_value),str(val)):
                     if i !=j:
                         break
