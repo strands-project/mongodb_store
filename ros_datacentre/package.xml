@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>ros_datacentre</name>
-  <version>0.1.1</version>
+  <version>0.0.1</version>
   <description>A MongoDB based central store for data from a ROS system, eg. configurations, logged states, etc</description>
 
   <maintainer email="cburbridge@gmail.com">Chris Curbridge</maintainer>
