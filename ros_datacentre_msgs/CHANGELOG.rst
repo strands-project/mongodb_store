@@ -1,0 +1,29 @@
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Changelog for package ros_datacentre_msgs
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Forthcoming
+-----------
+* Changed collections type to StringList to allow for datacentre comms to task schduler.
+* Change action definition to use duration into the past.
+* Working and tested dump and restore with time bounds.
+* Added dump and restore.
+* Adds a service to delete message by ID
+* Adds a service to delete message by ID
+* Proof of concept working with C++ BSON library.
+* Working update method on the python side. Will not work in C++ yet.
+* Removed unused MongoQueryID.srv
+* Added update message type.
+* Message store queries now return meta as well as message.
+  This is only in the python client for now, but is simple to add to C++. This could be inefficient, so in the future potentially add non-meta options.
+* Now using json.dumps and loads to do better queries from python. C++ is still a pain though.
+* Query now returns the messages asked for
+* Query structure in place
+* Meta stuff working on the way in. Starting to think about querying.
+* Added meta information as a list of string pairs
+* Working across languages with return value now.
+* Working from the C++ end, but this invalidates the Python again.
+* Basic idea works python to python
+* Service code runs (not working though)
+* Adding an insert service and the start of a message store to provide it.
+* Contributors: Nick Hawes, cburbridge
