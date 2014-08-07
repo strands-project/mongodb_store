@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>strands_diagnostics</name>
-  <version>0.0.1</version>
+  <version>0.0.2</version>
   <description>The strands_diagnostics package</description>
 
   <maintainer email="cburbridge@gmail.com">Chris Burbridge</maintainer>

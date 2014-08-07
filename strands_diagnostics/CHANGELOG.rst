@@ -2,8 +2,8 @@
 Changelog for package strands_diagnostics
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.0.2 (2014-08-07)
+------------------
 * Switched strands_datacentre to ros_datacentre in here.
 * correction of import bug in strands_diagnostics
 * Added files I stupidly removed.

@@ -2,8 +2,8 @@
 Changelog for package mongodb_log
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.0.2 (2014-08-07)
+------------------
 * Dynamically choose MongoDB API
   Use Connection if using an older mongopy, otherwise use MongoClient.
 * Cleaned up boilerplate in mongodb_log package.xml

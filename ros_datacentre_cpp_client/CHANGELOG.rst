@@ -2,8 +2,8 @@
 Changelog for package ros_datacentre_cpp_client
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.0.2 (2014-08-07)
+------------------
 * Fixed complilation under Ubuntu.
   * removed use of toTimeT()
   * add_definitions(-std=c++0x) to allow new C++ features

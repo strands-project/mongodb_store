@@ -2,8 +2,8 @@
 Changelog for package ros_datacentre_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.0.2 (2014-08-07)
+------------------
 * Changed collections type to StringList to allow for datacentre comms to task schduler.
 * Change action definition to use duration into the past.
 * Working and tested dump and restore with time bounds.

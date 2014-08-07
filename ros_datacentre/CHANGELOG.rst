@@ -2,8 +2,8 @@
 Changelog for package ros_datacentre
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.0.2 (2014-08-07)
+------------------
 * Fix `#65 <https://github.com/strands-project/ros_datacentre/issues/65>`_. Check entry exists before accessing value.
 * Dynamically choose MongoDB API
   Use Connection if using an older mongopy, otherwise use MongoClient.
