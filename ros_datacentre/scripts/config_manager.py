@@ -78,55 +78,79 @@ class ConfigManager(object):
         self._database.add_son_manipulator(MongoTransformer())
 
         # Load the default settings from the defaults/ folder
-        path = os.path.join(roslib.packages.get_pkg_dir('ros_datacentre'),"defaults")
-        files = os.listdir(path)
-        defaults=[]  # a list of 3-tuples, (param, val, originating_filename)
-        def flatten(d, c="", f_name="" ):
-            l=[]
-            for k, v in d.iteritems():
-                if isinstance(v, collections.Mapping):
-                    l.extend(flatten(v,c+"/"+k, f_name))
-                else:
-                    l.append((c+"/"+k, v, f_name))
-            return l
-                             
-        for f in files:
-            if not f.endswith(".yaml"):
-                continue
-            params = rosparam.load_file(os.path.join(path,f))
-            rospy.loginfo("Found default parameter file %s" % f)
-            for p, n in params:
-                defaults.extend(flatten(p,c="",f_name=f))
+        try:
+            path = rospy.get_param("~defaults_path")
+            if len(path)==0:
+                raise 
+        except:
+            rospy.loginfo("Default parameters path not supplied, assuming none.")
+        else:
+            if path.startswith("pkg://"):
+                parts = path.split("//")
+                parts=parts[1].split("/",1)
+                pkg=parts[0]
+                pkg_dir=parts[1]
+                try:
+                    path = os.path.join(roslib.packages.get_pkg_dir(pkg), pkg_dir)
+                except roslib.packages.InvalidROSPkgException, e:
+                    rospy.logerr("Supplied defaults path '%s' cannot be found. \n"%path +
+                                 "The ROS package '%s' could not be located."%pkg)
+                    sys.exit(1)
+            if not os.path.isdir(path):
+                rospy.logwarn("Defaults path '%s' does not exist."%path)
+                sys.exit(1)
+            try:
+                files = os.listdir(path)
+            except OSError, e:
+                rospy.logerr("Can't list defaults directory %s. Check permissions."%path)
+                sys.exit(1)
+            defaults=[]  # a list of 3-tuples, (param, val, originating_filename)
+            def flatten(d, c="", f_name="" ):
+                l=[]
+                for k, v in d.iteritems():
+                    if isinstance(v, collections.Mapping):
+                        l.extend(flatten(v,c+"/"+k, f_name))
+                    else:
+                        l.append((c+"/"+k, v, f_name))
+                return l
 
-        # Copy the defaults into the DB if not there already
-        defaults_collection = self._database.defaults
-        for param,val,filename in defaults:
-            existing = defaults_collection.find_one({"path":param}, manipulate=False)
-            if existing is None:
-                rospy.loginfo("New default parameter for %s"%param)
-                defaults_collection.insert({"path":param,
-                                            "value":val,
-                                            "from_file":filename})
-            elif existing["from_file"]!=filename:
-                rospy.logerr("Two defaults parameter files have the same key:\n%s and %s, key %s"%
-                             (existing["from_file"],filename,param))
-                # Delete the entry so that it can be fixed...
-                defaults_collection.remove(existing)
-                rospy.signal_shutdown("Default parameter set error")
-            else: #if str(existing_value) != str(val):
-                existing_value = self._database._fix_outgoing(existing['value'], defaults_collection)
-                for i,j in zip(str(existing_value),str(val)):
-                    if i !=j:
-                        break
-                else:
-                    if len(str(existing_value)) == len(str(val)):
-                        continue
+            for f in files:
+                if not f.endswith(".yaml"):
+                    continue
+                params = rosparam.load_file(os.path.join(path,f))
+                rospy.loginfo("Found default parameter file %s" % f)
+                for p, n in params:
+                    defaults.extend(flatten(p,c="",f_name=f))
 
-                rospy.loginfo("Updating stored default for %s"%param)
-                new={}
-                new.update(existing)
-                new['value']=val
-                defaults_collection.update(existing, new, manipulate=True)
+            # Copy the defaults into the DB if not there already
+            defaults_collection = self._database.defaults
+            for param,val,filename in defaults:
+                existing = defaults_collection.find_one({"path":param}, manipulate=False)
+                if existing is None:
+                    rospy.loginfo("New default parameter for %s"%param)
+                    defaults_collection.insert({"path":param,
+                                                "value":val,
+                                                "from_file":filename})
+                elif existing["from_file"]!=filename:
+                    rospy.logerr("Two defaults parameter files have the same key:\n%s and %s, key %s"%
+                                 (existing["from_file"],filename,param))
+                    # Delete the entry so that it can be fixed...
+                    defaults_collection.remove(existing)
+                    rospy.signal_shutdown("Default parameter set error")
+                else: #if str(existing_value) != str(val):
+                    existing_value = self._database._fix_outgoing(existing['value'], defaults_collection)
+                    for i,j in zip(str(existing_value),str(val)):
+                        if i !=j:
+                            break
+                    else:
+                        if len(str(existing_value)) == len(str(val)):
+                            continue
+
+                    rospy.loginfo("Updating stored default for %s"%param)
+                    new={}
+                    new.update(existing)
+                    new['value']=val
+                    defaults_collection.update(existing, new, manipulate=True)
                 
                 
         # Load the settings onto the ros parameter server
