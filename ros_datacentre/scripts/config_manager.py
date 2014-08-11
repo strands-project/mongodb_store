@@ -97,12 +97,8 @@ class ConfigManager(object):
                                  "The ROS package '%s' could not be located."%pkg)
                     sys.exit(1)
             if not os.path.isdir(path):
-                rospy.logwarn("Defaults path '%s' does not exist. Creating it."%path)
-                try:
-                    os.mkdir(path)
-                except:
-                    rospy.logerr("Can't create defaults path '%s"%path)
-                    sys.exit(1)
+                rospy.logwarn("Defaults path '%s' does not exist."%path)
+                sys.exit(1)
             try:
                 files = os.listdir(path)
             except OSError, e:
