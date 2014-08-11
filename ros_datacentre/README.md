@@ -45,8 +45,8 @@ The config manager provides a centralised way to store robot application paramet
 Two levels of parameters are considered:
 
 1) Global default parameters. 
-These should be "working defaults" - so all essential parameters at least have a default value. For example, if a robot application requires some calibration data, default values should be provided.
-These parameters are shared among sites, so are stored inside github under ros_datacentre/defaults. When the config manager is started, all .yaml files stored in this folder will be examined. Any new default parameters will be inserted into the "defaults" collection within the configs database.
+These should be "working defaults" - so all essential parameters at least have a default value. For example, if a robot application requires some calibration data then default values should be provided.
+Default parameters can be shared among sites and stored inside a shared ROS package. When the config manager is started, all .yaml files stored in a 'defaults' folder will be examined. Any new default parameters will automatically be inserted into the "defaults" collection within the configs database. The defaults folder should be supplied as a private parameter: `~defaults_path` either set to a system path or in the form `pkg://ros_package_name/inside/package`.
 
 2) Local parameters.
 These parameters override the same named  global default parameters, allowing site-specific parameter setting. They are stored within the database inside the "local" collection.
@@ -63,7 +63,7 @@ To start the config manager, make sure that you have the mongo db running then:
 
 
 ```
-rosrun ros_datacentre config_manager.py
+rosrun ros_datacentre config_manager.py _defaults_path:=pkg://my_package/defaults
 ```
 
 This will load all parameters onto the ros parameter server, which can be checked with:
