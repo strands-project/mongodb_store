@@ -34,7 +34,7 @@ QUEUE_MAXSIZE = 100
 import rospy
 
 # for msg_to_document
-import ros_datacentre.util
+import mongodb_store.util
 
 import os
 import re
@@ -74,7 +74,7 @@ import rostopic
 from pymongo import SLOW_ONLY
 from pymongo.errors import InvalidDocument, InvalidStringData
 
-MongoClient = ros_datacentre.util.import_MongoClient()
+MongoClient = mongodb_store.util.import_MongoClient()
 
 BACKLOG_WARN_LIMIT = 100
 STATS_LOOPTIME     = 10
@@ -249,7 +249,7 @@ class WorkerProcess(object):
                             meta['inserted_at'] = datetime.utcfromtimestamp(rospy.get_rostime().to_sec())
 
 
-                        ros_datacentre.util.store_message(self.collection, msg, meta)                    
+                        mongodb_store.util.store_message(self.collection, msg, meta)                    
 
                     except InvalidDocument, e:
                         print("InvalidDocument " + current_process().name + "@" + topic +": \n")
