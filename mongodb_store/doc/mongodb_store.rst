@@ -1,21 +1,21 @@
-ros_datacentre package
+mongodb_store package
 ======================
 
 Submodules
 ----------
 
-ros_datacentre.message_store module
+mongodb_store.message_store module
 -----------------------------------
 
-.. automodule:: ros_datacentre.message_store
+.. automodule:: mongodb_store.message_store
     :members:
     :undoc-members:
     :show-inheritance:
 
-ros_datacentre.util module
+mongodb_store.util module
 --------------------------
 
-.. automodule:: ros_datacentre.util
+.. automodule:: mongodb_store.util
     :members:
     :undoc-members:
     :show-inheritance:
@@ -24,7 +24,7 @@ ros_datacentre.util module
 Module contents
 ---------------
 
-.. automodule:: ros_datacentre
+.. automodule:: mongodb_store
     :members:
     :undoc-members:
     :show-inheritance:
