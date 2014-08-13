@@ -1,0 +1,19 @@
+<launch>
+  <arg name="db_path" default="/opt/strands/mongodb_store"/>
+  <arg name="port" default="52346" />
+
+  <param name="datacentre_port" value="$(arg port)" />
+  <param name="datacentre_host" value="$(optenv HOSTNAME localhost)" />
+  
+  <node name="mongo_server" pkg="mongodb_store" type="mongodb_server.py" output="screen">
+    <param name="database_path" value="$(arg db_path)"/>
+  </node>
+
+  <node name="message_store" pkg="mongodb_store" type="message_store_node.py" output="screen"/>
+
+  <!-- rosout and diagnostic topic logger -->
+  <!-- <node name="diagnostics_logger" pkg="strands_diagnostics" type="logger" output="screen"/> -->
+  
+  <test test-name="test_messagestore" pkg="mongodb_store" type="test_messagestore.py" />
+
+</launch>
