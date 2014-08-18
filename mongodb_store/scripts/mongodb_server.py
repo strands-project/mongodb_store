@@ -18,6 +18,12 @@ MongoClient = mongodb_store.util.import_MongoClient()
     
 import pymongo
 
+def is_socket_free(host, port):
+    import socket;
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    result = sock.connect_ex((host, port))
+    return result != 0
+
 class MongoServer(object):
     def __init__(self):
         rospy.init_node("mongodb_server", anonymous=True)#, disable_signals=True)
@@ -28,15 +34,39 @@ class MongoServer(object):
 
         self._ready = False # is the db ready: when mongo says "waiting for connection"
 
+
+        test_mode = rospy.get_param("~test_mode", False)
+
+
+        if test_mode:
+            import random
+            
+            default_host = "localhost"            
+            default_port = random.randrange(49152,65535)
+
+            count = 0
+            while not is_socket_free(default_host, default_port):
+                default_port = random.randrange(49152,65535)
+                count += 1
+                if count > 100:
+                    rospy.logerr("Can't find a free port to run the test server on.")
+                    sys.exit(1)                    
+            
+            default_path = "/tmp/ros_mongodb_store_%d" % default_port
+            os.mkdir(default_path)
+        else:
+            default_host = "localhost"
+            default_port = 27017
+            default_path = "/opt/ros/mongodb_store"
+
         # Get the database path
-        self._db_path = rospy.get_param("~database_path", "/opt/ros/mongodb_store")
+        self._db_path = rospy.get_param("~database_path", default_path)
         is_master = rospy.get_param("~master", True)
 
-        # What server does mongodb reside
         if is_master:
-            self._mongo_host = rospy.get_param("mongodb_host", "localhost")
+            self._mongo_host = rospy.get_param("mongodb_host", default_host)
             rospy.set_param("mongodb_host",self._mongo_host)
-            self._mongo_port = rospy.get_param("mongodb_port", 27017)
+            self._mongo_port = rospy.get_param("mongodb_port", default_port)
             rospy.set_param("mongodb_port",self._mongo_port)            
         else:
             self._mongo_host = rospy.get_param("~host")     
