@@ -2,8 +2,8 @@
 Changelog for package mongodb_store_cpp_client
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.0.3 (2014-08-18)
+------------------
 * Renamed rosparams `datacentre_` to `mongodb_`.
   Fixes `#69 <https://github.com/strands-project/ros_datacentre/issues/69>`_
 * Renamed ros_datacentre to mongodb_store for to fix `#69 <https://github.com/strands-project/ros_datacentre/issues/69>`_.
