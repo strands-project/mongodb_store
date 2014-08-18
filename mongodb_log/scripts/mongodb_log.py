@@ -537,10 +537,10 @@ def main(argv):
                       default="")
     parser.add_option("--mongodb-host", dest="mongodb_host",
                       help="Hostname of MongoDB", metavar="HOST",
-                      default=rospy.get_param("datacentre_host", "localhost"))
+                      default=rospy.get_param("mongodb_host", "localhost"))
     parser.add_option("--mongodb-port", dest="mongodb_port",
                       help="Hostname of MongoDB", type="int",
-                      metavar="PORT", default=rospy.get_param("datacentre_port", 27017))
+                      metavar="PORT", default=rospy.get_param("mongodb_port", 27017))
     parser.add_option("--mongodb-name", dest="mongodb_name",
                       help="Name of DB in which to store values",
                       metavar="NAME", default="roslog")

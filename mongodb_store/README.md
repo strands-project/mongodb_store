@@ -23,8 +23,8 @@ Running the mongodb_server
 The start the datacentre:
 
 ```
-rosparam set datacentre_port 62345
-rosparam set datacentre_host bob # note that if using multiple machines, 'localhost' is no good
+rosparam set mongodb_port 62345
+rosparam set mongodb_host bob # note that if using multiple machines, 'localhost' is no good
 
 rosrun mongodb_store mongodb_server.py
 ```
@@ -33,7 +33,7 @@ By default, the mongod database will be stored in `/opt/strands/mongodb_store`. 
 
 ```mkdir  /opt/strands/mongodb_store``` 
 
-If you prefer to use different mongodb instance, set the datacentre_* parameters accordingly.
+If you prefer to use different mongodb instance, set the mongodb_* parameters accordingly.
 
 
 
@@ -138,8 +138,8 @@ If `mongodb_store_extras` is set (regardless of `replicate_on_write`), queries a
 You can launch additional datacentres as follows, e.g.
 
 ```bash
-rosrun mongodb_store mongodb_server.py _master:=false _database_path:=/opt/strands/strands_datacentre_62344 _host:=localhost _port:=62344
-rosrun mongodb_store mongodb_server.py _master:=false _database_path:=/opt/strands/strands_datacentre_62333 _host:=localhost _port:=62333
+rosrun mongodb_store mongodb_server.py _master:=false _database_path:=/opt/strands/strands_mongodb_62344 _host:=localhost _port:=62344
+rosrun mongodb_store mongodb_server.py _master:=false _database_path:=/opt/strands/strands_mongodb_62333 _host:=localhost _port:=62333
 ```
 
 You can test if this works by adding some things to the message store, deleting them from the master using RoboMongo (not the message store as the deletes are replicated), then running queries.

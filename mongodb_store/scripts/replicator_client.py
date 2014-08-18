@@ -16,7 +16,7 @@ def feedback(feedback):
 if __name__ == '__main__':
     rospy.init_node("mongodb_replicator_client")
 
-    client = actionlib.SimpleActionClient('move_datacentre_entries', MoveEntriesAction)
+    client = actionlib.SimpleActionClient('move_mongodb_entries', MoveEntriesAction)
     client.wait_for_server()
 
     collections = sys.argv[1:]

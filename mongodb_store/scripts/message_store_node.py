@@ -26,8 +26,8 @@ class MessageStore(object):
         if not have_dc:
             raise Exception("No Datacentre?")
 
-        self._mongo_client=MongoClient(rospy.get_param("datacentre_host"),
-                                              rospy.get_param("datacentre_port") )
+        self._mongo_client=MongoClient(rospy.get_param("mongodb_host"),
+                                              rospy.get_param("mongodb_port") )
 
 
         extras = rospy.get_param('mongodb_store_extras', [])

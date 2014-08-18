@@ -34,10 +34,10 @@ class MongoServer(object):
 
         # What server does mongodb reside
         if is_master:
-            self._mongo_host = rospy.get_param("datacentre_host", "localhost")
-            rospy.set_param("datacentre_host",self._mongo_host)
-            self._mongo_port = rospy.get_param("datacentre_port", 27017)
-            rospy.set_param("datacentre_port",self._mongo_port)            
+            self._mongo_host = rospy.get_param("mongodb_host", "localhost")
+            rospy.set_param("mongodb_host",self._mongo_host)
+            self._mongo_port = rospy.get_param("mongodb_port", 27017)
+            rospy.set_param("mongodb_port",self._mongo_port)            
         else:
             self._mongo_host = rospy.get_param("~host")     
             self._mongo_port = rospy.get_param("~port")

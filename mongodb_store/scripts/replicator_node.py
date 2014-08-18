@@ -26,9 +26,9 @@ class Replicator(object):
         # this is just a test, connections are remade every call for long-running processes
         master, extras = self.make_connections()
         if master is None:
-            raise Exception("No master datacentre found using datacentre_host and datacentre_port")
+            raise Exception("No master datacentre found using mongodb_host and mongodb_port")
 
-        self.server = actionlib.SimpleActionServer('move_datacentre_entries', MoveEntriesAction, self.move_entries, False)
+        self.server = actionlib.SimpleActionServer('move_mongodb_entries', MoveEntriesAction, self.move_entries, False)
         self.server.start()
         self.dump_path = '/tmp/mongodb_replicator'
 
@@ -46,13 +46,13 @@ class Replicator(object):
         shutil.rmtree(self.dump_path)
 
     def make_connections(self):
-        datacentre_host = rospy.get_param("datacentre_host")
-        datacentre_port = rospy.get_param("datacentre_port") 
+        mongodb_host = rospy.get_param("mongodb_host")
+        mongodb_port = rospy.get_param("mongodb_port") 
         master = None
         try:
-            master = MongoClient(datacentre_host, datacentre_port)
+            master = MongoClient(mongodb_host, mongodb_port)
         except pymongo.errors.ConnectionFailure, e:
-            rospy.logwarn('Could not connect to master datacentre at %s:%s' % (datacentre_host, datacentre_port))
+            rospy.logwarn('Could not connect to master datacentre at %s:%s' % (mongodb_host, mongodb_port))
             return None, None
 
 
@@ -65,7 +65,7 @@ class Replicator(object):
                 rospy.logwarn('Could not connect to extra datacentre at %s:%s' % (extra[0], extra[1]))
 
 
-        rospy.loginfo('Replicating content from %s:%s to a futher %s datacentres', datacentre_host, datacentre_port, len(extra_clients))
+        rospy.loginfo('Replicating content from %s:%s to a futher %s datacentres', mongodb_host, mongodb_port, len(extra_clients))
 
         return master, extra_clients
 

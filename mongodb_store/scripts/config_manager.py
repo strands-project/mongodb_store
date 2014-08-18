@@ -71,8 +71,8 @@ class ConfigManager(object):
         if not mongodb_store.util.wait_for_mongo():
             sys.exit(1)
         
-        self._mongo_client = MongoClient(rospy.get_param("datacentre_host","localhost"),
-                                                 int(rospy.get_param("datacentre_port")))
+        self._mongo_client = MongoClient(rospy.get_param("mongodb_host","localhost"),
+                                                 int(rospy.get_param("mongodb_port")))
 
         self._database=self._mongo_client.config
         self._database.add_son_manipulator(MongoTransformer())

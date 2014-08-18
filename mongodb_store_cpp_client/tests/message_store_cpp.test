@@ -2,8 +2,8 @@
   <arg name="db_path" default="/opt/strands/mongodb_store"/>
   <arg name="port" default="52346" />
 
-  <param name="datacentre_port" value="$(arg port)" />
-  <param name="datacentre_host" value="$(optenv HOSTNAME localhost)" />
+  <param name="mongodb_port" value="$(arg port)" />
+  <param name="mongodb_host" value="$(optenv HOSTNAME localhost)" />
   
   <node name="mongo_server" pkg="mongodb_store" type="mongodb_server.py" output="screen">
     <param name="database_path" value="$(arg db_path)"/>

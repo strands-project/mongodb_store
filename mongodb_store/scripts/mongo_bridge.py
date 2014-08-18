@@ -26,8 +26,8 @@ class MongoBridge(object):
         if not have_dc:
             raise Exception("No Datacentre?")
 
-        self._mongo_client=pymongo.MongoClient(rospy.get_param("datacentre_host"),
-                                               rospy.get_param("datacentre_port") )
+        self._mongo_client=pymongo.MongoClient(rospy.get_param("mongodb_host"),
+                                               rospy.get_param("mongodb_port") )
 
         # advertise ros services
         for attr in dir(self):
