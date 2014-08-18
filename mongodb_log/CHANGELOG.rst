@@ -2,6 +2,13 @@
 Changelog for package mongodb_log
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Renamed rosparams `datacentre_` to `mongodb_`.
+  Fixes `#69 <https://github.com/strands-project/ros_datacentre/issues/69>`_
+* Renamed ros_datacentre to mongodb_store for to fix `#69 <https://github.com/strands-project/ros_datacentre/issues/69>`_.
+* Contributors: Nick Hawes
+
 0.0.2 (2014-08-07)
 ------------------
 * Dynamically choose MongoDB API

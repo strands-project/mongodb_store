@@ -2,6 +2,11 @@
 Changelog for package mongodb_store_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Renamed ros_datacentre to mongodb_store for to fix `#69 <https://github.com/strands-project/ros_datacentre/issues/69>`_.
+* Contributors: Nick Hawes
+
 0.0.2 (2014-08-07)
 ------------------
 * Changed collections type to StringList to allow for datacentre comms to task schduler.

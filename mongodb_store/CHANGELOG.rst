@@ -2,6 +2,15 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Renamed rosparams `datacentre_` to `mongodb_`.
+  Fixes `#69 <https://github.com/strands-project/ros_datacentre/issues/69>`_
+* More renaming to mongodb_store
+* Renamed launch file.
+* Renamed ros_datacentre to mongodb_store for to fix `#69 <https://github.com/strands-project/ros_datacentre/issues/69>`_.
+* Contributors: Nick Hawes
+
 0.0.2 (2014-08-07)
 ------------------
 * Fix `#65 <https://github.com/strands-project/mongodb_store/issues/65>`_. Check entry exists before accessing value.
