@@ -141,5 +141,5 @@ endif()
 
 
 if (CATKIN_ENABLE_TESTING)
-  add_rostest(tests/messagestore.test)
+  add_rostest(tests/message_store.test)
 endif()
