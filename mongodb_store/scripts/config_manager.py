@@ -19,6 +19,7 @@ if not mongodb_store.util.check_for_pymongo():
     sys.exit(1)
 
 import pymongo
+import pymongo.son_manipulator
 MongoClient = mongodb_store.util.import_MongoClient()
 
 class MongoTransformer(pymongo.son_manipulator.SONManipulator):
