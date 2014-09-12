@@ -76,16 +76,22 @@ add_executable(mongodb_log_cimg src/mongodb_log_cimg.cpp)
 target_link_libraries(mongodb_log_tf
   ${catkin_LIBRARIES}
   mongoclient
+  ssl
+  crypto
   ${Boost_LIBRARIES}
 )
 target_link_libraries(mongodb_log_pcl
   ${catkin_LIBRARIES}
   mongoclient
+  ssl
+  crypto
   ${Boost_LIBRARIES}
 )
 target_link_libraries(mongodb_log_cimg
   ${catkin_LIBRARIES}
   mongoclient
+  ssl
+  crypto
   ${Boost_LIBRARIES}
 )
 
