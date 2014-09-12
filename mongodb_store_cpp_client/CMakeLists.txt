@@ -122,6 +122,8 @@ add_dependencies(message_store mongodb_store_msgs_generate_messages_cpp )
 
 target_link_libraries(message_store
   mongoclient
+  ssl
+  crypto
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
 )
@@ -132,6 +134,8 @@ target_link_libraries(message_store
 target_link_libraries(example_mongodb_store_cpp_client
   message_store
   mongoclient
+  ssl
+  crypto
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
 )
@@ -139,6 +143,8 @@ target_link_libraries(example_mongodb_store_cpp_client
 target_link_libraries(example_multi_event_log
   message_store
   mongoclient
+  ssl
+  crypto
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
 )
@@ -146,6 +152,8 @@ target_link_libraries(example_multi_event_log
 target_link_libraries(example_multi_event_log
   message_store
   mongoclient
+  ssl
+  crypto
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
 )
