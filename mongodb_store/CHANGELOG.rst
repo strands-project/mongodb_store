@@ -2,6 +2,15 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* added mongod
+* Add son_manipulator import
+* Added test mode to mongodb_server.py
+  This generates a random port to listen on and creates a corresponding dbpath under /tmp. The port is tested to see if it's free before it's used.
+  This closes `#77 <https://github.com/strands-project/mongodb_store/issues/77>`_ and `#75 <https://github.com/strands-project/mongodb_store/issues/75>`_.
+* Contributors: Chris Burbridge, Marc Hanheide, Nick Hawes
+
 0.0.3 (2014-08-18)
 ------------------
 * Renamed rosparams `datacentre_` to `mongodb_`.
