@@ -2,8 +2,8 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.0.4 (2014-09-13)
+------------------
 * added mongod
 * Add son_manipulator import
 * Added test mode to mongodb_server.py
