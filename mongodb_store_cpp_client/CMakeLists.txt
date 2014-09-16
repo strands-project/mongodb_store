@@ -14,62 +14,9 @@ find_package(catkin REQUIRED COMPONENTS
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED COMPONENTS system thread program_options filesystem)
 
-
-## Uncomment this if the package has a setup.py. This macro ensures
-## modules and global scripts declared therein get installed
-## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
-# catkin_python_setup()
-
-################################################
-## Declare ROS messages, services and actions ##
-################################################
-
-## To declare and build messages, services or actions from within this
-## package, follow these steps:
-## * Let MSG_DEP_SET be the set of packages whose message types you use in
-##   your messages/services/actions (e.g. std_msgs, actionlib_msgs, ...).
-## * In the file package.xml:
-##   * add a build_depend and a run_depend tag for each package in MSG_DEP_SET
-##   * If MSG_DEP_SET isn't empty the following dependencies might have been
-##     pulled in transitively but can be declared for certainty nonetheless:
-##     * add a build_depend tag for "message_generation"
-##     * add a run_depend tag for "message_runtime"
-## * In this file (CMakeLists.txt):
-##   * add "message_generation" and every package in MSG_DEP_SET to
-##     find_package(catkin REQUIRED COMPONENTS ...)
-##   * add "message_runtime" and every package in MSG_DEP_SET to
-##     catkin_package(CATKIN_DEPENDS ...)
-##   * uncomment the add_*_files sections below as needed
-##     and list every .msg/.srv/.action file to be processed
-##   * uncomment the generate_messages entry below
-##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
-
-## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
-
-## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
-
-## Generate actions in the 'action' folder
-# add_action_files(
-#   FILES
-#   Action1.action
-#   Action2.action
-# )
-
-## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   geometry_msgs#   mongodb_store_msgs
-# )
+find_library(MONGOCLIENT_LIB mongoclient)
+find_library(SSL_LIB ssl)
+find_library(CRYPTO_LIB cryto)
 
 ###################################
 ## catkin specific configuration ##
@@ -82,9 +29,8 @@ find_package(Boost REQUIRED COMPONENTS system thread program_options filesystem)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
  INCLUDE_DIRS include
- LIBRARIES message_store
-#  CATKIN_DEPENDS geometry_msgs mongodb_store_msgs
-#  DEPENDS system_lib
+ LIBRARIES message_store ${MONGOCLIENT_LIB} ${SSL_LIB} ${CRYPTO_LIB}
+ CATKIN_DEPENDS mongodb_store_msgs
 )
 
 ###########
@@ -121,9 +67,9 @@ add_dependencies(example_mongodb_store_cpp_client mongodb_store_msgs_generate_me
 add_dependencies(message_store mongodb_store_msgs_generate_messages_cpp )
 
 target_link_libraries(message_store
-  mongoclient
-  ssl
-  crypto
+  ${MONGOCLIENT_LIB}
+  ${SSL_LIB}
+  ${CRYPTO_LIB}
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
 )
@@ -133,27 +79,27 @@ target_link_libraries(message_store
 # Specify libraries to link a library or executable target against
 target_link_libraries(example_mongodb_store_cpp_client
   message_store
-  mongoclient
-  ssl
-  crypto
+  ${MONGOCLIENT_LIB}
+  ${SSL_LIB}
+  ${CRYPTO_LIB}
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
 )
 
 target_link_libraries(example_multi_event_log
   message_store
-  mongoclient
-  ssl
-  crypto
+  ${MONGOCLIENT_LIB}
+  ${SSL_LIB}
+  ${CRYPTO_LIB}
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
 )
 
 target_link_libraries(example_multi_event_log
   message_store
-  mongoclient
-  ssl
-  crypto
+  ${MONGOCLIENT_LIB}
+  ${SSL_LIB}
+  ${CRYPTO_LIB}
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
 )
@@ -199,6 +145,8 @@ install(DIRECTORY include/mongodb_store/
 # catkin_add_nosetests(unittests/test_messagestore.py)
 
 
+
+
 if (CATKIN_ENABLE_TESTING)
   find_package(catkin REQUIRED COMPONENTS rostest)
 
@@ -206,7 +154,7 @@ if (CATKIN_ENABLE_TESTING)
 
   target_link_libraries(message_store_cpp_test
   message_store 
-  mongoclient
+  ${MONGOCLIENT_LIB} ${SSL_LIB} ${CRYPTO_LIB}
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
   gtest
