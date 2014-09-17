@@ -16,7 +16,7 @@ find_package(Boost REQUIRED COMPONENTS system thread program_options filesystem)
 
 find_library(MONGOCLIENT_LIB mongoclient)
 find_library(SSL_LIB ssl)
-find_library(CRYPTO_LIB cryto)
+find_library(CRYPTO_LIB NAMES crypto)
 
 ###################################
 ## catkin specific configuration ##
