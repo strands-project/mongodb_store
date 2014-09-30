@@ -4,7 +4,7 @@
   <version>0.0.4</version>
   <description>A MongoDB based central store for data from a ROS system, eg. configurations, logged states, etc</description>
 
-  <maintainer email="cburbridge@gmail.com">Chris Curbridge</maintainer>
+  <maintainer email="cburbridge@gmail.com">Chris Burbridge</maintainer>
   <maintainer email="n.a.hawes@cs.bham.ac.uk">Nick Hawes</maintainer>
   <author email="cburbridge@gmail.com">Chris Burbridge</author>
   <author email="n.a.hawes@cs.bham.ac.uk">Nick Hawes</author>
