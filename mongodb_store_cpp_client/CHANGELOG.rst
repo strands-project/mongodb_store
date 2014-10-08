@@ -2,6 +2,12 @@
 Changelog for package mongodb_store_cpp_client
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fixed typo.
+* Added absolute paths to libraries to ensure that dependent projects get correct linking.
+* Contributors: Nick Hawes
+
 0.0.4 (2014-09-13)
 ------------------
 * added libssl and libcrypto for ubuntu distros where this is needed due to the static nature of the libmongoclient.a
