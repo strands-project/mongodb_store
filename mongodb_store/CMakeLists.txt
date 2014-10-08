@@ -6,8 +6,6 @@ project(mongodb_store)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS message_generation rospy std_msgs std_srvs)
 
-## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -20,12 +18,6 @@ catkin_python_setup()
 ## Declare ROS messages and services ##
 #######################################
 
-## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
 
 ## Generate services in the 'srv' folder
 add_service_files(
@@ -66,27 +58,10 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-# include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-## Declare a cpp library
-# add_library(mongodb_store
-#   src/${PROJECT_NAME}/mongodb_store.cpp
-# )
-
-## Declare a cpp executable
-# add_executable(mongodb_store_node src/mongodb_store_node.cpp)
-
-## Add cmake target dependencies of the executable/library
-## as an example, message headers may need to be generated before nodes
-# add_dependencies(mongodb_store_node mongodb_store_generate_messages_cpp)
-
-## Specify libraries to link a library or executable target against
-# target_link_libraries(mongodb_store_node
-#   ${catkin_LIBRARIES}
-# )
 
 #############
 ## Install ##
@@ -101,26 +76,11 @@ install(DIRECTORY scripts/
         DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
         USE_SOURCE_PERMISSIONS)
 
-## Mark executables and/or libraries for installation
-# install(TARGETS mongodb_store mongodb_store_node
-#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
-
-## Mark cpp header files for installation
-# install(DIRECTORY include/${PROJECT_NAME}/
-#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-#   FILES_MATCHING PATTERN "*.h"
-#   PATTERN ".svn" EXCLUDE
-# )
-
-## Mark other files for installation (e.g. launch and bag files, etc.)
-# install(FILES
-#   # myfile1
-#   # myfile2
-#   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-# )
+# Mark other files for installation (e.g. launch and bag files, etc.)
+install(
+  DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
 
 #############
 ## Testing ##
@@ -129,15 +89,6 @@ install(DIRECTORY scripts/
 if (CATKIN_ENABLE_TESTING)
   find_package(catkin REQUIRED COMPONENTS rostest)
 endif()
-
-## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_mongodb_store.cpp)
-# if(TARGET ${PROJECT_NAME}-test)
-#   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
-# endif()
-
-## Add folders to be run by python nosetests
-# catkin_add_nosetests(unittests/test_messagestore.py)
 
 
 if (CATKIN_ENABLE_TESTING)
