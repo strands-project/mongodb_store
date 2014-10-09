@@ -2,8 +2,8 @@
 Changelog for package mongodb_store_cpp_client
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.0.5 (2014-10-09)
+------------------
 * Fixed typo.
 * Added absolute paths to libraries to ensure that dependent projects get correct linking.
 * Contributors: Nick Hawes

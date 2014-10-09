@@ -2,8 +2,8 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.0.5 (2014-10-09)
+------------------
 * Added install target for launch file.
 * Fix maintainer in package.xml
 * Update package.xml
