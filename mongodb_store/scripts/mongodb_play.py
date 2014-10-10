@@ -9,7 +9,9 @@ from multiprocessing import Process
 import calendar
 import datetime
 import threading
+import multiprocessing 
 from rosgraph_msgs.msg import Clock
+import signal
 
 MongoClient = mg_util.import_MongoClient()
 
@@ -33,11 +35,48 @@ def ros_time_strftime(rt, format):
 
 class TopicPlayer(object):
     """ """
-    def __init__(self, collection, start_time, end_time):
+    def __init__(self, mongodb_host, mongodb_port, db_name, collection_name, start_time, end_time):
         super(TopicPlayer, self).__init__()
-        self.collection = collection
+        
+        self.mongodb_host = mongodb_host
+        self.mongodb_port = mongodb_port
+        self.db_name = db_name
+        self.collection_name = collection_name
+
         self.start_time = start_time
         self.end_time = end_time
+
+        self.player_process = multiprocessing.Process(target=self.run)
+        # self.player_process = threading.Thread(target=self.run)
+        self.run = True
+
+    def start(self):        
+        self.player_process.start()
+
+
+    def init(self):
+        """ Called in subprocess to do process-specific initialisation """
+
+        # clear signal handlers in this child process, rospy will handle signals for us
+        signal.signal(signal.SIGTERM, signal.SIG_DFL)
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+
+    def run(self):
+
+        self.init()
+
+        while self.run:
+            rospy.loginfo(self.collection_name)
+            rospy.sleep(1)
+
+    def stop(self):
+        self.run = False
+
+    def join(self):
+        self.player_process.join()
+
+
 
 class ClockPlayer(object):
     """ Plays a clock message in a separate thread"""
@@ -54,22 +93,22 @@ class ClockPlayer(object):
         self.clock_thread.start()
 
     def run(self):
-        now = self.start_time - self.pre_roll
+        start = self.start_time - self.pre_roll
         end = self.end_time + self.post_roll
         
         # topic to public clock on
         clock_pub = rospy.Publisher('/clock', Clock)
 
         # start value
-        clock_msg = Clock(clock=now)
+        clock_msg = Clock(clock=start)
 
         # timing details, should be moved to constructor parameters
-        updates_hz = 100.0
+        updates_hz = 1000.0
         rate = rospy.Rate(updates_hz)
         # this assumes close to real-time playback
         update = rospy.Duration(1.0 / updates_hz)
 
-        while self.run and now <= end:
+        while self.run and clock_msg.clock <= end:
             # publish time
             clock_pub.publish(clock_msg)
 
@@ -99,8 +138,9 @@ class MongoPlayback(object):
     def __init__(self): 
         super(MongoPlayback, self).__init__() 
 
-        self.mongo_client=MongoClient(rospy.get_param("mongodb_host"),
-                                      rospy.get_param("mongodb_port"))
+        self.mongodb_host = rospy.get_param("mongodb_host")
+        self.mongodb_port = rospy.get_param("mongodb_port")
+        self.mongo_client=MongoClient(self.mongodb_host, self.mongodb_port)
 
         
     def setup(self, database_name, req_topics):
@@ -135,7 +175,7 @@ class MongoPlayback(object):
         rospy.loginfo('.............. to %s' % to_datetime(end_time))
 
         # create playback objects
-        self.players = map(lambda c: TopicPlayer(c, start_time, end_time), collections)       
+        self.players = map(lambda c: TopicPlayer(self.mongodb_host, self.mongodb_port, database_name, c, start_time, end_time), topics)       
 
         # create clock thread
         pre_roll = rospy.Duration(10)
@@ -144,18 +184,32 @@ class MongoPlayback(object):
 
     def start(self):
         self.clock_thread.start()
+        for player in self.players:
+            player.start()
+
 
     def join(self):
+        while not rospy.is_shutdown() and self.clock_thread.is_running():
+            rospy.sleep(0.2)
+
         self.clock_thread.join()
+        for player in self.players:
+            player.join()
+
+
 
     def stop(self):
-        rospy.loginfo('Shutdown requested')
+        rospy.logdebug('Shutdown requested')
         self.clock_thread.stop()
+        for player in self.players:
+            player.stop()
+
 
     def is_running(self):
         return self.clock_thread.is_running()
 
 def main(argv):
+    # make sure this node doesn't use sim time
     rospy.set_param('use_sim_time', False)
 
     rospy.init_node("mongodb_playback") 
@@ -173,9 +227,7 @@ def main(argv):
     database_name = 'roslog'
     playback.setup(database_name, set(topics))
     playback.start()
-    
-    while not rospy.is_shutdown() and playback.is_running():
-        rospy.sleep(0.2)
+    playback.join()
 
     rospy.set_param('use_sim_time', False)
 
