@@ -89,7 +89,16 @@ class TopicPlayer(PlayerProcess):
 
         self.init()
 
+        # wait until sim clock has initialised
+        while rospy.get_rostime().secs == 0:
+            # can't use rospy time here as if clock is 0 it will wait forever
+            time.sleep(0.2)
+
         rospy.loginfo('Topic playback ready %s %s' % (self.collection.name, rospy.get_param('use_sim_time')))
+
+
+        # wait for the signal to start
+        self.event.wait()
 
         while running.value:
             rospy.loginfo('%s %s' % (self.collection.name, rospy.get_param('use_sim_time')))
@@ -123,6 +132,12 @@ class ClockPlayer(PlayerProcess):
         # switch to simulated time, note that as this is after the init_node, this node DOES NOT use sim time
         rospy.set_param('use_sim_time', True)
 
+        # topic to public clock on
+        self.clock_pub = rospy.Publisher('/clock', Clock)
+
+        # send the first message to get time off 0
+        self.clock_pub.publish(Clock(clock=(self.start_time - self.pre_roll)))
+
         # notify everyone else that they can move on
         self.event.set()
 
@@ -134,31 +149,30 @@ class ClockPlayer(PlayerProcess):
         start = self.start_time - self.pre_roll
         end = self.end_time + self.post_roll
         
-        # topic to public clock on
-        clock_pub = rospy.Publisher('/clock', Clock)
-
         # start value
         clock_msg = Clock(clock=start)
 
         # timing details, should be moved to constructor parameters
-        updates_hz = 10000.0
+        updates_hz = 1000.0
         rate = rospy.Rate(updates_hz)
         # this assumes close to real-time playback
         update = rospy.Duration(1.0 / updates_hz)
 
+        # wait for the signal to start
+        self.event.wait()
+
         while running.value and clock_msg.clock <= end:
-            # publish time
-            clock_pub.publish(clock_msg)
 
             # update time
             clock_msg.clock += update
+
+            # publish time
+            self.clock_pub.publish(clock_msg)
 
             rate.sleep()
 
         rospy.loginfo('All done here')
         running.value = False
-
-
  
 
 
@@ -221,12 +235,17 @@ class MongoPlayback(object):
     def start(self):
         self.clock_player.start()
 
+        # wait until clock has set sim time
         self.event.wait()
         self.event.clear()
 
+        # this creates new processes and publishers for each topic
         for player in self.players:
-            player.start()
+            player.start()        
 
+        # all players wait for this before starting -- 
+        # todo: it could happen that his gets hit before all are constructed though
+        self.event.set()
 
     def join(self):
 
