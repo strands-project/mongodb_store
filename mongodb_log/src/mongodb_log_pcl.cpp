@@ -29,6 +29,8 @@
 #include <unistd.h>
 #include <cstring>
 
+#include <mongodb_store/util.h>
+
 using namespace mongo;
 
 DBClientConnection *mongodb_conn;

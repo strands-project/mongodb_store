@@ -46,7 +46,7 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
+ INCLUDE_DIRS include
 #  LIBRARIES mongodb_store
 #  CATKIN_DEPENDS roscpp rospy std_msgs std_srvs
 #  DEPENDS system_lib
@@ -59,6 +59,7 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
+  include
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -81,6 +82,12 @@ install(
   DIRECTORY launch/
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
+
+# Mark cpp header files for installation
+install(DIRECTORY include/mongodb_store/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)
+
 
 #############
 ## Testing ##

@@ -4,7 +4,7 @@ project(mongodb_log)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED rospy roslib rosgraph rostopic tf sensor_msgs)
+find_package(catkin REQUIRED rospy roslib rosgraph rostopic tf sensor_msgs mongodb_store)
 
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED COMPONENTS system thread filesystem)
@@ -60,7 +60,7 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-# include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
+include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
 ## Declare a cpp library
 # add_library(mongodb_log
