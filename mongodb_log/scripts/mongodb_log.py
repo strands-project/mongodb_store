@@ -411,7 +411,7 @@ class MongoWriter(object):
             # pure topic names as collection names and we could then use mongodb[topic], we want
             # to have names that go easier with the query tools, even though there is the theoretical
             # possibility of name clashes (hence the check)
-            collname = topic.replace("/", "_")[1:]
+            collname = mongodb_store.util.topic_name_to_collection_name(topic)
             if collname in self.workers.keys():
                 print("Two converted topic names clash: %s, ignoring topic %s"
                       % (collname, topic))

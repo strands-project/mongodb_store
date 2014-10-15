@@ -93,7 +93,7 @@ class TopicPlayer(PlayerProcess):
         self.to_publish = Queue.Queue(maxsize=buffer_size)
         self.queue_thread = threading.Thread(target=self.queue_from_db, args=[running])
         self.queue_thread.start()
-xn
+
 
     def queue_from_db(self, running):
         # make sure there's an index on time in the collection so the sort operation doesn't require the whole collection to be loaded
@@ -153,7 +153,7 @@ xn
 
                 # if we've missed our window
                 if publish_time < now:
-                    # rospy.logwarn('Message out of sync by %f', (now - publish_time).to_sec())                
+                    rospy.logwarn('Message out of sync by %f', (now - publish_time).to_sec())                
                 else:
                     delay = publish_time - now                    
                     rospy.sleep(delay)
@@ -256,15 +256,17 @@ class MongoPlayback(object):
         database = self.mongo_client[database_name] 
         collection_names = database.collection_names(include_system_collections=False) 
 
+        req_topics = set(map(mg_util.topic_name_to_collection_name, req_topics))
+
         if len(req_topics) > 0:             
             topics = req_topics.intersection(collection_names) 
             dropped = req_topics.difference(topics)
             if(len(dropped) > 0):
-                rospy.logwarn('Dropped non-existant requested topics for playback: %s' % dropped)
+                print('WARNING Dropped non-existant requested topics for playback: %s' % dropped)
         else: 
             topics = set(collection_names)
 
-        rospy.loginfo('Playing back topics %s' % topics)
+        print('Playing back topics %s' % topics)
 
         # create mongo collections
         collections = [database[collection_name] for collection_name in topics]
