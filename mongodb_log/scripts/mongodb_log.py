@@ -144,8 +144,8 @@ class WorkerProcess(object):
         self.quit = Value('i', 0)
 
         # print "Creating process %s" % self.name
-        # self.process = Process(name=self.name, target=self.run)
-        self.process = Thread(name=self.name, target=self.run)
+        self.process = Process(name=self.name, target=self.run)
+        # self.process = Thread(name=self.name, target=self.run)
         # print "created %s" % self.process
         self.process.start()
         # print "started %s" % self.process
