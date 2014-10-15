@@ -1,6 +1,8 @@
 #ifndef __MONGODB_STORE_UTIL_H
 #define __MONGODB_STORE_UTIL_H
 
+#include <ros/ros.h>
+
 
 //include to get BSON. There's probably a much smaller of set of headers we could get away with
 #include "mongo/client/dbclient.h"
@@ -33,7 +35,23 @@ and type:
 namespace mongodb_store {
 
 template<typename MsgType> 
-void add_meta_for_msg(const MsgType & _msg,  mongo::BSONObjBuilder & _builder) {
+void add_meta_for_msg(const typename MsgType::ConstPtr & _msg,  mongo::BSONObjBuilder & _builder) {
+
+
+
+
+	// doc["_meta"]["inserted_at"]
+	// ros::Time::now()
+	// Date_t stamp = msg_in.header.stamp.sec * 1000 + msg_in.header.stamp.nsec / 1000000;
+	// AND FIX OTHER FILES WHEN SOLVED
+
+	// doc["_meta"]["stored_type"]
+	// ros::message_traits::DataType<MsgType>::value();
+
+	// and the other will do 
+	// http://www.cplusplus.com/reference/string/string/find/
+
+
 }
 
 }

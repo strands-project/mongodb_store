@@ -87,6 +87,7 @@ void msg_callback(const sensor_msgs::PointCloud::ConstPtr& msg)
   }
   channelsb.doneFast();
 
+  mongodb_store::add_meta_for_msg<sensor_msgs::PointCloud>(msg, cb);
   mongodb_conn->insert(collection, document.obj());
 
   // If we'd get access to the message queue this could be more useful
