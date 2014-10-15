@@ -45,8 +45,7 @@ import string
 import signal
 import subprocess
 from threading import Thread, Timer
-from multiprocessing import Process, Lock, Condition, Queue, Value, current_process, Event
-import multiprocessing as mp
+
 from Queue import Empty
 from optparse import OptionParser
 from tempfile import mktemp
@@ -63,6 +62,19 @@ try:
     from setproctitle import setproctitle
 except ImportError:
     use_setproctitle = False
+
+
+use_processes = False
+
+# if use_processes:
+from multiprocessing import Process, Lock, Condition, Queue, Value, current_process, Event
+import multiprocessing as mp
+# else:
+    # from threading import Lock, Condition, Event
+    # from Queue import Queue
+    # def Value(t, val, lock=None):
+        # return val
+
 
 import genpy
 import rosgraph.masterapi
@@ -81,7 +93,7 @@ STATS_LOOPTIME     = 10
 STATS_GRAPHTIME    = 60
 
 class Counter(object):
-    def __init__(self, value = None, lock = True):
+    def __init__(self, value = None, lock = True):        
         self.count = value or Value('i', 0, lock=lock)
         self.mutex = Lock()
 
@@ -132,7 +144,8 @@ class WorkerProcess(object):
         self.quit = Value('i', 0)
 
         # print "Creating process %s" % self.name
-        self.process = Process(name=self.name, target=self.run)
+        # self.process = Process(name=self.name, target=self.run)
+        self.process = Thread(name=self.name, target=self.run)
         # print "created %s" % self.process
         self.process.start()
         # print "started %s" % self.process
@@ -160,7 +173,7 @@ class WorkerProcess(object):
         rospy.init_node(worker_node_name, anonymous=False)
 
         self.subscriber = None
-        while not self.subscriber:
+        while not self.subscriber and not self.is_quit():
             try:
                 msg_class, real_topic, msg_eval = rostopic.get_topic_class(self.topic, blocking=True)
                 self.subscriber = rospy.Subscriber(real_topic, msg_class, self.enqueue, self.topic)
@@ -397,15 +410,19 @@ class MongoWriter(object):
             # although the collections is not strictly necessary, since MongoDB could handle
             # pure topic names as collection names and we could then use mongodb[topic], we want
             # to have names that go easier with the query tools, even though there is the theoretical
-            # possibility of name classes (hence the check)
+            # possibility of name clashes (hence the check)
             collname = topic.replace("/", "_")[1:]
             if collname in self.workers.keys():
                 print("Two converted topic names clash: %s, ignoring topic %s"
                       % (collname, topic))
             else:
-                print("Adding topic %s" % topic)
-                self.workers[collname] = self.create_worker(len(self.workers), topic, collname)
-                self.topics |= set([topic])
+                try:
+                    print("Adding topic %s" % topic)
+                    self.workers[collname] = self.create_worker(len(self.workers), topic, collname)
+                    self.topics |= set([topic])
+                except Exception, e:
+                    print('Failed to subsribe to %s due to %s' % (topic, e))
+
 
     def create_worker(self, idnum, topic, collname):
         msg_class, real_topic, msg_eval = rostopic.get_topic_class(topic, blocking=True)
@@ -436,6 +453,8 @@ class MongoWriter(object):
                 print("FAILED to detect mongodb_log_trimesh, falling back to generic logger (did not build package?)")
         """
 
+        
+            
         if node_path:
             w = SubprocessWorker(idnum, topic, collname,
                                  self.in_counter.count, self.out_counter.count,

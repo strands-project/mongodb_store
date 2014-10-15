@@ -93,7 +93,7 @@ class TopicPlayer(PlayerProcess):
         self.to_publish = Queue.Queue(maxsize=buffer_size)
         self.queue_thread = threading.Thread(target=self.queue_from_db, args=[running])
         self.queue_thread.start()
-
+xn
 
     def queue_from_db(self, running):
         # make sure there's an index on time in the collection so the sort operation doesn't require the whole collection to be loaded
@@ -112,7 +112,7 @@ class TopicPlayer(PlayerProcess):
         msg_cls = mg_util.load_class(documents[0]["_meta"]["stored_class"])
 
         # publisher won't be used until something is on the queue, so it's safe to construct it here
-        self.publisher = rospy.Publisher(self.collection_name, msg_cls)
+        self.publisher = rospy.Publisher(documents[0]["_meta"]["topic"], msg_cls)
 
         for document in documents:
             if running.value:
