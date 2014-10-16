@@ -112,7 +112,7 @@ class TopicPlayer(PlayerProcess):
         msg_cls = mg_util.load_class(documents[0]["_meta"]["stored_class"])
 
         # publisher won't be used until something is on the queue, so it's safe to construct it here
-        self.publisher = rospy.Publisher(documents[0]["_meta"]["topic"], msg_cls)
+        self.publisher = rospy.Publisher(documents[0]["_meta"]["topic"], msg_cls, latch = documents[0]["_meta"]["latch"])
 
         for document in documents:
             if running.value:

@@ -216,6 +216,7 @@ class WorkerProcess(object):
         return self.queue.qsize()
 
     def enqueue(self, data, topic, current_time=None):
+
         if not self.is_quit():
             if self.queue.full():
                 try:
@@ -225,7 +226,7 @@ class WorkerProcess(object):
                 except Empty:
                     pass
             #self.queue.put((topic, data, current_time or datetime.now()))
-            self.queue.put((topic, data, rospy.get_time()))
+            self.queue.put((topic, data, rospy.get_time(), data._connection_header))
             self.in_counter.increment()
             self.worker_in_counter.increment()
 
@@ -245,6 +246,7 @@ class WorkerProcess(object):
                 topic = t[0]
                 msg   = t[1]
                 ctime = t[2]
+                connection_header = t[3]
 
                 if isinstance(msg, rospy.Message):
 
@@ -255,6 +257,11 @@ class WorkerProcess(object):
                         # switched to use inserted_at to match message_store
                         # meta["recorded"] = ctime or datetime.now()
                         meta["topic"]    = topic
+                    
+                        if connection_header['latching'] == '1':
+                            meta['latch'] = True
+                        else:
+                            meta['latch'] = False
 
                         if ctime is not None:
                             meta['inserted_at'] = datetime.utcfromtimestamp(ctime)

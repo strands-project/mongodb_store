@@ -111,7 +111,8 @@ def msg_to_document(msg):
         | dict : A dictionary representation of the supplied message.
     """
 
-    # print 'msg_to_document', dir(msg)
+    
+
 
     d = {}
 
@@ -198,6 +199,11 @@ def store_message(collection, msg, meta, oid=None):
     #  also store type information
     doc["_meta"]["stored_class"] = msg.__module__ + "." + msg.__class__.__name__
     doc["_meta"]["stored_type"] = msg._type
+
+
+    if hasattr(msg, '_connection_header'):
+        print getattr(msg, '_connection_header')
+
     if oid != None:
         doc["_id"] = oid
 
