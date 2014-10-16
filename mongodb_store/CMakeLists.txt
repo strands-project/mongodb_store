@@ -52,7 +52,7 @@ generate_messages(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
  INCLUDE_DIRS include
- LIBRARIES message_store ${MONGOCLIENT_LIB} ${SSL_LIB} ${CRYPTO_LIB}
+ LIBRARIES message_store ${MONGOCLIENT_LIB} ${SSL_LIB} ${CRYPTO_LIB} ${Boost_LIBRARIES}
  CATKIN_DEPENDS mongodb_store_msgs
 )
 
