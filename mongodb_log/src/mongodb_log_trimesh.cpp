@@ -26,6 +26,8 @@
 #include <mongo/client/dbclient.h>
 
 #include <rviz_intel/TriangleMesh.h>
+#include <mongodb_store/util.h>
+
 
 using namespace mongo;
 
@@ -46,7 +48,7 @@ void msg_callback(const rviz_intel::TriangleMesh::ConstPtr& msg)
 {
   BSONObjBuilder document;
 
-  Date_t stamp = msg->header.stamp.sec * 1000 + msg->header.stamp.nsec / 1000000;
+  Date_t stamp = msg->header.stamp.sec * 1000.0 + msg->header.stamp.nsec / 1000000.0;
   document.append("header", BSON(   "seq" << msg->header.seq
 				 << "stamp" << stamp
 				 << "frame_id" << msg->header.frame_id));
@@ -91,6 +93,7 @@ void msg_callback(const rviz_intel::TriangleMesh::ConstPtr& msg)
   trianglesb.doneFast();
   document.append("sending_node", msg->sending_node);
 
+  mongodb_store::add_meta_for_msg<rviz_intel::TriangleMesh>(msg, document);
   mongodb_conn->insert(collection, document.obj());
 
   // If we'd get access to the message queue this could be more useful

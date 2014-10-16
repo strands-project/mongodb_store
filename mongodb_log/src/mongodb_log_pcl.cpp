@@ -54,7 +54,7 @@ void msg_callback(const sensor_msgs::PointCloud::ConstPtr& msg)
   
   const sensor_msgs::PointCloud& msg_in = *msg;
 
-  Date_t stamp = msg_in.header.stamp.sec * 1000 + msg_in.header.stamp.nsec / 1000000;
+  Date_t stamp = msg_in.header.stamp.sec * 1000.0 + msg_in.header.stamp.nsec / 1000000.0;
   document.append("header", BSON("seq" << msg_in.header.seq
 				       << "stamp" << stamp
 				       << "frame_id" << msg_in.header.frame_id));

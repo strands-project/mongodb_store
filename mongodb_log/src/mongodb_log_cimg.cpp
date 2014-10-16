@@ -24,6 +24,7 @@
 
 #include <ros/ros.h>
 #include <mongo/client/dbclient.h>
+#include <mongodb_store/util.h>
 
 #include <sensor_msgs/CompressedImage.h>
 
@@ -46,14 +47,15 @@ void msg_callback(const sensor_msgs::CompressedImage::ConstPtr& msg)
 {
   BSONObjBuilder document;
 
-  Date_t stamp = msg->header.stamp.sec * 1000 + msg->header.stamp.nsec / 1000000;
+  Date_t stamp = msg->header.stamp.sec * 1000.0 + msg->header.stamp.nsec / 1000000.0;
   document.append("header", BSON(   "seq" << msg->header.seq
 				 << "stamp" << stamp
 				 << "frame_id" << msg->header.frame_id));
   document.append("format", msg->format);
   document.appendBinData("data", msg->data.size(), BinDataGeneral,
 			 const_cast<unsigned char*>(&msg->data[0]));
-
+  
+  mongodb_store::add_meta_for_msg<sensor_msgs::CompressedImage>(msg, document);
   mongodb_conn->insert(collection, document.obj());
 
   // If we'd get access to the message queue this could be more useful
