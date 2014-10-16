@@ -111,7 +111,8 @@ def msg_to_document(msg):
         | dict : A dictionary representation of the supplied message.
     """
 
-    # print 'msg_to_document', dir(msg)
+    
+
 
     d = {}
 
@@ -142,17 +143,24 @@ def sanitize_value(attr, v, type):
         | A sanitized version of v.
     """
 
-    # print '---'
-    # print attr
-    # print v.__class__
-    # print type
-   
-    if isinstance(v, str) and type == 'uint8[]':
-        # print 'this one'
-        # v = list(bytearray(v))
-        v = Binary(v)
-        # v = bytearray(v)
-        # v = unicode(v)
+        # print '---'
+        # print attr
+        # print v.__class__
+        # print type
+        # print v
+
+    if isinstance(v, str):
+        if type == 'uint8[]':
+            v = Binary(v)
+        else:
+            # ensure unicode
+            try:            
+                v = unicode(v, "utf-8")
+            except UnicodeDecodeError, e:
+                # at this point we can deal with the encoding, so treat it as binary
+                v = Binary(v)
+        # no need to carry on with the other type checks below 
+        return v   
 
     if isinstance(v, rospy.Message):
         return msg_to_document(v)
@@ -191,6 +199,11 @@ def store_message(collection, msg, meta, oid=None):
     #  also store type information
     doc["_meta"]["stored_class"] = msg.__module__ + "." + msg.__class__.__name__
     doc["_meta"]["stored_type"] = msg._type
+
+
+    if hasattr(msg, '_connection_header'):
+        print getattr(msg, '_connection_header')
+
     if oid != None:
         doc["_id"] = oid
 
@@ -482,4 +495,8 @@ def string_pair_list_to_dictionary(spl):
         return string_pair_list_to_dictionary_no_json(spl.pairs)
         
 
-
+def topic_name_to_collection_name(topic_name):
+    """
+    Converts the fully qualified name of a topic into legal mongodb collection name.
+    """
+    return topic_name.replace("/", "_")[1:]

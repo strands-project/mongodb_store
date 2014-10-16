@@ -4,8 +4,13 @@ project(mongodb_store)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS message_generation rospy std_msgs std_srvs)
+find_package(catkin REQUIRED COMPONENTS roscpp message_generation rospy std_msgs std_srvs mongodb_store_msgs)
 
+find_package(Boost REQUIRED COMPONENTS system thread program_options filesystem)
+
+find_library(MONGOCLIENT_LIB mongoclient)
+find_library(SSL_LIB ssl)
+find_library(CRYPTO_LIB NAMES crypto)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -46,10 +51,9 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES mongodb_store
-#  CATKIN_DEPENDS roscpp rospy std_msgs std_srvs
-#  DEPENDS system_lib
+ INCLUDE_DIRS include
+ LIBRARIES message_store ${MONGOCLIENT_LIB} ${SSL_LIB} ${CRYPTO_LIB} ${Boost_LIBRARIES}
+ CATKIN_DEPENDS mongodb_store_msgs
 )
 
 ###########
@@ -59,7 +63,59 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
+  include
   ${catkin_INCLUDE_DIRS}
+)
+
+
+add_definitions(-std=c++0x)
+
+add_library(message_store src/message_store.cpp )
+
+add_executable(example_mongodb_store_cpp_client src/example_mongodb_store_cpp_client.cpp)
+add_executable(example_multi_event_log src/example_multi_event_log.cpp)
+# add_executable(pc_test src/point_cloud_test.cpp)
+
+
+add_dependencies(example_mongodb_store_cpp_client mongodb_store_msgs_generate_messages_cpp )
+add_dependencies(message_store mongodb_store_msgs_generate_messages_cpp )
+
+target_link_libraries(message_store
+  ${MONGOCLIENT_LIB}
+  ${SSL_LIB}
+  ${CRYPTO_LIB}
+  ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
+)
+
+
+
+# Specify libraries to link a library or executable target against
+target_link_libraries(example_mongodb_store_cpp_client
+  message_store
+  ${MONGOCLIENT_LIB}
+  ${SSL_LIB}
+  ${CRYPTO_LIB}
+  ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
+)
+
+target_link_libraries(example_multi_event_log
+  message_store
+  ${MONGOCLIENT_LIB}
+  ${SSL_LIB}
+  ${CRYPTO_LIB}
+  ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
+)
+
+target_link_libraries(example_multi_event_log
+  message_store
+  ${MONGOCLIENT_LIB}
+  ${SSL_LIB}
+  ${CRYPTO_LIB}
+  ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
 )
 
 
@@ -82,15 +138,40 @@ install(
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
+# Mark cpp header files for installation
+install(DIRECTORY include/mongodb_store/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)
+
+## Mark executables and/or libraries for installation
+install(TARGETS example_mongodb_store_cpp_client example_multi_event_log message_store #pc_test
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+
 #############
 ## Testing ##
 #############
 
 if (CATKIN_ENABLE_TESTING)
   find_package(catkin REQUIRED COMPONENTS rostest)
-endif()
 
-
-if (CATKIN_ENABLE_TESTING)
   add_rostest(tests/message_store.test)
+
+  find_package(catkin REQUIRED COMPONENTS rostest)
+
+  add_executable(message_store_cpp_test tests/message_store_cpp_test.cpp)
+
+  target_link_libraries(message_store_cpp_test
+    message_store 
+    ${MONGOCLIENT_LIB} ${SSL_LIB} ${CRYPTO_LIB}
+    ${catkin_LIBRARIES}
+    ${Boost_LIBRARIES}
+    gtest
+  ) 
+
+  add_rostest(tests/message_store_cpp_client.test)
+
 endif()

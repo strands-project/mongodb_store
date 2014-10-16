@@ -24,6 +24,7 @@
 
 #include <ros/ros.h>
 #include <mongo/client/dbclient.h>
+#include <mongodb_store/util.h>
 
 #include <tf/tfMessage.h>
 
@@ -51,7 +52,7 @@ void msg_callback(const tf::tfMessage::ConstPtr& msg)
 
   std::vector<geometry_msgs::TransformStamped>::const_iterator t;
   for (t = msg_in.transforms.begin(); t != msg_in.transforms.end(); ++t) {
-    Date_t stamp = t->header.stamp.sec * 1000 + t->header.stamp.nsec / 1000000;
+    Date_t stamp = t->header.stamp.sec * 1000.0 + t->header.stamp.nsec / 1000000.0;
     BSONObjBuilder transform_stamped;
     BSONObjBuilder transform;
     transform_stamped.append("header", BSON("seq" << t->header.seq
@@ -69,9 +70,11 @@ void msg_callback(const tf::tfMessage::ConstPtr& msg)
     transforms.push_back(transform_stamped.obj());
   }
 
-  mongodb_conn->insert(collection, BSON("transforms" << transforms <<
-                                        "__recorded" << Date_t(time(NULL) * 1000) <<
-                                        "__topic" << topic));
+
+  BSONObjBuilder document;
+  document.append("transforms", transforms);
+  mongodb_store::add_meta_for_msg<tf::tfMessage>(msg, document);
+  mongodb_conn->insert(collection, document.obj());
 
   // If we'd get access to the message queue this could be more useful
   // https://code.ros.org/trac/ros/ticket/744

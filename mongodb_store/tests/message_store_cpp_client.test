@@ -6,6 +6,6 @@
 
   <node name="message_store" pkg="mongodb_store" type="message_store_node.py" output="screen"/>
   
-  <test test-name="test_message_store_cpp" pkg="mongodb_store_cpp_client" type="message_store_cpp_test" />
+  <test test-name="test_message_store_cpp" pkg="mongodb_store" type="message_store_cpp_test" />
 
 </launch>
