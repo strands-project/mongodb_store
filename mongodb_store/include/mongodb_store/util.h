@@ -39,8 +39,8 @@ void add_meta_for_msg(const typename MsgType::ConstPtr & _msg,  mongo::BSONObjBu
 
   	mongo::BSONObjBuilder meta;
 
-  	ros::Time now = ros::Time::now();
-  	mongo::Date_t nowDate(now.sec * 1000 + now.nsec / 1000000);	
+  	ros::Time now = ros::Time::now();  	
+  	mongo::Date_t nowDate((now.sec * 1000.0) + (now.nsec / 1000000.0));	
 	meta.append("inserted_at", nowDate);
 
   	std::string type(ros::message_traits::DataType<MsgType>::value());
