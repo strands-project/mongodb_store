@@ -14,6 +14,7 @@ import multiprocessing
 from rosgraph_msgs.msg import Clock
 import signal
 import Queue
+from optparse import OptionParser
 
 MongoClient = mg_util.import_MongoClient()
 
@@ -253,6 +254,9 @@ class MongoPlayback(object):
     def setup(self, database_name, req_topics):
         """ Read in details of requested playback collections. """
 
+        if database_name not in self.mongo_client.database_names():
+            raise Exception('Unknown database %s' % database_name)
+
         database = self.mongo_client[database_name] 
         collection_names = database.collection_names(include_system_collections=False) 
 
@@ -338,6 +342,18 @@ class MongoPlayback(object):
 
 def main(argv):
 
+    myargv = rospy.myargv(argv=argv)
+
+    parser = OptionParser()
+    parser.usage += " [TOPICs...]"
+    parser.add_option("--mongodb-name", dest="mongodb_name",
+                      help="Name of DB in which to store values",
+                      metavar="NAME", default="roslog")
+    (options, args) = parser.parse_args(myargv)
+
+    database_name = options.mongodb_name
+    topics = set(args[1:])
+
     playback = MongoPlayback()
 
     def signal_handler(signal, frame):
@@ -347,11 +363,10 @@ def main(argv):
     signal.signal(signal.SIGINT, signal_handler)
 
 
-    myargv = rospy.myargv(argv=argv)
-    topics = myargv[1:] 
 
-    database_name = 'roslog'
-    playback.setup(database_name, set(topics))
+
+
+    playback.setup(database_name, topics)
     playback.start()    
     playback.join()
     rospy.set_param('use_sim_time', False)
