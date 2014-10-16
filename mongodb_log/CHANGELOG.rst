@@ -2,6 +2,19 @@
 Changelog for package mongodb_log
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* This adds latched recording and playback to the log and playback nodes.
+  This is the final part of the functionality to close `#5 <https://github.com/strands-project/mongodb_store/issues/5>`_
+* Added meta logging to other C++ loggers.
+* Calling on correct document.
+* Building up type processing knowledge.
+* Adding meta information to C++-logged documents.
+* Handlings strings which cannot be treated as UTF-8 as binary.
+* Moved back to processes to test.
+* Debugging ulimit issue.
+* Contributors: Nick Hawes
+
 0.0.5 (2014-10-09)
 ------------------
 

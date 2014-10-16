@@ -2,6 +2,32 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Removing author emails as seems to be done on for other packages.
+* Added option to specify database.
+* Updated URL and description.
+* Fixed pacakge name in test launch file.
+* Added boost to dependencies.
+  Refactoring of package earlier plus this fixes `#95 <https://github.com/strands-project/mongodb_store/issues/95>`_ (hopefully)
+* Added cpp changelog to overall package.
+* Moved mongodb_store_cpp_client files into mongodb_store package.
+* This adds latched recording and playback to the log and playback nodes.
+  This is the final part of the functionality to close `#5 <https://github.com/strands-project/mongodb_store/issues/5>`_
+* Looking in to date issue.
+* Adding meta information into C++ logging.
+* Building up type processing knowledge.
+* Adding meta information to C++-logged documents.
+* Handlings strings which cannot be treated as UTF-8 as binary.
+* Debugging ulimit issue.
+* First full working version.
+  Topics are played back but this is all at the mercy of rospy.sleep
+* All processes with sim time.
+* Sim time is now awaited correctly.
+* Added basic processes for topic publishing.
+* Playback node now publishes simulated time.
+* Contributors: Nick Hawes
+
 0.0.5 (2014-10-09)
 ------------------
 * Added install target for launch file.
