@@ -2,8 +2,8 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.0 (2014-10-16)
+------------------
 * Removing author emails as seems to be done on for other packages.
 * Added option to specify database.
 * Updated URL and description.
