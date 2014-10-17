@@ -26,6 +26,8 @@
   <build_depend>mongodb</build_depend>
   <build_depend>mongodb-dev</build_depend>
   <build_depend>libssl-dev</build_depend>
+  <!-- Used for examples -->
+  <build_depend>geometry_msgs</build_depend>
 
   <run_depend>rospy</run_depend>
   <run_depend>roscpp</run_depend>
@@ -33,7 +35,9 @@
   <run_depend>std_srvs</run_depend>
   <run_depend>python-pymongo</run_depend>
   <run_depend>mongodb_store_msgs</run_depend>
-  
+  <!-- Used for examples -->
+  <run_depend>geometry_msgs</run_depend>
+
   <export>
 	<rosdoc config="rosdoc.yaml"/>
   </export>
