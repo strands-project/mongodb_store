@@ -2,6 +2,13 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#99 <https://github.com/strands-project/mongodb_store/issues/99>`_ from hawesie/hydro-devel
+  Added geometry_msgs back in to fix `#98 <https://github.com/strands-project/mongodb_store/issues/98>`_
+* Added geometry_msgs back in to fix `#98 <https://github.com/strands-project/mongodb_store/issues/98>`_
+* Contributors: Nick Hawes
+
 0.1.0 (2014-10-16)
 ------------------
 * Removing author emails as seems to be done on for other packages.

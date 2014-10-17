@@ -2,6 +2,9 @@
 Changelog for package mongodb_log
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 0.1.0 (2014-10-16)
 ------------------
 * This adds latched recording and playback to the log and playback nodes.
