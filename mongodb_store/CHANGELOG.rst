@@ -2,8 +2,8 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.1 (2014-10-17)
+------------------
 * Merge pull request `#99 <https://github.com/strands-project/mongodb_store/issues/99>`_ from hawesie/hydro-devel
   Added geometry_msgs back in to fix `#98 <https://github.com/strands-project/mongodb_store/issues/98>`_
 * Added geometry_msgs back in to fix `#98 <https://github.com/strands-project/mongodb_store/issues/98>`_
