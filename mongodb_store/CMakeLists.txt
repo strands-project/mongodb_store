@@ -50,9 +50,17 @@ generate_messages(
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
+
+
+if(APPLE)
+  set(EXPOSE_LIBS ${SSL_LIB} ${CRYPTO_LIB} ${Boost_LIBRARIES} ${MONGOCLIENT_LIB})
+else(APPLE)
+  set(EXPOSE_LIBS ${SSL_LIB} ${CRYPTO_LIB} ${Boost_LIBRARIES})
+endif(APPLE)
+
 catkin_package(
  INCLUDE_DIRS include
- LIBRARIES message_store ${MONGOCLIENT_LIB} ${SSL_LIB} ${CRYPTO_LIB} ${Boost_LIBRARIES}
+ LIBRARIES message_store  ${EXPOSE_LIBS}
  CATKIN_DEPENDS mongodb_store_msgs
 )
 
