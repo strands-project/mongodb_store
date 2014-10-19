@@ -60,7 +60,7 @@ endif(APPLE)
 
 catkin_package(
  INCLUDE_DIRS include
- LIBRARIES message_store  ${EXPOSE_LIBS}
+ LIBRARIES message_store ${EXPOSE_LIBS}
  CATKIN_DEPENDS mongodb_store_msgs
 )
 
@@ -75,8 +75,6 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-
-add_definitions(-std=c++0x)
 
 add_library(message_store src/message_store.cpp )
 

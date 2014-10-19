@@ -50,10 +50,11 @@ int main(int argc, char **argv)
 
 	// add these things to a single structure for storing in the db
 	StringPairList spl;
-	for(auto & pair : stored) {
-		spl.pairs.push_back(mongodb_store::makePair(pair.first, pair.second));
-	}
-		
+
+	for (vector< pair<string, string> >::iterator i = stored.begin(); i != stored.end(); ++i)
+	{
+		spl.pairs.push_back(mongodb_store::makePair(i->first, i->second));
+	}		
         // meta['description'] = "this wasn't great"    
         // meta['result_time'] = datetime.utcfromtimestamp(rospy.get_rostime().to_sec())
 
@@ -71,14 +72,14 @@ int main(int argc, char **argv)
 	
 	messageStore.query<StringPairList>(results);
        
-	
 
-	for(auto & message_and_meta : results) {
-
+	for (vector< pair<boost::shared_ptr<StringPairList>, mongo::BSONObj> >::iterator message_and_meta = results.begin(); message_and_meta != results.end(); ++message_and_meta)
+	{
+			
 		// Hmmm... this code is ugly
 
-		const boost::shared_ptr<StringPairList> & message = message_and_meta.first;
-		const mongo::BSONObj & meta = message_and_meta.second;
+		const boost::shared_ptr<StringPairList> & message = message_and_meta->first;
+		const mongo::BSONObj & meta = message_and_meta->second;
 
   		if (meta.hasField("description")) {
   			cout << meta["description"].toString() << endl;
