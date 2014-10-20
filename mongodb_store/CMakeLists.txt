@@ -14,10 +14,10 @@ find_package(Boost REQUIRED COMPONENTS system thread program_options filesystem)
 find_package(OpenSSL)
 find_package(MongoDB REQUIRED)
 
-set(MONGO_EXPORT)
-if("${MongoDB_LIBRARIES}" MATCHES "\\.so$" OR "${MongoDB_LIBRARIES}" MATCHES "\\.dylib$")
-  set(MONGO_EXPORT MongoDB)
-endif()
+set(MONGO_EXPORT MongoDB)
+#if("${MongoDB_LIBRARIES}" MATCHES "\\.so$" OR "${MongoDB_LIBRARIES}" MATCHES "\\.dylib$")
+#  set(MONGO_EXPORT MongoDB)
+#endif()
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
