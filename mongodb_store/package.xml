@@ -34,6 +34,8 @@
   <run_depend>std_msgs</run_depend>
   <run_depend>std_srvs</run_depend>
   <run_depend>python-pymongo</run_depend>
+  <run_depend>mongodb</run_depend>
+  <run_depend>mongodb-dev</run_depend>
   <run_depend>mongodb_store_msgs</run_depend>
   <!-- Used for examples -->
   <run_depend>geometry_msgs</run_depend>
