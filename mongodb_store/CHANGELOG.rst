@@ -2,8 +2,8 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.2 (2014-10-20)
+------------------
 * removed if statement on MONGO_EXPORT
 * Using warehouse_ros approach to including MongoDB.
   Added FindMongoDB for this.
