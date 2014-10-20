@@ -2,6 +2,17 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* removed if statement on MONGO_EXPORT
+* Using warehouse_ros approach to including MongoDB.
+  Added FindMongoDB for this.
+* Looks like linking is necessary
+* Removing modern c++ for safety.
+* Trying to only expose mongo lib for apple.
+* Added geometry_msgs back in
+* Contributors: Marc Hanheide, Nick Hawes
+
 0.1.1 (2014-10-17)
 ------------------
 * Merge pull request `#99 <https://github.com/strands-project/mongodb_store/issues/99>`_ from hawesie/hydro-devel
