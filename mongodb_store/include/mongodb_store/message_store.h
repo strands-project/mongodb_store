@@ -278,9 +278,14 @@ public:
 		std::vector< std::pair<boost::shared_ptr<MsgType>, mongo::BSONObj> > msg_and_metas;
 		bool result = query(msg_and_metas, _message_query, _meta_query, _find_one, false);
 
-		for(auto & msg_and_meta : msg_and_metas) {
-			_messages.push_back(msg_and_meta.first);
+		for (typename std::vector< std::pair<boost::shared_ptr<MsgType>, mongo::BSONObj> >::iterator i = msg_and_metas.begin(); i != msg_and_metas.end(); ++i)
+		{
+			_messages.push_back(i->first);
 		}
+
+
+			
+
 
 		return result;
 
