@@ -2,6 +2,12 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* added mongodb-dev as run depend
+  to force inclusion in Debian dependencies
+* Contributors: Marc Hanheide
+
 0.1.2 (2014-10-20)
 ------------------
 * removed if statement on MONGO_EXPORT
