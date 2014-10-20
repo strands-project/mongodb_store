@@ -2,8 +2,8 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.3 (2014-10-21)
+------------------
 * added mongodb-dev as run depend
   to force inclusion in Debian dependencies
 * Contributors: Marc Hanheide
