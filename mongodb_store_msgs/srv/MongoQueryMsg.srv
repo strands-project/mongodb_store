@@ -13,6 +13,8 @@ bool single
 StringPairList message_query
 # key/values to be turned into a query doc on meta content
 StringPairList meta_query
+# key/values to be turned into a sort query
+StringPairList sort_query
 ---
 # messages which match the query
 SerialisedMessage[] messages
