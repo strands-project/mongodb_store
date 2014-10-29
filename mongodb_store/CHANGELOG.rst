@@ -2,6 +2,17 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Removed debugging message.
+* Fixed inclusion of OpenSSL libraries.
+  Note the OpenSSL_LIBRARIES != OPENSSL_LIBRARIES
+* Edited find mongo script.
+* support backward code compatibility; add test code
+* add example to sort query
+* add sort option on query
+* Contributors: Furushchev, Nick Hawes
+
 0.1.3 (2014-10-21)
 ------------------
 * added mongodb-dev as run depend
