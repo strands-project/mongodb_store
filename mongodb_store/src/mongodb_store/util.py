@@ -314,7 +314,7 @@ def dictionary_to_message(dictionary, cls):
     fill_message(message, dictionary)
     return message
 
-def query_message(collection, query_doc, sort_query, find_one):
+def query_message(collection, query_doc, sort_query=[], find_one=False):
     """
     Peform a query for a stored messages, returning results in list.
 

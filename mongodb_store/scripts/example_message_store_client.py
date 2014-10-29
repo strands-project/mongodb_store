@@ -62,7 +62,7 @@ if __name__ == '__main__':
         print msg_store.query(Pose._type)
 
         # get the latest one pose
-        print msg_store.query(Pose._type, sort_query=[("$natural": -1)], single=True)
+        print msg_store.query(Pose._type, sort_query=[("$natural", -1)], single=True)
 
         # get all non-existant typed objects, so get an empty list back
         print msg_store.query( "not my type")
