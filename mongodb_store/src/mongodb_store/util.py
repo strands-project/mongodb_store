@@ -314,13 +314,14 @@ def dictionary_to_message(dictionary, cls):
     fill_message(message, dictionary)
     return message
 
-def query_message(collection, query_doc, find_one):
+def query_message(collection, query_doc, sort_query=[], find_one=False):
     """
     Peform a query for a stored messages, returning results in list.
 
     :Args:
         | collection (pymongo.Collection): The collection to query
         | query_doc (dict): The MongoDB query to execute
+        | sort_query (list of tuple): The MongoDB query to sort
         | find_one (bool): Returns one matching document if True, otherwise all matching.
     :Returns:
         | dict or list of dict: the MongoDB document(s) found by the query
@@ -328,13 +329,19 @@ def query_message(collection, query_doc, find_one):
 
     if find_one:
         ids = ()
-        result = collection.find_one(query_doc)
+        if sort_query:
+            result = collection.find_one(query_doc, sort=sort_query)
+        else:
+            result = collection.find_one(query_doc)
         if result:
             return [ result ] 
         else:
             return []
     else:
-        return [ result for result in collection.find(query_doc) ]
+        if sort_query:
+            return [ result for result in collection.find(query_doc).sort(sort_query) ]
+        else:
+            return [ result for result in collection.find(query_doc) ]
 
 def update_message(collection, query_doc, msg, meta, upsert):
     """
@@ -493,7 +500,6 @@ def string_pair_list_to_dictionary(spl):
     # else use the string pairs
     else:
         return string_pair_list_to_dictionary_no_json(spl.pairs)
-        
 
 def topic_name_to_collection_name(topic_name):
     """

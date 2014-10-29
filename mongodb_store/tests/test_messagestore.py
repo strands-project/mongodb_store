@@ -46,6 +46,15 @@ class TestMessageStoreProxy(unittest.TestCase):
         # # get all non-existant typed objects, so get an empty list back
         none_query = msg_store.query( "not my type")
         self.assertEqual(len(none_query), 0)
+
+        # add 100 query and sort by date inserted.
+        for i in range(100):
+            p = Pose(Point(0, 0, 0), Quaternion(i, 0, 100, 1))
+            msg_store.insert(p)
+            
+        result = msg_store.query(Pose._type, message_query={ 'orientation.z': {'$gt': 10} }, sort_query=[("$natural", -1)])
+        self.assertEqual(len(result), 100)
+        self.assertEqual(result[0][0].orientation.x, 99)
         
         # must remove the item or unittest only really valid once
         print meta["_id"]

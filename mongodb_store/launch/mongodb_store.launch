@@ -1,5 +1,5 @@
 <launch>
-  <arg name="db_path" default="/opt/strands/mongodb_store"/>
+  <arg name="db_path" default="/var/local/mongodb_store"/>
   <arg name="port" default="62345" />
   <arg name="defaults_path" default=""/>
   <arg name="machine" default="localhost" />

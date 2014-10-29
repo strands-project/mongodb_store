@@ -202,7 +202,7 @@ class MessageStoreProxy:
 	"""
 	Returns [message, meta] where message is the queried message and meta a dictionary of meta information. If single is false returns a list of these lists.
 	"""
-	def query(self, type, message_query = {}, meta_query = {}, single = False):
+	def query(self, type, message_query = {}, meta_query = {}, single = False, sort_query = []):
 		"""
 		Finds and returns message(s) matching the message and meta data queries.
 		
@@ -210,6 +210,7 @@ class MessageStoreProxy:
 		    | type (str): The ROS message type of the stored messsage to retrieve.
 		    | message_query (dict): A query to match the actual ROS message
 		    | meta_query (dict): A query to match against the meta data of the message
+		    | sort_query (list of tuple): A query to request sorted list to mongodb module
 		    | single (bool): Should only one message be returned?
 		:Returns:
 		    | [message, meta] where message is the queried message and meta a dictionary of
@@ -220,9 +221,13 @@ class MessageStoreProxy:
 		# serialise the json queries to strings using json_util.dumps
 		message_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(message_query, default=json_util.default)),)
 		meta_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(meta_query, default=json_util.default)),)
+		if len(sort_query) > 0:
+				sort_tuple = [StringPair(str(k), str(v)) for k, v in sort_query]
+		else:
+				sort_tuple = []
 
 		# a tuple of SerialisedMessages
-		response = self.query_id_srv(self.database, self.collection, type, single, StringPairList(message_tuple), StringPairList(meta_tuple))		
+		response = self.query_id_srv(self.database, self.collection, type, single, StringPairList(message_tuple), StringPairList(meta_tuple), StringPairList(sort_tuple))
 
 		# print response
 
