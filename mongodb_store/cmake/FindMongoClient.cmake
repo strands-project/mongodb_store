@@ -58,8 +58,8 @@ endif(WIN32)
 # if we got the mongo stuff, add in the other things we want
 if(MongoClient_LIBRARIES)
   find_package(Boost REQUIRED COMPONENTS system thread program_options filesystem)
-  find_package(OpenSSL)
-  set(MongoClient_LIBRARIES ${MongoClient_LIBRARIES} ${Boost_LIBRARIES} ${OpenSSL_LIBRARIES})  
+  find_package(OpenSSL REQUIRED)
+  set(MongoClient_LIBRARIES ${MongoClient_LIBRARIES} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES})  
   message("MONGOGNGNGNG: " ${MongoClient_LIBRARIES})
 endif(MongoClient_LIBRARIES)  
 
