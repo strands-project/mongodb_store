@@ -4,20 +4,9 @@ project(mongodb_store)
 # include our own cmake files
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/" ${CMAKE_MODULE_PATH})
 
-## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS roscpp message_generation rospy std_msgs std_srvs mongodb_store_msgs)
 
-find_package(Boost REQUIRED COMPONENTS system thread program_options filesystem)
-
-find_package(OpenSSL)
-find_package(MongoDB REQUIRED)
-
-set(MONGO_EXPORT MongoDB)
-#if("${MongoDB_LIBRARIES}" MATCHES "\\.so$" OR "${MongoDB_LIBRARIES}" MATCHES "\\.dylib$")
-#  set(MONGO_EXPORT MongoDB)
-#endif()
+find_package(MongoClient REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -62,7 +51,7 @@ catkin_package(
  INCLUDE_DIRS include
  LIBRARIES message_store 
  CATKIN_DEPENDS mongodb_store_msgs
- DEPENDS ${MONGO_EXPORT}
+ DEPENDS MongoClient
 )
 
 ###########
@@ -74,12 +63,11 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  ${MongoDB_INCLUDE_DIR} 
-  ${Boost_INCLUDE_DIRS}
+  ${MongoClient_INCLUDE_DIR} 
 )
 
 link_directories(${catkin_LINK_DIRS})
-link_directories(${Boost_LIBRARY_DIRS})
+link_directories(${MongoClient_LINK_DIRS})
 
 add_library(message_store src/message_store.cpp )
 
@@ -92,10 +80,8 @@ add_dependencies(example_mongodb_store_cpp_client mongodb_store_msgs_generate_me
 add_dependencies(message_store mongodb_store_msgs_generate_messages_cpp )
 
 target_link_libraries(message_store
-  ${MongoDB_LIBRARIES}
-  ${OPENSSL_LIBRARIES}  
+  ${MongoClient_LIBRARIES}
   ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
 )
 
 
@@ -103,26 +89,20 @@ target_link_libraries(message_store
 # Specify libraries to link a library or executable target against
 target_link_libraries(example_mongodb_store_cpp_client
   message_store
-  ${MongoDB_LIBRARIES}
-  ${OPENSSL_LIBRARIES}  
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
+  ${MongoClient_LIBRARIES}  
+  ${catkin_LIBRARIES}  
 )
 
 target_link_libraries(example_multi_event_log
   message_store
-  ${MongoDB_LIBRARIES}
-  ${OPENSSL_LIBRARIES}  
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
+  ${MongoClient_LIBRARIES}  
+  ${catkin_LIBRARIES}  
 )
 
 target_link_libraries(example_multi_event_log
   message_store
-  ${MongoDB_LIBRARIES}
-  ${OPENSSL_LIBRARIES}  
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
+  ${MongoClient_LIBRARIES}  
+  ${catkin_LIBRARIES}  
 )
 
 
@@ -173,7 +153,7 @@ if (CATKIN_ENABLE_TESTING)
 
   target_link_libraries(message_store_cpp_test
     message_store 
-  ${MongoDB_LIBRARIES} ${OPENSSL_LIBRARIES} 
+  ${MongoClient_LIBRARIES} ${OPENSSL_LIBRARIES} 
     ${catkin_LIBRARIES}
     ${Boost_LIBRARIES}
     gtest
