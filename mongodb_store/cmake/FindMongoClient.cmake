@@ -60,7 +60,6 @@ if(MongoClient_LIBRARIES)
   find_package(Boost REQUIRED COMPONENTS system thread program_options filesystem)
   find_package(OpenSSL REQUIRED)
   set(MongoClient_LIBRARIES ${MongoClient_LIBRARIES} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES})  
-  message("MONGOGNGNGNG: " ${MongoClient_LIBRARIES})
 endif(MongoClient_LIBRARIES)  
 
 if(MongoClient_INCLUDE_DIR AND MongoClient_LIBRARIES)
