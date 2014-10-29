@@ -2,8 +2,8 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.4 (2014-10-29)
+------------------
 * Removed debugging message.
 * Fixed inclusion of OpenSSL libraries.
   Note the OpenSSL_LIBRARIES != OPENSSL_LIBRARIES
