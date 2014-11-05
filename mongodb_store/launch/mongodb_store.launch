@@ -2,13 +2,19 @@
   <arg name="db_path" default="/var/local/mongodb_store"/>
   <arg name="port" default="62345" />
   <arg name="defaults_path" default=""/>
+
+  <arg name="remote" default="false"/>
   <arg name="machine" default="localhost" />
   <arg name="user" default="" />
+
 
   <param name="mongodb_port" value="$(arg port)" />
   <param name="mongodb_host" value="$(optenv HOSTNAME localhost)" />
 
-  <machine name="$(arg machine)" address="$(arg machine)" env-loader="/opt/strands/strands_catkin_ws/devel/env.sh" user="$(arg user)" default="true"/>
+
+  <!-- now has an IF checking for the arg "remote" -->
+  <machine name="$(arg machine)" address="$(arg machine)" env-loader="$(env ROS_ENV_LOADER)" user="$(arg user)" default="true" if="$(arg remote)" />
+
   
   <node name="mongo_server" pkg="mongodb_store" type="mongodb_server.py" output="screen">
     <param name="database_path" value="$(arg db_path)"/>
