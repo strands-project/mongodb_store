@@ -2,11 +2,9 @@
   <arg name="db_path" default="/var/local/mongodb_store"/>
   <arg name="port" default="62345" />
   <arg name="defaults_path" default=""/>
-
   <arg name="remote" default="false"/>
   <arg name="machine" default="localhost" />
   <arg name="user" default="" />
-
 
   <param name="mongodb_port" value="$(arg port)" />
   <param name="mongodb_host" value="$(optenv HOSTNAME localhost)" />
@@ -21,7 +19,7 @@
   </node>
 
   <node name="config_manager" pkg="mongodb_store" type="config_manager.py" output="screen">
-	<param name="defaults_path" value="$(arg defaults_path)"/>
+    <param name="defaults_path" value="$(arg defaults_path)"/>
   </node>
 
   <node name="message_store" pkg="mongodb_store" type="message_store_node.py" output="screen"/>
