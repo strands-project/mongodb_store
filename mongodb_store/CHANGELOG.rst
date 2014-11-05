@@ -2,8 +2,8 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.5 (2014-11-05)
+------------------
 * Changing the installed location of launch file.
 * Added test_mode to launch file.
 * Contributors: Nick Hawes
