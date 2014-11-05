@@ -121,8 +121,8 @@ install(DIRECTORY scripts/
 
 # Mark other files for installation (e.g. launch and bag files, etc.)
 install(
-  DIRECTORY launch/
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  DIRECTORY launch
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
 )
 
 # Mark cpp header files for installation
@@ -146,8 +146,6 @@ if (CATKIN_ENABLE_TESTING)
   find_package(catkin REQUIRED COMPONENTS rostest)
 
   add_rostest(tests/message_store.test)
-
-  find_package(catkin REQUIRED COMPONENTS rostest)
 
   add_executable(message_store_cpp_test tests/message_store_cpp_test.cpp)
 
