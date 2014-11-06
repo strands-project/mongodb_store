@@ -9,28 +9,26 @@
   <arg name="test_mode" default="false" />
 
 
-<!-- launch in test mode -->
-<group if="$(arg test_mode)">
-  <node name="mongo_server" pkg="mongodb_store" type="mongodb_server.py" output="screen">
-    <param name="test_mode" value="true"/>
-  </node>
-</group>
-
-<!-- launch in non-test, i.e. normal, mode -->
-<group unless="$(arg test_mode)">
-  <param name="mongodb_port" value="$(arg port)" />
-  <param name="mongodb_host" value="$(optenv HOSTNAME localhost)" />
-
-
   <!-- now has an IF checking for the arg "remote" -->
   <machine name="$(arg machine)" address="$(arg machine)" env-loader="$(optenv ROS_ENV_LOADER /opt/ros/hydro/env.sh)" user="$(arg user)" default="true" if="$(arg remote)" />
 
-  
-  <node name="mongo_server" pkg="mongodb_store" type="mongodb_server.py" output="screen">
-    <param name="database_path" value="$(arg db_path)"/>
-  </node>
-</group>
 
+	<!-- launch in test mode -->
+	<group if="$(arg test_mode)">
+		<node name="mongo_server" pkg="mongodb_store" type="mongodb_server.py" output="screen">
+			<param name="test_mode" value="true"/>
+		</node>
+	</group>
+
+	<!-- launch in non-test, i.e. normal, mode -->
+	<group unless="$(arg test_mode)">
+		<param name="mongodb_port" value="$(arg port)" />
+		<param name="mongodb_host" value="$(optenv HOSTNAME localhost)" />
+ 
+	  <node name="mongo_server" pkg="mongodb_store" type="mongodb_server.py" output="screen">
+	    <param name="database_path" value="$(arg db_path)"/>
+	  </node>
+	</group>
 
 
   <node name="config_manager" pkg="mongodb_store" type="config_manager.py" output="screen">
