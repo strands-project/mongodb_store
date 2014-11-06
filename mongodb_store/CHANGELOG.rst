@@ -2,8 +2,8 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.6 (2014-11-06)
+------------------
 * Launch file to right place this time.
   It seems like the syntax is doing different things in different CMake files though.
 * fixing launch file order
