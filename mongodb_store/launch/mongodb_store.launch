@@ -6,8 +6,18 @@
   <arg name="remote" default="false"/>
   <arg name="machine" default="$(optenv HOSTNAME localhost)" />
   <arg name="user" default="" />
+  <arg name="test_mode" default="false" />
 
 
+<!-- launch in test mode -->
+<group if="$(arg test_mode)">
+  <node name="mongo_server" pkg="mongodb_store" type="mongodb_server.py" output="screen">
+    <param name="test_mode" value="true"/>
+  </node>
+</group>
+
+<!-- launch in non-test, i.e. normal, mode -->
+<group unless="$(arg test_mode)">
   <param name="mongodb_port" value="$(arg port)" />
   <param name="mongodb_host" value="$(optenv HOSTNAME localhost)" />
 
@@ -19,6 +29,9 @@
   <node name="mongo_server" pkg="mongodb_store" type="mongodb_server.py" output="screen">
     <param name="database_path" value="$(arg db_path)"/>
   </node>
+</group>
+
+
 
   <node name="config_manager" pkg="mongodb_store" type="config_manager.py" output="screen">
     <param name="defaults_path" value="$(arg defaults_path)"/>
