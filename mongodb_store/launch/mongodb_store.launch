@@ -8,7 +8,7 @@
   <arg name="test_mode" default="false" />
 
 
-  <machine name="$(arg machine)" address="$(arg machine)" env-loader="$(optenv ROS_ENV_LOADER /opt/ros/hydro/env.sh)" user="$(arg user)" default="true"/>
+  <machine name="$(arg machine)" address="$(arg machine)" env-loader="$(optenv ROS_ENV_LOADER )" user="$(arg user)" default="true"/>
 
 
 	<!-- launch in test mode -->
