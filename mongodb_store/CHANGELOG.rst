@@ -2,8 +2,8 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.7 (2014-11-09)
+------------------
 * final and tested version of loader
 * latest version of machine tags in launch file
 * Contributors: Jaime Pulido Fentanes
