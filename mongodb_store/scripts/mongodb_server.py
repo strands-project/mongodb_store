@@ -36,6 +36,7 @@ class MongoServer(object):
 
 
         test_mode = rospy.get_param("~test_mode", False)
+        self.repl_set = rospy.get_param("~repl_set", None)
 
 
         if test_mode:
@@ -106,8 +107,12 @@ class MongoServer(object):
         def block_mongo_kill():
             os.setpgrp()
 #            signal.signal(signal.SIGINT, signal.SIG_IGN)
-        
-        self._mongo_process = subprocess.Popen(["mongod","--dbpath",self._db_path,"--port",str(self._mongo_port)],
+
+        cmd = ["mongod","--dbpath",self._db_path,"--port",str(self._mongo_port)]
+        if self.repl_set is not None:
+            cmd.append("--replSet")
+            cmd.append(self.repl_set)
+        self._mongo_process = subprocess.Popen(cmd,
                                          stdout=subprocess.PIPE,
                                          preexec_fn = block_mongo_kill)
 
@@ -127,6 +132,11 @@ class MongoServer(object):
 
                 if stdout.find("waiting for connections on port") !=-1:
                     self._ready=True
+                    if self.repl_set is not None:
+                        try:
+                            self.initialize_repl_set()
+                        except Exception as e:
+                            rospy.logwarn("initialzing replSet failed: %s" % e)
 
         if not rospy.is_shutdown():
             rospy.logerr("MongoDB process stopped!")
@@ -160,7 +170,11 @@ class MongoServer(object):
         while not self._ready:
             rospy.sleep(0.1)
         return EmptyResponse()
-            
+
+    def initialize_repl_set(self):
+        c = pymongo.Connection("%s:%d" % (self._mongo_host,self._mongo_port), slave_okay=True)
+        c.admin.command("replSetInitiate")
+        c.close()
 
 if __name__ == '__main__':
     server = MongoServer()
