@@ -36,7 +36,7 @@ class MongoServer(object):
 
 
         test_mode = rospy.get_param("~test_mode", False)
-        self.replSet = rospy.get_param("~replSet", None)
+        self.repl_set = rospy.get_param("~repl_set", None)
 
 
         if test_mode:
@@ -109,9 +109,9 @@ class MongoServer(object):
 #            signal.signal(signal.SIGINT, signal.SIG_IGN)
 
         cmd = ["mongod","--dbpath",self._db_path,"--port",str(self._mongo_port)]
-        if self.replSet is not None:
+        if self.repl_set is not None:
             cmd.append("--replSet")
-            cmd.append(self.replSet)
+            cmd.append(self.repl_set)
         self._mongo_process = subprocess.Popen(cmd,
                                          stdout=subprocess.PIPE,
                                          preexec_fn = block_mongo_kill)
@@ -132,7 +132,7 @@ class MongoServer(object):
 
                 if stdout.find("waiting for connections on port") !=-1:
                     self._ready=True
-                    if self.replSet is not None:
+                    if self.repl_set is not None:
                         try:
                             self.initialize_repl_set()
                         except Exception as e:
