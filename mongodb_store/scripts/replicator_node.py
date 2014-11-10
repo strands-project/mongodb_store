@@ -21,7 +21,8 @@ class Replicator(object):
     def __init__(self):
 
         # don't start up until master is there
-        rospy.wait_for_service('/datacentre/wait_ready')
+        if not mongodb_store.util.wait_for_mongo():
+            raise Exception("No Datacentre?")
 
         # this is just a test, connections are remade every call for long-running processes
         master, extras = self.make_connections()
