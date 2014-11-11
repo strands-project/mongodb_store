@@ -2,6 +2,13 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* use underscore_separation instead of camelCase
+* add launch as replSet option
+* Fix `#52 <https://github.com/strands-project/mongodb_store/issues/52>`_
+* Contributors: Furushchev, lucasb-eyer
+
 0.1.7 (2014-11-09)
 ------------------
 * final and tested version of loader
