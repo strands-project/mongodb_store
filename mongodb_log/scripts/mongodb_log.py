@@ -581,7 +581,7 @@ def main(argv):
     parser.add_option("--no-specific", dest="no_specific", default=False,
                       action="store_true", help="Disable specific loggers")
 
-    (options, args) = parser.parse_args()
+    (options, args) = parser.parse_args(rospy.myargv(argv=sys.argv)[1:])
 
     if not options.all_topics and len(args) == 0:
         parser.print_help()
