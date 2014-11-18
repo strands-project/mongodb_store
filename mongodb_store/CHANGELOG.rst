@@ -2,6 +2,9 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 0.1.8 (2014-11-11)
 ------------------
 * use underscore_separation instead of camelCase
