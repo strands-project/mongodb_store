@@ -2,6 +2,13 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Replication now has db configurable.
+  This fixes `#54 <https://github.com/strands-project/mongodb_store/issues/54>`_.
+* Added queue_size for indigo
+* Contributors: Nick Hawes
+
 0.1.9 (2014-11-18)
 ------------------
 
