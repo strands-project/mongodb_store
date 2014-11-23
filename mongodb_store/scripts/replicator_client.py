@@ -19,14 +19,15 @@ if __name__ == '__main__':
     client = actionlib.SimpleActionClient('move_mongodb_entries', MoveEntriesAction)
     client.wait_for_server()
 
-    collections = sys.argv[1:]
+    database = sys.argv[1]
+    collections = sys.argv[2:]
 
+    print database
     print collections
 
     # but this is the default anyway
     twenty_four_hrs_ago = rospy.Duration(60 * 60 * 24)
-    goal = MoveEntriesGoal(collections=StringList(collections), move_before=twenty_four_hrs_ago, delete_after_move=True)
-
+    goal = MoveEntriesGoal(database=database, collections=StringList(collections), move_before=twenty_four_hrs_ago, delete_after_move=True)
 
     client.send_goal(goal, feedback_cb=feedback)
     client.wait_for_result()

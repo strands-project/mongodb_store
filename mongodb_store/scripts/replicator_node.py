@@ -89,13 +89,13 @@ class Replicator(object):
         less_time_time = rospy.get_rostime() - goal.move_before
 
         for collection in goal.collections.data:                    
-            self.do_dump(collection, master, less_time_time)
+            self.do_dump(collection, master, less_time_time, db=goal.database)
 
-        self.do_restore(extras)
+        self.do_restore(extras, db=goal.database)
 
         if goal.delete_after_move:  
             for collection in goal.collections.data:                    
-                self.do_delete(collection, master, less_time_time)
+                self.do_delete(collection, master, less_time_time, db=goal.database)
 
         # clean up
         self.remove_path()
