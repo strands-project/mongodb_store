@@ -113,7 +113,7 @@ class TopicPlayer(PlayerProcess):
         msg_cls = mg_util.load_class(documents[0]["_meta"]["stored_class"])
 
         # publisher won't be used until something is on the queue, so it's safe to construct it here
-        self.publisher = rospy.Publisher(documents[0]["_meta"]["topic"], msg_cls, latch = documents[0]["_meta"]["latch"])
+        self.publisher = rospy.Publisher(documents[0]["_meta"]["topic"], msg_cls, latch = documents[0]["_meta"]["latch"], queue_size = 10)
 
         for document in documents:
             if running.value:
@@ -196,7 +196,7 @@ class ClockPlayer(PlayerProcess):
         rospy.set_param('use_sim_time', True)
 
         # topic to public clock on
-        self.clock_pub = rospy.Publisher('/clock', Clock)
+        self.clock_pub = rospy.Publisher('/clock', Clock, queue_size=1)
 
         # send the first message to get time off 0
         self.clock_pub.publish(Clock(clock=(self.start_time - self.pre_roll)))
