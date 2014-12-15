@@ -217,7 +217,7 @@ int main(int argc, char **argv) {
   int c;
   while ((c = getopt(argc, argv, "t:m:n:c:ak:l:g:")) != -1) {
     if ((c == '?') || (c == ':')) {
-      printf("Usage: %s -t topic -m mongodb -n nodename -c collection\n", argv[0]);
+      printf("Usage: %s -t topic -m mongodb -n nodename -c collection -k vectorial-threshold -l angular-threshold -g time-threshold -a\n", argv[0]);
       exit(-1);
     } else if (c == 't') {
       topic = optarg;
