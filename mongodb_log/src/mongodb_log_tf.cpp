@@ -212,7 +212,7 @@ int main(int argc, char **argv) {
 				       // gets logged again
   fAngularDistanceThreshold = 0.100; // Same for angular distance
   fTimeDistanceThreshold = 1.0; // And same for timely distance (in seconds)
-  bAlwaysLog = false;
+  bAlwaysLog = true;
   
   int c;
   while ((c = getopt(argc, argv, "t:m:n:c:ak:l:g:")) != -1) {
@@ -228,7 +228,7 @@ int main(int argc, char **argv) {
     } else if (c == 'c') {
       collection = optarg;
     } else if (c == 'a') {
-      bAlwaysLog = true;
+      bAlwaysLog = false;
     } else if (c == 'k') {
       sscanf(optarg, "%f", &fVectorialDistanceThreshold);
     } else if (c == 'l') {
