@@ -3,6 +3,7 @@
   <arg name="port" default="62345" />
   <arg name="defaults_path" default=""/>
 
+  <arg name="use_machine" default="true" />
   <arg name="machine" default="localhost" />
   <arg name="user" default="" />
   <arg name="test_mode" default="false" />
@@ -10,7 +11,8 @@
   <arg name="repl_set" default="rs0" />
 
 
-  <machine name="$(arg machine)" address="$(arg machine)" env-loader="$(optenv ROS_ENV_LOADER )" user="$(arg user)" default="true"/>
+  <machine name="$(arg machine)" address="$(arg machine)" env-loader="$(optenv ROS_ENV_LOADER )" user="$(arg user)" default="true"
+           if="$(arg use_machine)"/>
 
 
 	<!-- launch in test mode -->
