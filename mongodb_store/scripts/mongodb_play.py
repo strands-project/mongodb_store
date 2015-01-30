@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 import rospy
 import mongodb_store.util as mg_util
@@ -35,6 +34,10 @@ def to_datetime(rt):
 def ros_time_strftime(rt, format):
     """ converts a ros time to a datetime and calls strftime on it with the given format """
     return to_datetime(rt).strftime(format)
+
+def mkdatetime(date_string):
+    return datetime.datetime.strptime(date_string, '%d/%m/%y %H:%M')
+
 
 
 class PlayerProcess(object):
@@ -251,7 +254,7 @@ class MongoPlayback(object):
         self.stop_called = False
         
 
-    def setup(self, database_name, req_topics):
+    def setup(self, database_name, req_topics, start_dt, end_dt):
         """ Read in details of requested playback collections. """
 
         if database_name not in self.mongo_client.database_names():
@@ -278,11 +281,22 @@ class MongoPlayback(object):
         # make sure they're easily accessible by time
         for collection in collections:
             collection.ensure_index(TIME_KEY)
+        
 
 
-        # get the min and max time across all collections, conver to ros time
-        start_time = to_ros_time(min(map(min_time, collections)))
-        end_time =  to_ros_time(max(map(max_time, collections)))
+        if len(start_dt)==0:
+            # get the min and max time across all collections, conver to ros time
+            start_time = to_ros_time(min(map(min_time, collections)))
+        else:
+            start_time = to_ros_time(mkdatetime(start_dt[0] + ' ' + start_dt[1]))            
+
+        if len(end_dt)==0:
+            end_time =  to_ros_time(max(map(max_time, collections)))
+        else:
+            end_time = to_ros_time(mkdatetime(end_dt[0] + ' ' + end_dt[1]))     
+
+        print('Start time: %s, end time: %s' % (to_datetime(start_time), to_datetime(end_time)))
+
 
         # we don't need a connection any more
         self.mongo_client.disconnect()
@@ -349,6 +363,11 @@ def main(argv):
     parser.add_option("--mongodb-name", dest="mongodb_name",
                       help="Name of DB in which to store values",
                       metavar="NAME", default="roslog")
+    parser.add_option("-s", "--start", dest="start", nargs=2, type="string", default="", metavar='S', help='start datetime of query, defaults to no start. Formatted "d/m/y H:M" e.g. "06/07/14 06:38"')
+    parser.add_option("-e", "--end", dest="end", nargs=2, type="string", default="", metavar='E', help='end datetime of query, defaults to now. Formatted "d/m/y H:M" e.g. "06/07/14 06:38"')
+
+
+
     (options, args) = parser.parse_args(myargv)
 
     database_name = options.mongodb_name
@@ -366,7 +385,7 @@ def main(argv):
 
 
 
-    playback.setup(database_name, topics)
+    playback.setup(database_name, topics, options.start, options.end)
     playback.start()    
     playback.join()
     rospy.set_param('use_sim_time', False)
@@ -376,3 +395,4 @@ def main(argv):
 # processes load main so move init_node out 
 if __name__ == "__main__":
     main(sys.argv)
+
