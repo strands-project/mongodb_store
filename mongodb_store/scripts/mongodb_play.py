@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import rospy
 import mongodb_store.util as mg_util
@@ -295,7 +296,7 @@ class MongoPlayback(object):
         else:
             end_time = to_ros_time(mkdatetime(end_dt[0] + ' ' + end_dt[1]))     
 
-        print('Start time: %s, end time: %s' % (to_datetime(start_time), to_datetime(end_time)))
+        #print('Start time: %s, end time: %s' % (to_datetime(start_time), to_datetime(end_time)))
 
 
         # we don't need a connection any more
