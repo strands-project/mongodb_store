@@ -2,6 +2,11 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* add switch option to use machine tag
+* Contributors: Furushchev
+
 0.1.10 (2014-11-23)
 -------------------
 * Replication now has db configurable.

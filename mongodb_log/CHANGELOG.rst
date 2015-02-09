@@ -2,6 +2,19 @@
 Changelog for package mongodb_log
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Extended usage output string by new command line options
+* Changed default behaviour back to its former way
+  The 'a' command line parameter now activates throttling; not specifying it makes the logger log all tf transformations.
+* Added throttling capabilities for high-frequency tf logging
+  Added tf logging throttling capabilities originally introduced in https://github.com/code-iai/ros-mongodb_log. A transform is only logged when either this transform has not been logged before, or when the new version of this transform is sufficiently different from the one logged before. Additional command line parameters can be used to control how throttling is done:
+  * `-k <d>`: Cartesian (vectorial) distance (in meters) threshold between the old and the new transform
+  * `-l <d>`: Angular diastance (in deg) threshold between the old and the new transform
+  * `-g <d>`: At least log every transform every `d` seconds, even if nothing changed
+  * `-a`: Always log, don't throttle
+* Contributors: Jan Winkler
+
 0.1.10 (2014-11-23)
 -------------------
 
