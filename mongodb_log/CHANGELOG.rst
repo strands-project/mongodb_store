@@ -2,6 +2,9 @@
 Changelog for package mongodb_log
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 0.1.11 (2015-02-09)
 -------------------
 * Extended usage output string by new command line options

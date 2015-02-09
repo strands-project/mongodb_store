@@ -2,6 +2,9 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 0.1.11 (2015-02-09)
 -------------------
 * add switch option to use machine tag
