@@ -2,8 +2,8 @@
 Changelog for package mongodb_log
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.11 (2015-02-09)
+-------------------
 * Extended usage output string by new command line options
 * Changed default behaviour back to its former way
   The 'a' command line parameter now activates throttling; not specifying it makes the logger log all tf transformations.
