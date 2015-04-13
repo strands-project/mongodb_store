@@ -3,7 +3,7 @@ import genpy
 from std_srvs.srv import Empty
 import yaml
 from bson import json_util, Binary
-import json
+import json, collections
 
 import copy
 import StringIO
@@ -93,7 +93,7 @@ Given a document return ROS message
 def document_to_msg(document, TYPE):
     msg = TYPE()
     _fill_msg(msg,document)
-    return meta
+    return msg
 
     
 def msg_to_document(msg):
@@ -176,6 +176,9 @@ def sanitize_value(attr, v, type):
             else: 
                 result.append(sanitize_value(None, t, None))
         return result
+    elif isinstance(v, float):
+        num = round(float(v), 8) # hack to work with float32 as well - NOTE: converts floats to precision less than float32 (such that no data "added" to end of float32) - causes lost of precision for float64!
+        return float(num) # then expliciltly convert float32 to float64 (float)
     else:
         return v
 
@@ -496,7 +499,8 @@ def string_pair_list_to_dictionary(spl):
     """
     if len(spl.pairs) > 0 and spl.pairs[0].first == MongoQueryMsgRequest.JSON_QUERY:
         # print "looks like %s", spl.pairs[0].second
-        return json.loads(spl.pairs[0].second, object_hook=json_util.object_hook)
+        #return json.loads(spl.pairs[0].second, object_hook=json_util.object_hook)
+        return json.loads(spl.pairs[0].second, object_hook=json_util.object_hook, object_pairs_hook=collections.OrderedDict) # do not change order of dictionary! - since it seems to affect the result of querying
     # else use the string pairs
     else:
         return string_pair_list_to_dictionary_no_json(spl.pairs)
