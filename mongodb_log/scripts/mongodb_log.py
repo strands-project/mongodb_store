@@ -93,7 +93,7 @@ STATS_LOOPTIME     = 10
 STATS_GRAPHTIME    = 60
 
 class Counter(object):
-    def __init__(self, value = None, lock = True):        
+    def __init__(self, value = None, lock = True):
         self.count = value or Value('i', 0, lock=lock)
         self.mutex = Lock()
 
@@ -150,9 +150,9 @@ class WorkerProcess(object):
         self.process.start()
         # print "started %s" % self.process
 
-    def init(self): 
-        global use_setproctitle 
-        if use_setproctitle: 
+    def init(self):
+        global use_setproctitle
+        if use_setproctitle:
             setproctitle("mongodb_log %s" % self.topic)
 
         self.mongoconn = MongoClient(self.mongodb_host, self.mongodb_port)
@@ -209,7 +209,7 @@ class WorkerProcess(object):
         self.process.join()
         self.process.terminate()
 
- 
+
 
 
     def qsize(self):
@@ -253,11 +253,11 @@ class WorkerProcess(object):
                     try:
                         #print(self.sep + threading.current_thread().getName() + "@" + topic+": ")
                         #pprint.pprint(doc)
-                        meta = {}    
+                        meta = {}
                         # switched to use inserted_at to match message_store
                         # meta["recorded"] = ctime or datetime.now()
                         meta["topic"]    = topic
-                    
+
                         if connection_header['latching'] == '1':
                             meta['latch'] = True
                         else:
@@ -269,7 +269,7 @@ class WorkerProcess(object):
                             meta['inserted_at'] = datetime.utcfromtimestamp(rospy.get_rostime().to_sec())
 
 
-                        mongodb_store.util.store_message(self.collection, msg, meta)                    
+                        mongodb_store.util.store_message(self.collection, msg, meta)
 
                     except InvalidDocument, e:
                         print("InvalidDocument " + current_process().name + "@" + topic +": \n")
@@ -320,7 +320,7 @@ class SubprocessWorker(object):
         mongodb_host_port = "%s:%d" % (mongodb_host, mongodb_port)
         collection = "%s.%s" % (mongodb_name, collname)
         nodename = WORKER_NODE_NAME % (self.nodename_prefix, self.id, self.collname)
-        
+
         self.process = subprocess.Popen([cpp_logger[0], "-t", topic, "-n", nodename,
                                          "-m", mongodb_host_port, "-c", collection],
                                         stdout=subprocess.PIPE)
@@ -351,7 +351,7 @@ class SubprocessWorker(object):
 
 
 class MongoWriter(object):
-    def __init__(self, topics = [], 
+    def __init__(self, topics = [],
                  all_topics = False, all_topics_interval = 5,
                  exclude_topics = [],
                  mongodb_host=None, mongodb_port=None, mongodb_name="roslog",
@@ -425,18 +425,26 @@ class MongoWriter(object):
             else:
                 try:
                     print("Adding topic %s" % topic)
-                    self.workers[collname] = self.create_worker(len(self.workers), topic, collname)
+                    w = self.create_worker(len(self.workers), topic, collname)
+                    self.workers[collname] = w
                     self.topics |= set([topic])
                 except Exception, e:
                     print('Failed to subsribe to %s due to %s' % (topic, e))
 
 
     def create_worker(self, idnum, topic, collname):
-        msg_class, real_topic, msg_eval = rostopic.get_topic_class(topic, blocking=True)
+        try:
+            msg_class, real_topic, msg_eval = rostopic.get_topic_class(topic, blocking=False)
+        except Exception, e:
+            print('Topic %s not announced, cannot get type: %s' % (topic, e))
+            raise
+
+        if real_topic is None:
+            raise rostopic.ROSTopicException('topic type was empty, probably not announced')
 
         w = None
         node_path = None
-        
+
         if not self.no_specific and msg_class == tfMessage:
             print("DETECTED transform topic %s, using fast C++ logger" % topic)
             node_path = find_node(PACKAGE_NAME, "mongodb_log_tf")
@@ -460,8 +468,8 @@ class MongoWriter(object):
                 print("FAILED to detect mongodb_log_trimesh, falling back to generic logger (did not build package?)")
         """
 
-        
-            
+
+
         if node_path:
             w = SubprocessWorker(idnum, topic, collname,
                                  self.in_counter.count, self.out_counter.count,
@@ -476,7 +484,7 @@ class MongoWriter(object):
                               self.drop_counter.count, QUEUE_MAXSIZE,
                               self.mongodb_host, self.mongodb_port, self.mongodb_name,
                               self.nodename_prefix)
-        
+
         return w
 
 
@@ -484,7 +492,7 @@ class MongoWriter(object):
         looping_threshold = timedelta(0, STATS_LOOPTIME,  0)
 
         while not self.quit:
-            started = datetime.now()        
+            started = datetime.now()
 
             # the following code makes sure we run once per STATS_LOOPTIME, taking
             # varying run-times and interrupted sleeps into account
@@ -592,7 +600,7 @@ def main(argv):
     except socket.error:
         print("Failed to communicate with master")
 
-    mongowriter = MongoWriter(topics=args, 
+    mongowriter = MongoWriter(topics=args,
                               all_topics=options.all_topics,
                               all_topics_interval = options.all_topics_interval,
                               exclude_topics = options.exclude,
