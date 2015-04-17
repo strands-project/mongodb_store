@@ -383,7 +383,10 @@ class MongoWriter(object):
         self.exclude_already = []
 
 
-        self.subscribe_topics(set(topics))
+        self.missing_topics = self.subscribe_topics(set(topics))
+        self.fill_in_topics()
+
+
         if self.all_topics:
             print("All topics")
             self.ros_master = rosgraph.masterapi.Master(NODE_NAME_TEMPLATE % self.nodename_prefix)
@@ -397,7 +400,7 @@ class MongoWriter(object):
 
         # print "subscribing to topics %s" % topics
 
-
+        missing_topics = set()
         for topic in topics:
             if topic and topic[-1] == '/':
                 topic = topic[:-1]
@@ -430,6 +433,9 @@ class MongoWriter(object):
                     self.topics |= set([topic])
                 except Exception, e:
                     print('Failed to subsribe to %s due to %s' % (topic, e))
+                    missing_topics.add(topic)
+
+        return missing_topics
 
 
     def create_worker(self, idnum, topic, collname):
@@ -516,6 +522,12 @@ class MongoWriter(object):
         self.all_topics_timer = Timer(self.all_topics_interval, self.update_topics)
         self.all_topics_timer.start()
 
+    def start_fill_in_topics_timer(self):
+        if len(self.missing_topics) == 0 or self.quit: return
+        self.fill_in_topics_timer = Timer(self.all_topics_interval, self.fill_in_topics)
+        self.fill_in_topics_timer.start()
+
+
 
     def update_topics(self, restart=True):
         """
@@ -527,6 +539,15 @@ class MongoWriter(object):
         new_topics = topics - self.topics
         self.subscribe_topics(new_topics)
         if restart: self.start_all_topics_timer()
+
+    def fill_in_topics(self, restart=True):
+        """
+        Called at a fixed interval (see start_all_topics_timer) to update the list of topics if we are logging all topics (e.g. --all-topics flag is given).
+        """
+        if len(self.missing_topics) == 0 or self.quit: return
+        self.missing_topics = self.subscribe_topics(self.missing_topics)
+        if restart: self.start_fill_in_topics_timer()
+
 
     def get_memory_usage_for_pid(self, pid):
 
