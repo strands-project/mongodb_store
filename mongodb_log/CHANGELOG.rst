@@ -2,6 +2,13 @@
 Changelog for package mongodb_log
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Recheck topics at a fixed interval in order to attempt to resubscribe to topics that were missing at startup.
+  This closes `#126 <https://github.com/strands-project/mongodb_store/issues/126>`_.
+* Changed mongodb_log to not wait for topics to be published, instead subscribing to all the other topics
+* Contributors: Nick Hawes, Nils Bore
+
 0.1.12 (2015-02-09)
 -------------------
 
