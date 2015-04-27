@@ -2,6 +2,12 @@
 Changelog for package mongodb_log
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Adding install targets for mongodb_log
+  Closes `#129 <https://github.com/strands-project/mongodb_store/issues/129>`_
+* Contributors: Christian Dondrup
+
 0.1.13 (2015-04-22)
 -------------------
 * Recheck topics at a fixed interval in order to attempt to resubscribe to topics that were missing at startup.
