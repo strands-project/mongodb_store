@@ -2,8 +2,8 @@
 Changelog for package mongodb_log
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.14 (2015-04-27)
+-------------------
 * Adding install targets for mongodb_log
   Closes `#129 <https://github.com/strands-project/mongodb_store/issues/129>`_
 * Contributors: Christian Dondrup
