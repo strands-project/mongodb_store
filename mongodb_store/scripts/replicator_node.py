@@ -31,7 +31,8 @@ class Replicator(object):
 
         self.server = actionlib.SimpleActionServer('move_mongodb_entries', MoveEntriesAction, self.move_entries, False)
         self.server.start()
-        self.dump_path = '/tmp/mongodb_replicator'
+        self.dump_path = rospy.get_param("~replicator_dump_path", '/tmp/mongodb_replicator')
+        rospy.loginfo("Replicator node dumping to %s" % self.dump_path)
 
         self.make_path()
         self.remove_path()
