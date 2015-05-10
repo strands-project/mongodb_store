@@ -2,6 +2,11 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Add dump path as parameter.
+* Contributors: Rares
+
 0.1.14 (2015-04-27)
 -------------------
 
