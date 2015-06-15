@@ -298,8 +298,8 @@ class MongoPlayback(object):
         # we don't need a connection any more
         self.mongo_client.disconnect()
 
-        print('Playing back from %s' % to_datetime(start_time))
-        print('.............. to %s' % to_datetime(end_time))
+        # rospy.loginfo('Playing back from %s' % to_datetime(start_time))
+        # rospy.loginfo('.............. to %s' % to_datetime(end_time))
 
         self.event = multiprocessing.Event()
 
