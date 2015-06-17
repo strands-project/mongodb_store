@@ -360,8 +360,8 @@ def main(argv):
     parser.add_option("--mongodb-name", dest="mongodb_name",
                       help="Name of DB in which to store values",
                       metavar="NAME", default="roslog")
-    parser.add_option("-s", "--start", dest="start", type="string", default="", metavar='S', help='start datetime of query, defaults to the earliest date stored in db, across all collections. Formatted "d/m/y H:M" e.g. "06/07/14 06:38"')
-    parser.add_option("-e", "--end", dest="end", type="string", default="", metavar='E', help='end datetime of query, defaults to the latest date stored in db, across all collections. Formatted "d/m/y H:M" e.g. "06/07/14 06:38"')
+    parser.add_option("-s", "--start", dest="start", type="string", default="", metavar='S', help='start datetime of query, defaults to the earliest date stored in db, across all requested collections. Formatted "d/m/y H:M" e.g. "06/07/14 06:38"')
+    parser.add_option("-e", "--end", dest="end", type="string", default="", metavar='E', help='end datetime of query, defaults to the latest date stored in db, across all requested collections. Formatted "d/m/y H:M" e.g. "06/07/14 06:38"')
     (options, args) = parser.parse_args(myargv)
 
     database_name = options.mongodb_name
