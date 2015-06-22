@@ -52,7 +52,7 @@ class MessageStoreProxy:
                                 rospy.wait_for_service(query_ids_service,5)
                                 rospy.wait_for_service(delete_service,5)
                                 break
-                        except ROSException, e:
+                        except rospy.ROSException, e:
                                 found_services_first_try = False
                                 rospy.logerr("Could not get message store services. Maybe the message "
                                              "store has not been started? Retrying..")
