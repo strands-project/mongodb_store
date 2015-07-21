@@ -22,12 +22,19 @@ class MessageStore(object):
 
         self.replicate_on_write = replicate_on_write
 
-        have_dc = dc_util.wait_for_mongo()
-        if not have_dc:
-            raise Exception("No Datacentre?")
+        use_daemon = rospy.get_param('mongodb_use_daemon')
+        db_host = rospy.get_param('mongodb_host')
+        db_port = rospy.get_param('mongodb_port')
+        if use_daemon:
+            is_daemon_alive = dc_util.check_connection_to_mongod(db_host, db_port)
+            if not is_daemon_alive:
+                raise Exception("No Daemon?")
+        else:
+            have_dc = dc_util.wait_for_mongo()
+            if not have_dc:
+                raise Exception("No Datacentre?")
 
-        self._mongo_client=MongoClient(rospy.get_param("mongodb_host"),
-                                              rospy.get_param("mongodb_port") )
+        self._mongo_client=MongoClient(db_host, db_port)
 
 
         extras = rospy.get_param('mongodb_store_extras', [])

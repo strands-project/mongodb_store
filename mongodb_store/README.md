@@ -35,7 +35,15 @@ By default, the mongod database will be stored in `/opt/strands/mongodb_store`. 
 
 If you prefer to use different mongodb instance, set the mongodb_* parameters accordingly.
 
+Or if you'd like to use existing mongod (e.g. mongod launched as Linux service)
 
+```
+rosparam set mongodb_use_daemon true
+rosparam set mongodb_port 62345
+rosparam set mongodb_host localhost
+
+roslaunch mongodb_store mongodb_store use_daemon:=true
+```
 
 Config Manager Overview
 -----------------------
