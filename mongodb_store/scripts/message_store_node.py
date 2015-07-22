@@ -22,7 +22,7 @@ class MessageStore(object):
 
         self.replicate_on_write = replicate_on_write
 
-        use_daemon = rospy.get_param('mongodb_use_daemon')
+        use_daemon = rospy.get_param('mongodb_use_daemon', False)
         db_host = rospy.get_param('mongodb_host')
         db_port = rospy.get_param('mongodb_port')
         if use_daemon:

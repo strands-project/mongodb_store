@@ -21,7 +21,7 @@ class Replicator(object):
     def __init__(self):
 
         # don't start up until master is there
-        use_daemon = rospy.get_param('mongodb_use_daemon')
+        use_daemon = rospy.get_param('mongodb_use_daemon', False)
         self.master_db_host = rospy.get_param('mongodb_host')
         self.master_db_port = rospy.get_param('mongodb_port')
         if use_daemon:

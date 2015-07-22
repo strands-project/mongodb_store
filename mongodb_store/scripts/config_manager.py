@@ -69,7 +69,7 @@ class ConfigManager(object):
         rospy.init_node("config_manager")
         rospy.on_shutdown(self._on_node_shutdown)
 
-        use_daemon = rospy.get_param('mongodb_use_daemon')
+        use_daemon = rospy.get_param('mongodb_use_daemon', False)
         db_host = rospy.get_param('mongodb_host')
         db_port = rospy.get_param('mongodb_port')
         if use_daemon:
