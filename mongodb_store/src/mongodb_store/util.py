@@ -12,6 +12,27 @@ from mongodb_store_msgs.srv import MongoQueryMsgRequest
 
 import importlib
 
+def check_connection_to_mongod(db_host, db_port):
+    """
+    Check connection to mongod server
+
+    :Returns:
+        | bool : True on success, False if connection is not established.
+    """
+    if check_for_pymongo():
+        try:
+            from pymongo import Connection
+            Connection(db_host, db_port)
+            return True
+        except Exception as e:
+            print("Error: %s" % str(e))
+            print("Could not connect to mongo server %s:%d" % (db_host, db_port))
+            print("Make sure mongod is launched on your specified host/port")
+            return False
+    else:
+        return False
+    
+
 def wait_for_mongo():
     """
     Waits for the mongo server, as started through the mongodb_store/mongodb_server.py wrapper

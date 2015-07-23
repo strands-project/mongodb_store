@@ -69,11 +69,18 @@ class ConfigManager(object):
         rospy.init_node("config_manager")
         rospy.on_shutdown(self._on_node_shutdown)
 
-        if not mongodb_store.util.wait_for_mongo():
-            sys.exit(1)
+        use_daemon = rospy.get_param('mongodb_use_daemon', False)
+        db_host = rospy.get_param('mongodb_host')
+        db_port = rospy.get_param('mongodb_port')
+        if use_daemon:
+            is_daemon_alive = mongodb_store.util.check_connection_to_mongod(db_host, db_port)
+            if not is_daemon_alive:
+                sys.exit(1)
+        else:
+            if not mongodb_store.util.wait_for_mongo():
+                sys.exit(1)
         
-        self._mongo_client = MongoClient(rospy.get_param("mongodb_host","localhost"),
-                                                 int(rospy.get_param("mongodb_port")))
+        self._mongo_client = MongoClient(db_host, db_port)
 
         self._database=self._mongo_client.config
         self._database.add_son_manipulator(MongoTransformer())
