@@ -2,8 +2,8 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.16 (2015-08-04)
+-------------------
 * use False as default value of param 'mongodb_use_daemon'
 * add option to use already launched mongod
 * Fix exception catch.
