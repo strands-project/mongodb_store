@@ -351,7 +351,7 @@ class SubprocessWorker(object):
 
 
 class MongoWriter(object):
-    def __init__(self, topics = [],
+    def __init__(self, topics = [], treat_as_regex=False,
                  all_topics = False, all_topics_interval = 5,
                  exclude_topics = [],
                  mongodb_host=None, mongodb_port=None, mongodb_name="roslog", mongodb_collection=None,
@@ -384,6 +384,8 @@ class MongoWriter(object):
             self.exclude_regex.append(re.compile(et))
         self.exclude_already = []
 
+        if treat_as_regex:
+            topics = self.expand_regex_to_topics(topics)
 
         self.missing_topics = self.subscribe_topics(set(topics))
         self.fill_in_topics()
@@ -395,6 +397,14 @@ class MongoWriter(object):
             self.update_topics(restart=False)
 
         self.start_all_topics_timer()
+
+    def expand_regex_to_topics(self, topics):
+        expanded_topics = []
+        published_topics = [t[0] for t in rospy.get_published_topics()]
+        for pattern in topics:
+            exp = re.compile(pattern)
+            expanded_topics += filter(lambda t: exp.match(t) is not None, published_topics)
+        return expanded_topics
 
     def subscribe_topics(self, topics):
 
@@ -611,6 +621,9 @@ def main(argv):
     parser.add_option("-a", "--all-topics", dest="all_topics", default=False,
                       action="store_true",
                       help="Log all existing topics (still excludes /rosout, /rosout_agg)")
+    parser.add_option("-e", "--regex", dest="treat_as_regex", default=False,
+                      help="Log topics matching the follow regular expression",
+                      action="store_true")
     parser.add_option("--all-topics-interval", dest="all_topics_interval", default=5,
                       help="Time in seconds between checks for new topics", type="int")
     parser.add_option("-x", "--exclude", dest="exclude",
@@ -631,6 +644,7 @@ def main(argv):
         print("Failed to communicate with master")
 
     mongowriter = MongoWriter(topics=args,
+                              treat_as_regex=options.treat_as_regex,
                               all_topics=options.all_topics,
                               all_topics_interval = options.all_topics_interval,
                               exclude_topics = options.exclude,
