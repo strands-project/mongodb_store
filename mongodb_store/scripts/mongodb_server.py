@@ -8,6 +8,7 @@ import re
 import signal
 import errno
 from std_srvs.srv import *
+import shutil
 
 import mongodb_store.util
 
@@ -35,11 +36,11 @@ class MongoServer(object):
         self._ready = False # is the db ready: when mongo says "waiting for connection"
 
 
-        test_mode = rospy.get_param("~test_mode", False)
+        self.test_mode = rospy.get_param("~test_mode", False)
         self.repl_set = rospy.get_param("~repl_set", None)
 
 
-        if test_mode:
+        if self.test_mode:
             import random
             
             default_host = "localhost"            
@@ -53,15 +54,15 @@ class MongoServer(object):
                     rospy.logerr("Can't find a free port to run the test server on.")
                     sys.exit(1)                    
             
-            default_path = "/tmp/ros_mongodb_store_%d" % default_port
-            os.mkdir(default_path)
+            self.default_path = "/tmp/ros_mongodb_store_%d" % default_port
+            os.mkdir(self.default_path)
         else:
             default_host = "localhost"
             default_port = 27017
-            default_path = "/opt/ros/mongodb_store"
+            self.default_path = "/opt/ros/mongodb_store"
 
         # Get the database path
-        self._db_path = rospy.get_param("~database_path", default_path)
+        self._db_path = rospy.get_param("~database_path", self.default_path)
         is_master = rospy.get_param("~master", True)
 
         if is_master:
@@ -160,7 +161,12 @@ class MongoServer(object):
             c.admin.command("shutdown")
         except pymongo.errors.AutoReconnect, a:
             pass
-
+        
+        if self.test_mode:  # remove auto-created DB in the /tmp folder
+            try:
+                shutil.rmtree(self.default_path)
+            except Exception,e:
+                rospy.logerr(e)
 
     def _shutdown_srv_cb(self,req):
         rospy.signal_shutdown("Shutdown request..")
