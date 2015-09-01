@@ -2,8 +2,8 @@
 Changelog for package mongodb_log
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.17 (2015-09-01)
+-------------------
 * Added std namespace usage to tf logger.
 * Contributors: Nick Haes
 
