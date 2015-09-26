@@ -38,6 +38,9 @@ class Replicator(object):
             raise Exception("No master datacentre found using mongodb_host and mongodb_port")
 
         self.server = actionlib.SimpleActionServer('move_mongodb_entries', MoveEntriesAction, self.move_entries, False)
+        self.server.register_preempt_callback(self.do_cancel)
+        self.restore_process = None
+        self.dump_process = None
         self.server.start()
         self.dump_path = rospy.get_param("~replicator_dump_path", '/tmp/mongodb_replicator')
         rospy.loginfo("Replicator node dumping to %s" % self.dump_path)
@@ -107,13 +110,19 @@ class Replicator(object):
         # clean up
         self.remove_path()
 
-        self.server.set_succeeded()    
+        if self.server.is_preempt_requested():
+            self.server.set_preempted()
+        else:
+            self.server.set_succeeded()
 
     def do_restore(self, extras, db='message_store'):       
         # restore collection to extras
         for extra in extras:            
+            if self.server.is_preempt_requested():
+                break
             rest_args = ['mongorestore',  '--host',  extra.host, '--port',  str(extra.port), self.dump_path]
-            subprocess.call(rest_args)    
+            self.restore_process = subprocess.Popen(rest_args)
+            self.restore_process.wait()
 
 
     def do_delete(self, collection, master, less_time_time=None, db='message_store'):       
@@ -139,9 +148,21 @@ class Replicator(object):
 
         # print args
 
-        subprocess.call(args)
+        self.dump_process = subprocess.Popen(args)
+        self.dump_process.wait()
 
 
+    def do_cancel(self):
+        if self.restore_process is not None and self.restore_process.poll() is None:
+            rospy.loginfo("mongorestore process is being terminated...")
+            self.restore_process.terminate()
+        if self.dump_process is not None and self.dump_process.poll() is None:
+            rospy.loginfo("mongodump process is being terminated...")
+            self.dump_process.terminate()
+        if self.restore_process is not None:
+            self.restore_process.wait()
+        if self.dump_process is not None:
+            self.dump_process.wait()
 
 if __name__ == '__main__':
     rospy.init_node("mongodb_replicator")
