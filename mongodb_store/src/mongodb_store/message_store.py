@@ -45,7 +45,7 @@ class MessageStoreProxy:
 		query_ids_service = service_prefix + '/query_messages'
                 # try and get the mongo service, block until available
                 found_services_first_try = True # if found straight away
-                while True:
+                while not rospy.is_shutdown():
                         try:
                                 rospy.wait_for_service(insert_service,5)
                                 rospy.wait_for_service(update_service,5)
