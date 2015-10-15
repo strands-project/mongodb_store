@@ -335,7 +335,7 @@ def dictionary_to_message(dictionary, cls):
     fill_message(message, dictionary)
     return message
 
-def query_message(collection, query_doc, sort_query=[], find_one=False):
+def query_message(collection, query_doc, sort_query=[], find_one=False, limit=0):
     """
     Peform a query for a stored messages, returning results in list.
 
@@ -344,6 +344,7 @@ def query_message(collection, query_doc, sort_query=[], find_one=False):
         | query_doc (dict): The MongoDB query to execute
         | sort_query (list of tuple): The MongoDB query to sort
         | find_one (bool): Returns one matching document if True, otherwise all matching.
+        | limit (int): Limits number of return documents. 0 means no limit
     :Returns:
         | dict or list of dict: the MongoDB document(s) found by the query
     """
@@ -360,9 +361,9 @@ def query_message(collection, query_doc, sort_query=[], find_one=False):
             return []
     else:
         if sort_query:
-            return [ result for result in collection.find(query_doc).sort(sort_query) ]
+            return [ result for result in collection.find(query_doc).sort(sort_query).limit(limit) ]
         else:
-            return [ result for result in collection.find(query_doc) ]
+            return [ result for result in collection.find(query_doc).limit(limit) ]
 
 def update_message(collection, query_doc, msg, meta, upsert):
     """

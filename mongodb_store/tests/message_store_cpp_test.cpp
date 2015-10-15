@@ -123,7 +123,18 @@ TEST(ROSDatacentre, cppTest)
 		EXPECT_EQ(0, results.size());
 	}
 
-
+        results.clear();
+        for(int i = 0; i < 100; ++i) {
+          geometry_msgs::Pose p;
+          p.orientation.z = i;
+          messageStore.insert<Pose>(p);
+        }
+        if(messageStore.query<Pose>(results, mongo::BSONObj(), mongo::BSONObj(), false, 10)){
+          EXPECT_EQ(10, results.size());
+        }
+        else {
+          ADD_FAILURE() << "Documents are not limited";
+        }
 }
 
 /**

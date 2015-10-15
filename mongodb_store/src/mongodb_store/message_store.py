@@ -125,7 +125,7 @@ class MessageStoreProxy:
 		"""
 		return self.delete_srv(self.database, self.collection, message_id)
 
-	def query_named(self, name, type, single = True, meta = {}):
+	def query_named(self, name, type, single = True, meta = {}, limit = 0):
 		"""
 		Finds and returns the message(s) with the given name.
 		
@@ -134,6 +134,7 @@ class MessageStoreProxy:
 		    | type (str): The type of the stored message.
 		    | single (bool): Should only one message be returned?
 		    | meta (dict): Extra queries on the meta data of the message.
+                    | limit (int): Limit number of return documents
 		:Return:
 		    | message (ROS message), meta (dict): The retrieved message and associated metadata
 		      or *None* if the named message could not be found.
@@ -142,7 +143,7 @@ class MessageStoreProxy:
 		# create a copy as we're modifying it
 		meta_copy = copy.copy(meta)
 		meta_copy["name"] = name
-		return self.query(type, {}, meta_copy, single)
+		return self.query(type, {}, meta_copy, single, [], limit)
 
 	def update_named(self, name, message, meta = {}, upsert = False):
 		"""
@@ -211,7 +212,7 @@ class MessageStoreProxy:
 	"""
 	Returns [message, meta] where message is the queried message and meta a dictionary of meta information. If single is false returns a list of these lists.
 	"""
-	def query(self, type, message_query = {}, meta_query = {}, single = False, sort_query = []):
+	def query(self, type, message_query = {}, meta_query = {}, single = False, sort_query = [], limit=0):
 		"""
 		Finds and returns message(s) matching the message and meta data queries.
 		
@@ -221,6 +222,7 @@ class MessageStoreProxy:
 		    | meta_query (dict): A query to match against the meta data of the message
 		    | sort_query (list of tuple): A query to request sorted list to mongodb module
 		    | single (bool): Should only one message be returned?
+                    | limit (int): Limit number of return documents
 		:Returns:
 		    | [message, meta] where message is the queried message and meta a dictionary of
 		      meta information. If single is false returns a list of these lists.
@@ -236,7 +238,7 @@ class MessageStoreProxy:
 				sort_tuple = []
 
 		# a tuple of SerialisedMessages
-		response = self.query_id_srv(self.database, self.collection, type, single, StringPairList(message_tuple), StringPairList(meta_tuple), StringPairList(sort_tuple))
+		response = self.query_id_srv(self.database, self.collection, type, single, limit, StringPairList(message_tuple), StringPairList(meta_tuple), StringPairList(sort_tuple))
 
 		# print response
 
