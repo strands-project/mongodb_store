@@ -24,7 +24,7 @@
   <group unless="$(arg use_daemon)">
 	<!-- launch in test mode -->
 	<group if="$(arg test_mode)">
-		<node name="mongo_server" pkg="mongodb_store" type="mongodb_server.py" output="screen">
+		<node name="mongo_server" pkg="mongodb_store" type="mongodb_server.py" output="screen" machine="$(arg machine)">
 			<param name="test_mode" value="true"/>
 		</node>
 	</group>
@@ -34,21 +34,21 @@
 		<param name="mongodb_port" value="$(arg port)" />
 		<param name="mongodb_host" value="$(optenv HOSTNAME localhost)" />
  
-	  <node name="mongo_server" pkg="mongodb_store" type="mongodb_server.py" output="screen">
+	  <node name="mongo_server" pkg="mongodb_store" type="mongodb_server.py" output="screen" machine="$(arg machine)">
 	    <param name="database_path" value="$(arg db_path)"/>
 	    <param name="repl_set" value="$(arg repl_set)" if="$(arg use_repl_set)" />
 	  </node>
 	</group>
   </group>
 
-  <node name="config_manager" pkg="mongodb_store" type="config_manager.py" output="screen">
+  <node name="config_manager" pkg="mongodb_store" type="config_manager.py" output="screen" machine="$(arg machine)">
     <param name="defaults_path" value="$(arg defaults_path)"/>
   </node>
 
-  <node name="message_store" pkg="mongodb_store" type="message_store_node.py" output="screen"/>
+  <node name="message_store" pkg="mongodb_store" type="message_store_node.py" output="screen" machine="$(arg machine)"/>
 
 
-  <node name="replicator_node" pkg="mongodb_store" type="replicator_node.py" output="screen">
+  <node name="replicator_node" pkg="mongodb_store" type="replicator_node.py" output="screen" machine="$(arg machine)">
     <param name="replicator_dump_path" value="$(arg replicator_dump_path)"/>
   </node>
 </launch>
