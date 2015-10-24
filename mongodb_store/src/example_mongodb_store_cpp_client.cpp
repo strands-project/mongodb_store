@@ -73,6 +73,10 @@ int main(int argc, char **argv)
 	{
 		ROS_INFO_STREAM("Got: " << *p);
 	}
+
+        messageStore.query<Pose>(results, mongo::BSONObj(), mongo::BSONObj(), false, 2); // limit=2
+        ROS_INFO_STREAM("Got: " << results.size() << " messages.");
+        
 	
 	messageStore.deleteID(id);
 

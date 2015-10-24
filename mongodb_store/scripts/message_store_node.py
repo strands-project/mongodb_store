@@ -194,13 +194,13 @@ class MessageStore(object):
             except ValueError:
                 sort_query_tuples.append((k,v))
 
-        entries =  dc_util.query_message(collection, obj_query, sort_query_tuples, req.single)
+        entries =  dc_util.query_message(collection, obj_query, sort_query_tuples, req.single, req.limit)
 
         # keep trying clients until we find an answer
         for extra_client in self.extra_clients:
             if len(entries) == 0:
                 extra_collection = extra_client[req.database][req.collection]            
-                entries =  dc_util.query_message(extra_collection, obj_query, sort_query_tuples, req.single)
+                entries =  dc_util.query_message(extra_collection, obj_query, sort_query_tuples, req.single, req.limit)
                 if len(entries) > 0:
                     rospy.loginfo("found result in extra datacentre")             
             else:

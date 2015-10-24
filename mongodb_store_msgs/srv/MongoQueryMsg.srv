@@ -9,6 +9,8 @@ string collection
 string type
 # whether you're only looking for a single 
 bool single
+# how much messages you want. limit=0 is equivalent to setting no limit.
+uint16 limit
 # key/values to be turned into a query doc on message content
 StringPairList message_query
 # key/values to be turned into a query doc on meta content

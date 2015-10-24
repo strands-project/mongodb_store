@@ -55,6 +55,11 @@ class TestMessageStoreProxy(unittest.TestCase):
         result = msg_store.query(Pose._type, message_query={ 'orientation.z': {'$gt': 10} }, sort_query=[("$natural", -1)])
         self.assertEqual(len(result), 100)
         self.assertEqual(result[0][0].orientation.x, 99)
+
+        # get documents with limit
+        result_limited = msg_store.query(Pose._type, message_query={'orientation.z': {'$gt': 10} }, sort_query=[("$natural", 1)], limit=10)
+        self.assertEqual(len(result_limited), 10)
+        self.assertListEqual([int(doc[0].orientation.x) for doc in result_limited], range(10))
         
         # must remove the item or unittest only really valid once
         print meta["_id"]
