@@ -2,7 +2,7 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
+0.1.18 (2015-10-28)
 -------------------
 * Split mongodb_store launch file into two.
   This now provides mongodb_store_inc.launch which assumes that a machine tag has been previously set, and is provided by the machine arg. The original mongodb_store.launch file defines a machine tag then calls the _inc.launch file. This design minimises duplication as far as possible, but is still a bit inelegant. The reason we couldn't do everything with a single file, as discussed in `#148 <https://github.com/strands-project/mongodb_store/issues/148>`_, is we can't test whether an argument has been set in roslaunch so we don't know when to define a machine tag ourselves. The additional boolean flag to dictate this definition was not a nice solution either.
