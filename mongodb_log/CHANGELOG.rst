@@ -13,6 +13,7 @@ Changelog for package mongodb_log
 0.1.19 (2015-10-28)
 -------------------
 
+
 0.1.18 (2015-10-28)
 -------------------
 * Added std namespace usage to tf logger.

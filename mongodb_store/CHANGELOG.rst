@@ -20,6 +20,7 @@ Changelog for package mongodb_store
 0.1.19 (2015-10-28)
 -------------------
 
+
 0.1.18 (2015-10-28)
 -------------------
 * Split mongodb_store launch file into two.
