@@ -2,6 +2,21 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Split mongodb_store launch file into two.
+  This now provides mongodb_store_inc.launch which assumes that a machine tag has been previously set, and is provided by the machine arg. The original mongodb_store.launch file defines a machine tag then calls the _inc.launch file. This design minimises duplication as far as possible, but is still a bit inelegant. The reason we couldn't do everything with a single file, as discussed in `#148 <https://github.com/strands-project/mongodb_store/issues/148>`_, is we can't test whether an argument has been set in roslaunch so we don't know when to define a machine tag ourselves. The additional boolean flag to dictate this definition was not a nice solution either.
+  This supercedes  `#148 <https://github.com/strands-project/mongodb_store/issues/148>`_
+* Trying to find why cpp test fails. It appears to be a local issue with library paths not getting passed properly. SOme mention of this is here https://github.com/mikepurvis/ros-install-osx/issues/12
+* [mongodb_store] add limit argument for query
+* [replicator_node.py] add cancel handler for replication
+* [mongodb_store/message_store.py] suppress infinite error output when shutdown without finding mongodb service
+* Fix: remove auto-generated databases in /tmp after a test has been completed that may e.g. fill up the harddisk of a Jenkins server
+* minor help edit
+* logging messages commented
+* aded support for start and end times of playback
+* Contributors: Moritz Tenorth, Nick Hawes, Vojtech Novak, Yuki Furuta
+
 0.1.16 (2015-08-04)
 -------------------
 * use False as default value of param 'mongodb_use_daemon'
