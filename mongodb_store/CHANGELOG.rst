@@ -2,6 +2,9 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.1.19 (2015-10-28)
+-------------------
+
 0.1.18 (2015-10-28)
 -------------------
 * Split mongodb_store launch file into two.
@@ -19,7 +22,9 @@ Changelog for package mongodb_store
 
 0.1.17 (2015-09-01)
 -------------------
-
+* Added dependency on jade package for legacy mongodb c++ driver. Updated the CMake file to search this location too.
+* Fix: remove auto-generated databases in /tmp after a test has been completed that may e.g. fill up the harddisk of a Jenkins server
+* Contributors: Moritz Tenorth, Nick Hawes
 
 0.1.16 (2015-08-04)
 -------------------

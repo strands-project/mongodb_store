@@ -37,7 +37,7 @@
 
 
 using namespace mongo;
-
+using namespace std;
 
 typedef struct {
   geometry_msgs::TransformStamped tsTransform;
@@ -46,7 +46,7 @@ typedef struct {
 float fVectorialDistanceThreshold;
 float fAngularDistanceThreshold;
 float fTimeDistanceThreshold;
-list<PoseStampedMemoryEntry> lstPoseStampedMemory;
+std::list<PoseStampedMemoryEntry> lstPoseStampedMemory;
 bool bAlwaysLog;
 
 DBClientConnection *mongodb_conn;
@@ -63,7 +63,7 @@ static pthread_mutex_t out_counter_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t drop_counter_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t qsize_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-bool shouldLogTransform(std::vector<geometry_msgs::TransformStamped>::const_iterator t) {
+bool shouldLogTransform(typename std::vector<geometry_msgs::TransformStamped>::const_iterator t) {
   if(bAlwaysLog) {
     // When this flag is set, always return true immediately (and
     // don't keep track of logged transforms).

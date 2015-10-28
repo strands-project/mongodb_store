@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>mongodb_store</name>
-  <version>0.1.18</version>
+  <version>0.1.19</version>
   <description>A package to support MongoDB-based storage and analysis for data from a ROS system, eg. saved messages, configurations etc</description>
 
   <maintainer email="cburbridge@gmail.com">Chris Burbridge</maintainer>
@@ -25,6 +25,7 @@
   <build_depend>python-catkin-pkg</build_depend>
   <build_depend>mongodb</build_depend>
   <build_depend>mongodb-dev</build_depend>
+  <build_depend>mongo_cxx_driver</build_depend>
   <build_depend>libssl-dev</build_depend>
   <!-- Used for examples -->
   <build_depend>geometry_msgs</build_depend>
@@ -36,6 +37,7 @@
   <run_depend>python-pymongo</run_depend>
   <run_depend>mongodb</run_depend>
   <run_depend>mongodb-dev</run_depend>
+  <run_depend>mongo_cxx_driver</run_depend>
   <run_depend>mongodb_store_msgs</run_depend>
   <!-- Used for examples -->
   <run_depend>geometry_msgs</run_depend>
