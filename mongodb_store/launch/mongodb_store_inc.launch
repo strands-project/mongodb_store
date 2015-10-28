@@ -1,0 +1,51 @@
+<launch>
+
+  <!-- This launch file assumes that the machine tag named with the "machine" arg was set previously. If this is not the case then call mongodb_store.launch instead which will set the machine tag for you. This should typically be called within a larger roslaunch structure. -->
+
+  <arg name="db_path" default="/var/local/mongodb_store"/>
+  <arg name="port" default="62345" />
+  <arg name="defaults_path" default=""/>
+  <arg name="replicator_dump_path" default="/tmp/replicator_dumps"/>
+  <arg name="use_daemon" default="false" />
+
+  <arg name="machine"/>
+  <arg name="test_mode" default="false" />
+  <arg name="use_repl_set" default="false" />
+  <arg name="repl_set" default="rs0" />
+
+  <param name="mongodb_use_daemon" value="$(arg use_daemon)" />
+  <group if="$(arg use_daemon)">
+    <param name="mongodb_port" value="$(arg port)" />
+    <param name="mongodb_host" value="$(optenv HOSTNAME localhost)" />
+  </group>
+  <group unless="$(arg use_daemon)">
+  	<!-- launch in test mode -->
+  	<group if="$(arg test_mode)">
+  		<node name="mongo_server" pkg="mongodb_store" type="mongodb_server.py" machine="$(arg machine)">
+  			<param name="test_mode" value="true"/>
+  		</node>
+  	</group>
+  	<!-- launch in non-test, i.e. normal, mode -->
+  	<group unless="$(arg test_mode)">
+  		<param name="mongodb_port" value="$(arg port)" />
+  		<param name="mongodb_host" value="$(optenv HOSTNAME localhost)" />
+   
+  	  <node name="mongo_server" pkg="mongodb_store" type="mongodb_server.py" machine="$(arg machine)">
+  	    <param name="database_path" value="$(arg db_path)"/>
+  	    <param name="repl_set" value="$(arg repl_set)" if="$(arg use_repl_set)" />
+  	  </node>
+  	</group>
+  </group>
+
+  <node name="config_manager" pkg="mongodb_store" type="config_manager.py" machine="$(arg machine)">
+    <param name="defaults_path" value="$(arg defaults_path)"/>
+  </node>
+
+  <node name="message_store" pkg="mongodb_store" type="message_store_node.py" machine="$(arg machine)"/>
+
+  <node name="replicator_node" pkg="mongodb_store" type="replicator_node.py" machine="$(arg machine)">
+    <param name="replicator_dump_path" value="$(arg replicator_dump_path)"/>
+  </node>
+
+</launch>
+
