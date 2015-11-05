@@ -115,8 +115,12 @@ class TopicPlayer(PlayerProcess):
         # load message class for this collection, they should all be the same
         msg_cls = mg_util.load_class(documents[0]["_meta"]["stored_class"])
 
+        latch = False
+        if "latch" in documents[0]["_meta"]:
+            latch = documents[0]["_meta"]["latch"]
+
         # publisher won't be used until something is on the queue, so it's safe to construct it here
-        self.publisher = rospy.Publisher(documents[0]["_meta"]["topic"], msg_cls, latch = documents[0]["_meta"]["latch"], queue_size = 10)
+        self.publisher = rospy.Publisher(documents[0]["_meta"]["topic"], msg_cls, latch = latch, queue_size = 10)
 
         for document in documents:
             if running.value:
@@ -170,7 +174,7 @@ class TopicPlayer(PlayerProcess):
                 
 
         self.queue_thread.join()
-        self.mongo_client.disconnect()
+        self.mongo_client.close()
         rospy.loginfo('Topic playback finished %s' % self.collection.name)            
 
 
@@ -284,19 +288,19 @@ class MongoPlayback(object):
 
         if len(start_dt)==0:
             # get the min and max time across all collections, conver to ros time
-            start_time = to_ros_time(min(map(min_time, collections)))
+            start_time = to_ros_time(min(map(min_time, [collection for collection in collections if collection.count() > 0])))
         else:
             start_time = to_ros_time(mkdatetime(start_dt))
 
 
         if len(end_dt)==0:
-            end_time =  to_ros_time(max(map(max_time, collections)))
+            end_time =  to_ros_time(max(map(max_time, [collection for collection in collections if collection.count() > 0])))
         else:
             end_time = to_ros_time(mkdatetime(end_dt))
 
 
         # we don't need a connection any more
-        self.mongo_client.disconnect()
+        self.mongo_client.close()
 
         # rospy.loginfo('Playing back from %s' % to_datetime(start_time))
         # rospy.loginfo('.............. to %s' % to_datetime(end_time))
@@ -358,7 +362,7 @@ def main(argv):
     parser = OptionParser()
     parser.usage += " [TOPICs...]"
     parser.add_option("--mongodb-name", dest="mongodb_name",
-                      help="Name of DB in which to store values",
+                      help="Name of DB from which to retrieve values",
                       metavar="NAME", default="roslog")
     parser.add_option("-s", "--start", dest="start", type="string", default="", metavar='S', help='start datetime of query, defaults to the earliest date stored in db, across all requested collections. Formatted "d/m/y H:M" e.g. "06/07/14 06:38"')
     parser.add_option("-e", "--end", dest="end", type="string", default="", metavar='E', help='end datetime of query, defaults to the latest date stored in db, across all requested collections. Formatted "d/m/y H:M" e.g. "06/07/14 06:38"')
