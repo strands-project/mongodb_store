@@ -14,6 +14,7 @@ import subprocess
 from mongodb_store_msgs.msg import  MoveEntriesAction, MoveEntriesFeedback
 from datetime import *
 
+
 import mongodb_store.util
 MongoClient = mongodb_store.util.import_MongoClient()
 
@@ -22,15 +23,19 @@ class Replicator(object):
 
         # don't start up until master is there
         use_daemon = rospy.get_param('mongodb_use_daemon', False)
-        self.master_db_host = rospy.get_param('mongodb_host')
-        self.master_db_port = rospy.get_param('mongodb_port')
+
+
         if use_daemon:
+            self.master_db_host = rospy.get_param('mongodb_host')
+            self.master_db_port = rospy.get_param('mongodb_port')        
             is_daemon_alive = mongodb_store.util.check_connection_to_mongod(self.master_db_host, self.master_db_port)
             if not is_daemon_alive:
                 raise Exception("No Daemon?")
         else:
             if not mongodb_store.util.wait_for_mongo():
                 raise Exception("No Datacentre?")
+            self.master_db_host = rospy.get_param('mongodb_host')
+            self.master_db_port = rospy.get_param('mongodb_port')        
         
         # this is just a test, connections are remade every call for long-running processes
         master, extras = self.make_connections()
