@@ -2,8 +2,8 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.20 (2015-11-11)
+-------------------
 * Added some extra robustness to mongodb_play. This means latch does not need to be defined as in `#123 <https://github.com/strands-project/mongodb_store/issues/123>`_.
 * Added corrected wait pattern to replicator node start-up
 * making mongod using smaller files
