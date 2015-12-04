@@ -124,7 +124,7 @@ Launch files
 Both mongodb and config_manager can be started together using the datacentre.launch file:
 
 ```
-HOSTNAME=yourhost roslaunch mongodb_store datacentre.launch db_path:=/path/to/db db_port:=62345
+HOSTNAME=yourhost roslaunch mongodb_store mongodb_store.launch db_path:=/path/to/db db_port:=62345
 ```
 
 The HOSTNAME env variable is required; db_path will default to /opt/strands/mongodb_store and db_port will default to 62345. 
