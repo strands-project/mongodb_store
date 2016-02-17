@@ -11,6 +11,7 @@ from mongodb_store_msgs.msg import SerialisedMessage
 from mongodb_store_msgs.srv import MongoQueryMsgRequest
 
 import importlib
+from datetime import datetime
 
 def check_connection_to_mongod(db_host, db_port):
     """
@@ -220,7 +221,23 @@ def store_message(collection, msg, meta, oid=None):
     #  also store type information
     doc["_meta"]["stored_class"] = msg.__module__ + "." + msg.__class__.__name__
     doc["_meta"]["stored_type"] = msg._type
+     
+    from datetime import datetime
 
+    if hasattr(msg, 'pose'):
+    	doc["loc"] = [doc["pose"]["position"]["x"],doc["pose"]["position"]["y"]]
+    
+    if hasattr(msg,'logtime'):
+	doc["timestamp"] = datetime.strptime(doc["logtime"], "%Y-%m-%dT%H:%M:%SZ")
+    
+    if hasattr(msg, 'geotype'):
+	coordinates = []
+	print "hello"
+	for p in doc["geoposearray"]["poses"]:
+		coordinates.append([p["position"]["x"], p["position"]["y"]])
+		print p
+	doc['geoloc'] = {'type': 'Polygon','coordinates': coordinates}
+    	
 
     if hasattr(msg, '_connection_header'):
         print getattr(msg, '_connection_header')
@@ -391,6 +408,20 @@ def update_message(collection, query_doc, msg, meta, upsert):
 
     # convert msg to db document
     doc=msg_to_document(msg)
+
+    if hasattr(msg, 'pose'):
+    	doc["loc"] = [doc["pose"]["position"]["x"],doc["pose"]["position"]["y"]]
+    
+    if hasattr(msg,'logtime'):
+	doc["timestamp"] = datetime.strptime(doc["logtime"], "%Y-%m-%dT%H:%M:%SZ")
+    
+    if hasattr(msg, 'geotype'):
+	coordinates = []
+	print "hello"
+	for p in doc["geoposearray"]["poses"]:
+		coordinates.append([p["position"]["x"], p["position"]["y"]])
+		print p
+	doc['geoloc'] = {'type': 'Polygon','coordinates': coordinates}
     
     #update _meta
     doc["_meta"] = result["_meta"]

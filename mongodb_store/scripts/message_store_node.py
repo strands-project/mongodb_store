@@ -7,8 +7,9 @@ Provides a service to store ROS message objects in a mongodb database in JSON.
 
 import rospy
 import mongodb_store_msgs.srv as dc_srv
-import mongodb_store.util as dc_util
+import mongodb_store_modified.util as dc_util
 import pymongo
+from pymongo import GEO2D
 import json
 from bson import json_util
 from mongodb_store_msgs.msg import  StringPair, StringPairList
@@ -21,6 +22,8 @@ class MessageStore(object):
     def __init__(self, replicate_on_write=False):
 
         self.replicate_on_write = replicate_on_write
+
+	self.checker = False
 
         use_daemon = rospy.get_param('mongodb_use_daemon', False)
         if use_daemon:            
@@ -74,12 +77,32 @@ class MessageStore(object):
         meta = dc_util.string_pair_list_to_dictionary(req.meta)
         # get requested collection from the db, creating if necessary
         collection = self._mongo_client[req.database][req.collection]
+	
+	#check if the object has the location attribute
+	if hasattr(obj, 'pose'):
+	  # print "I have attribute"
+	   # if it does create a location index
+    	   collection.create_index([("loc", pymongo.GEO2D)])
+	#else:
+	 #  print "I don't have attribute"
+	
+	#check if the object has the timestamp attribute TODO ?? really necessary
+	#if hasattr(obj, 'logtimestamp'):
+	   # if it does create a location index
+    	 #  collection.create_index([("datetime", pymongo.GEO2D)])
+
+	#if self.checker == False:
+	#   self.checker = True
+	
+	#   rospy.loginfo("Hello")
 
         # try:
         meta['inserted_at'] = datetime.utcfromtimestamp(rospy.get_rostime().to_sec())
         meta['inserted_by'] = req._connection_header['callerid']
+        #meta['foo'] = 'bar'
+	#obj['loc2'] = [5,5]
         obj_id = dc_util.store_message(collection, obj, meta)
-
+      
 
         if self.replicate_on_write:            
             # also do insert to extra datacentres, making sure object ids are consistent
