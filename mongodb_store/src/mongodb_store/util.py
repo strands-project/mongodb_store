@@ -231,12 +231,16 @@ def store_message(collection, msg, meta, oid=None):
 	doc["timestamp"] = datetime.strptime(doc["logtime"], "%Y-%m-%dT%H:%M:%SZ")
     
     if hasattr(msg, 'geotype'):
-	coordinates = []
-	print "hello"
-	for p in doc["geoposearray"]["poses"]:
+	if(doc["geotype"] == "Point"):
+          for p in doc["geoposearray"]["poses"]:
+	   doc["geoloc"] = {'type': doc['geotype'],'coordinates': [p["position"]["x"], p["position"]["y"]]}
+        else:
+	   coordinates = []
+	#print "hello"
+	   for p in doc["geoposearray"]["poses"]:
 		coordinates.append([p["position"]["x"], p["position"]["y"]])
-		print p
-	doc['geoloc'] = {'type': 'Polygon','coordinates': coordinates}
+		#print p
+		doc["geoloc"] = {'type': doc['geotype'],'coordinates': coordinates}
     	
 
     if hasattr(msg, '_connection_header'):
@@ -421,7 +425,7 @@ def update_message(collection, query_doc, msg, meta, upsert):
 	for p in doc["geoposearray"]["poses"]:
 		coordinates.append([p["position"]["x"], p["position"]["y"]])
 		print p
-	doc['geoloc'] = {'type': 'Polygon','coordinates': coordinates}
+	doc['geoloc'] = {'type': doc['geotype'],'coordinates': coordinates}
     
     #update _meta
     doc["_meta"] = result["_meta"]

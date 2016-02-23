@@ -7,7 +7,7 @@ Provides a service to store ROS message objects in a mongodb database in JSON.
 
 import rospy
 import mongodb_store_msgs.srv as dc_srv
-import mongodb_store_modified.util as dc_util
+import mongodb_store.util as dc_util
 import pymongo
 from pymongo import GEO2D
 import json
@@ -83,6 +83,11 @@ class MessageStore(object):
 	  # print "I have attribute"
 	   # if it does create a location index
     	   collection.create_index([("loc", pymongo.GEO2D)])
+        #check if the object has the location attribute
+	if hasattr(obj, 'geotype'):
+	 #  print "I have attribute"
+	   # if it does create a location index
+    	   collection.create_index([("geoloc", pymongo.GEOSPHERE)])
 	#else:
 	 #  print "I don't have attribute"
 	
