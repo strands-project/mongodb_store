@@ -2,12 +2,20 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Update README.md
+  `datacentre.launch` has not existed for a long while, I think it should be `mongodb_store.launch` instead?
+* Contributors: Nils Bore
+
+
 0.1.20 (2015-11-11)
 -------------------
 * Added some extra robustness to mongodb_play. This means latch does not need to be defined as in `#123 <https://github.com/strands-project/mongodb_store/issues/123>`_.
 * Added corrected wait pattern to replicator node start-up
 * making mongod using smaller files
   consuming less space. The journals are massive, to the point they can't be created on jenkins.
+
 
 0.1.19 (2015-10-28)
 -------------------
