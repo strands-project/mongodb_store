@@ -2,7 +2,7 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
+0.1.22 (2016-02-23)
 -------------------
 * Update README.md
   `datacentre.launch` has not existed for a long while, I think it should be `mongodb_store.launch` instead?
