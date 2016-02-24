@@ -3,7 +3,7 @@ Changelog for package mongodb_store_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
-0.1.22 (2016-02-23)
+Forthcoming
 -------------------
 
 
