@@ -2,7 +2,7 @@
 Changelog for package mongodb_log
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
+0.1.22 (2016-02-24)
 -------------------
 
 
