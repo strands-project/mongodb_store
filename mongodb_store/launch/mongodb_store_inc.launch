@@ -16,7 +16,7 @@
   <param name="mongodb_use_daemon" value="$(arg use_daemon)" />
   <group if="$(arg use_daemon)">
     <param name="mongodb_port" value="$(arg port)" />
-    <param name="mongodb_host" value="$(optenv HOSTNAME localhost)" />
+    <param name="mongodb_host" value="$(optenv ROS_HOSTNAME localhost)" />
   </group>
   <group unless="$(arg use_daemon)">
   	<!-- launch in test mode -->
