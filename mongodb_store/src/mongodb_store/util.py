@@ -227,20 +227,23 @@ def store_message(collection, msg, meta, oid=None):
     if hasattr(msg, 'pose'):
     	doc["loc"] = [doc["pose"]["position"]["x"],doc["pose"]["position"]["y"]]
     
-    if hasattr(msg,'logtime'):
-	doc["timestamp"] = datetime.strptime(doc["logtime"], "%Y-%m-%dT%H:%M:%SZ")
+    if hasattr(msg,'logtimestamp'):
+	doc["timestamp"] = datetime.utcfromtimestamp(doc["logtimestamp"])
+	#doc["timestamp"] = datetime.strptime(doc["logtime"], "%Y-%m-%dT%H:%M:%SZ")
     
     if hasattr(msg, 'geotype'):
 	if(doc["geotype"] == "Point"):
           for p in doc["geoposearray"]["poses"]:
 	   doc["geoloc"] = {'type': doc['geotype'],'coordinates': [p["position"]["x"], p["position"]["y"]]}
-        else:
+        elif(doc["geotype"]=="Polygon"):
 	   coordinates = []
 	#print "hello"
 	   for p in doc["geoposearray"]["poses"]:
 		coordinates.append([p["position"]["x"], p["position"]["y"]])
 		#print p
-		doc["geoloc"] = {'type': doc['geotype'],'coordinates': coordinates}
+	   coordinates2=[]
+	   coordinates2.append(coordinates)
+	   doc["geoloc"] = {'type': doc['geotype'],'coordinates': coordinates2}
     	
 
     if hasattr(msg, '_connection_header'):
@@ -417,15 +420,22 @@ def update_message(collection, query_doc, msg, meta, upsert):
     	doc["loc"] = [doc["pose"]["position"]["x"],doc["pose"]["position"]["y"]]
     
     if hasattr(msg,'logtime'):
-	doc["timestamp"] = datetime.strptime(doc["logtime"], "%Y-%m-%dT%H:%M:%SZ")
+	doc["timestamp"] = datetime.datetime.utcfromtimestamp(doc["logtime"], None)
+	#doc["timestamp"] = datetime.strptime(doc["logtime"], "%Y-%m-%dT%H:%M:%SZ")
     
     if hasattr(msg, 'geotype'):
-	coordinates = []
-	print "hello"
-	for p in doc["geoposearray"]["poses"]:
+	if(doc["geotype"] == "Point"):
+          for p in doc["geoposearray"]["poses"]:
+	   doc["geoloc"] = {'type': doc['geotype'],'coordinates': [p["position"]["x"], p["position"]["y"]]}
+        elif(doc["geotype"]=="Polygon"):
+	   coordinates = []
+	#print "hello"
+	   for p in doc["geoposearray"]["poses"]:
 		coordinates.append([p["position"]["x"], p["position"]["y"]])
-		print p
-	doc['geoloc'] = {'type': doc['geotype'],'coordinates': coordinates}
+           coordinates2=[]
+	   coordinates2.append(coordinates)
+	   #print coordinates2 
+	   doc["geoloc"] = {'type': doc['geotype'],'coordinates': coordinates2}
     
     #update _meta
     doc["_meta"] = result["_meta"]
