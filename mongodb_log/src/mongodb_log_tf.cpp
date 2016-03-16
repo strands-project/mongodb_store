@@ -37,6 +37,7 @@
 
 
 using namespace mongo;
+using namespace std;
 
 
 typedef struct {
