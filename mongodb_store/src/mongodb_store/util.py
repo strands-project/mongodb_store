@@ -419,8 +419,8 @@ def update_message(collection, query_doc, msg, meta, upsert):
     if hasattr(msg, 'pose'):
     	doc["loc"] = [doc["pose"]["position"]["x"],doc["pose"]["position"]["y"]]
     
-    if hasattr(msg,'logtime'):
-	doc["timestamp"] = datetime.datetime.utcfromtimestamp(doc["logtime"], None)
+    if hasattr(msg,'logtimestamp'):
+	doc["timestamp"] = datetime.utcfromtimestamp(doc["logtimestamp"])
 	#doc["timestamp"] = datetime.strptime(doc["logtime"], "%Y-%m-%dT%H:%M:%SZ")
     
     if hasattr(msg, 'geotype'):
