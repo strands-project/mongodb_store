@@ -80,16 +80,12 @@ class MessageStore(object):
 	
 	#check if the object has the location attribute
 	if hasattr(obj, 'pose'):
-	  # print "I have attribute"
 	   # if it does create a location index
     	   collection.create_index([("loc", pymongo.GEO2D)])
         #check if the object has the location attribute
 	if hasattr(obj, 'geotype'):
-	 #  print "I have attribute"
 	   # if it does create a location index
     	   collection.create_index([("geoloc", pymongo.GEOSPHERE)])
-	#else:
-	 #  print "I don't have attribute"
 	
 	#check if the object has the timestamp attribute TODO ?? really necessary
 	#if hasattr(obj, 'logtimestamp'):
@@ -99,13 +95,10 @@ class MessageStore(object):
 	#if self.checker == False:
 	#   self.checker = True
 	
-	#   rospy.loginfo("Hello")
 
         # try:
         meta['inserted_at'] = datetime.utcfromtimestamp(rospy.get_rostime().to_sec())
         meta['inserted_by'] = req._connection_header['callerid']
-        #meta['foo'] = 'bar'
-	#obj['loc2'] = [5,5]
         obj_id = dc_util.store_message(collection, obj, meta)
       
 
