@@ -237,7 +237,7 @@ def store_message(collection, msg, meta, oid=None):
 	   doc["geoloc"] = {'type': doc['geotype'],'coordinates': [p["position"]["x"], p["position"]["y"]]}
         elif(doc["geotype"]=="Polygon"):
 	   coordinates = []
-	#print "hello"
+	
 	   for p in doc["geoposearray"]["poses"]:
 		coordinates.append([p["position"]["x"], p["position"]["y"]])
 		#print p
@@ -429,7 +429,7 @@ def update_message(collection, query_doc, msg, meta, upsert):
 	   doc["geoloc"] = {'type': doc['geotype'],'coordinates': [p["position"]["x"], p["position"]["y"]]}
         elif(doc["geotype"]=="Polygon"):
 	   coordinates = []
-	#print "hello"
+	
 	   for p in doc["geoposearray"]["poses"]:
 		coordinates.append([p["position"]["x"], p["position"]["y"]])
            coordinates2=[]
