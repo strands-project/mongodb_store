@@ -23,8 +23,6 @@ class MessageStore(object):
 
         self.replicate_on_write = replicate_on_write
 
-	self.checker = False
-
         use_daemon = rospy.get_param('mongodb_use_daemon', False)
         if use_daemon:            
             db_host = rospy.get_param('mongodb_host')
@@ -92,9 +90,6 @@ class MessageStore(object):
 	   # if it does create a location index
     	 #  collection.create_index([("datetime", pymongo.GEO2D)])
 
-	#if self.checker == False:
-	#   self.checker = True
-	
 
         # try:
         meta['inserted_at'] = datetime.utcfromtimestamp(rospy.get_rostime().to_sec())

@@ -222,8 +222,6 @@ def store_message(collection, msg, meta, oid=None):
     doc["_meta"]["stored_class"] = msg.__module__ + "." + msg.__class__.__name__
     doc["_meta"]["stored_type"] = msg._type
      
-    from datetime import datetime
-
     if hasattr(msg, 'pose'):
     	doc["loc"] = [doc["pose"]["position"]["x"],doc["pose"]["position"]["y"]]
     
