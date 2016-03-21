@@ -169,7 +169,7 @@ public:
 
 		
 		mongo::BSONObj meta_query = BSON( "name" << _name );
-		return query<MsgType>(_messages, EMPTY_BSON_OBJ, meta_query, _find_one, _limit);
+		return query<MsgType>(_messages, EMPTY_BSON_OBJ, meta_query, EMPTY_BSON_OBJ, _find_one, _limit);
 	}
 
 	template<typename MsgType> 
@@ -177,7 +177,7 @@ public:
 
 		std::vector< std::pair<boost::shared_ptr<MsgType>, mongo::BSONObj> > msg_and_metas;
 		mongo::BSONObj meta_query = BSON( "name" << _name );
-		bool result = query(msg_and_metas, EMPTY_BSON_OBJ, meta_query, _find_one, true, _limit);
+		bool result = query(msg_and_metas, EMPTY_BSON_OBJ, meta_query,EMPTY_BSON_OBJ, _find_one, true, _limit);
 
 		if(result) {
 			return msg_and_metas[0];
@@ -195,7 +195,7 @@ public:
 					std::vector< boost::shared_ptr<MsgType> > & _messages) {
 		
 		mongo::BSONObj msg_query = BSON( "_id" << mongo::OID(_id) );
-		return query<MsgType>(_messages, msg_query, EMPTY_BSON_OBJ, true);
+		return query<MsgType>(_messages, msg_query, EMPTY_BSON_OBJ, EMPTY_BSON_OBJ, true);
 	}
 
 
@@ -204,7 +204,7 @@ public:
 		mongo::BSONObj msg_query = BSON( "_id" << mongo::OID(_id) );
 
 		std::vector< std::pair<boost::shared_ptr<MsgType>, mongo::BSONObj> > msg_and_metas;
-		bool result = query(msg_and_metas, msg_query, EMPTY_BSON_OBJ, true, true);
+		bool result = query(msg_and_metas, msg_query, EMPTY_BSON_OBJ, EMPTY_BSON_OBJ, true, true);
 
 		if(result) {
 			return msg_and_metas[0];
@@ -222,6 +222,7 @@ public:
 	bool query(std::vector< std::pair<boost::shared_ptr<MsgType>, mongo::BSONObj> > & _messages,
 				const mongo::BSONObj & _message_query = mongo::BSONObj(),
 				const mongo::BSONObj & _meta_query = mongo::BSONObj(),
+                                const mongo::BSONObj & _sort_query = mongo::BSONObj(),
 				bool _find_one = false,
                                 bool _decode_metas = true,
                                 int _limit = 0) {
@@ -233,6 +234,9 @@ public:
   		msg.request.type = get_ros_type<MsgType>();
   		msg.request.single = _find_one;
                 msg.request.limit = _limit;
+                /*mongo::BSONObjBuilder objb;
+                objb.append("_id",-1);*/
+
   	
 		//if there's no message then no copying is necessary
   		if(!_message_query.isEmpty()) {
@@ -243,6 +247,10 @@ public:
 		if(!_meta_query.isEmpty()) {
  			msg.request.meta_query.pairs.push_back(makePair(mongodb_store_msgs::MongoQueryMsgRequest::JSON_QUERY, _meta_query.jsonString())); 			 			
 		}
+                //if there's no sort message then no copying is necessary
+                if(!_sort_query.isEmpty()) {
+                         msg.request.sort_query.pairs.push_back(makePair(mongodb_store_msgs::MongoQueryMsgRequest::JSON_QUERY, _sort_query.jsonString()));
+                }
 
   		if(m_queryClient.call(msg)) {
   			ROS_DEBUG("Got back %li messages", msg.response.messages.size());
@@ -275,12 +283,13 @@ public:
 	bool query(std::vector< boost::shared_ptr<MsgType> > & _messages,
 				const mongo::BSONObj & _message_query = mongo::BSONObj(),
 				const mongo::BSONObj & _meta_query = mongo::BSONObj(),
+                                const mongo::BSONObj & _sort_query = mongo::BSONObj(),
                                 bool _find_one = false,
                                 int _limit = 0) {
 
 		// call other query method, but ignore metas
 		std::vector< std::pair<boost::shared_ptr<MsgType>, mongo::BSONObj> > msg_and_metas;
-		bool result = query(msg_and_metas, _message_query, _meta_query, _find_one, false, _limit);
+                bool result = query(msg_and_metas, _message_query, _meta_query,_sort_query, _find_one, false, _limit);
 
 		for (typename std::vector< std::pair<boost::shared_ptr<MsgType>, mongo::BSONObj> >::iterator i = msg_and_metas.begin(); i != msg_and_metas.end(); ++i)
 		{
