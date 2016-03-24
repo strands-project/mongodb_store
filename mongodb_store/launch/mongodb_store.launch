@@ -16,6 +16,8 @@
   <arg name="use_repl_set" default="false" />
   <arg name="repl_set" default="rs0" />
 
+  <arg name="use_localdatacenter" default="true" />
+
   <machine name="$(arg machine)" address="$(arg machine)" env-loader="$(optenv ROS_ENV_LOADER )" user="$(arg user)"/>
 
   <include file="$(find mongodb_store)/launch/mongodb_store_inc.launch">

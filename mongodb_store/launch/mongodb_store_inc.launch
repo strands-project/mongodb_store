@@ -13,6 +13,8 @@
   <arg name="use_repl_set" default="false" />
   <arg name="repl_set" default="rs0" />
 
+  <arg name="use_localdatacenter" default="true" />
+
   <param name="mongodb_use_daemon" value="$(arg use_daemon)" />
   <group if="$(arg use_daemon)">
     <param name="mongodb_port" value="$(arg port)" />
@@ -41,7 +43,9 @@
     <param name="defaults_path" value="$(arg defaults_path)"/>
   </node>
 
-  <node name="message_store" pkg="mongodb_store" type="message_store_node.py" machine="$(arg machine)" /> <!-- output="screen" -->
+  <node name="message_store" pkg="mongodb_store" type="message_store_node.py" machine="$(arg machine)"> 
+	<param name="mongodb_use_localdatacenter" value="$(arg use_localdatacenter)" />
+  </node> <!-- output="screen" -->
 
   <node name="replicator_node" pkg="mongodb_store" type="replicator_node.py" machine="$(arg machine)">
     <param name="replicator_dump_path" value="$(arg replicator_dump_path)"/>
