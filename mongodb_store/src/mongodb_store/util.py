@@ -11,6 +11,7 @@ from mongodb_store_msgs.msg import SerialisedMessage
 from mongodb_store_msgs.srv import MongoQueryMsgRequest
 
 import importlib
+from datetime import datetime
 
 def check_connection_to_mongod(db_host, db_port):
     """
@@ -220,7 +221,28 @@ def store_message(collection, msg, meta, oid=None):
     #  also store type information
     doc["_meta"]["stored_class"] = msg.__module__ + "." + msg.__class__.__name__
     doc["_meta"]["stored_type"] = msg._type
-
+     
+    if hasattr(msg, 'pose'):
+    	doc["loc"] = [doc["pose"]["position"]["x"],doc["pose"]["position"]["y"]]
+    
+    if hasattr(msg,'logtimestamp'):
+	doc["timestamp"] = datetime.utcfromtimestamp(doc["logtimestamp"])
+	#doc["timestamp"] = datetime.strptime(doc["logtime"], "%Y-%m-%dT%H:%M:%SZ")
+    
+    if hasattr(msg, 'geotype'):
+	if(doc["geotype"] == "Point"):
+          for p in doc["geoposearray"]["poses"]:
+	   doc["geoloc"] = {'type': doc['geotype'],'coordinates': [p["position"]["x"], p["position"]["y"]]}
+        elif(doc["geotype"]=="Polygon"):
+	   coordinates = []
+	
+	   for p in doc["geoposearray"]["poses"]:
+		coordinates.append([p["position"]["x"], p["position"]["y"]])
+		#print p
+	   coordinates2=[]
+	   coordinates2.append(coordinates)
+	   doc["geoloc"] = {'type': doc['geotype'],'coordinates': coordinates2}
+    	
 
     if hasattr(msg, '_connection_header'):
         print getattr(msg, '_connection_header')
@@ -391,6 +413,27 @@ def update_message(collection, query_doc, msg, meta, upsert):
 
     # convert msg to db document
     doc=msg_to_document(msg)
+
+    if hasattr(msg, 'pose'):
+    	doc["loc"] = [doc["pose"]["position"]["x"],doc["pose"]["position"]["y"]]
+    
+    if hasattr(msg,'logtimestamp'):
+	doc["timestamp"] = datetime.utcfromtimestamp(doc["logtimestamp"])
+	#doc["timestamp"] = datetime.strptime(doc["logtime"], "%Y-%m-%dT%H:%M:%SZ")
+    
+    if hasattr(msg, 'geotype'):
+	if(doc["geotype"] == "Point"):
+          for p in doc["geoposearray"]["poses"]:
+	   doc["geoloc"] = {'type': doc['geotype'],'coordinates': [p["position"]["x"], p["position"]["y"]]}
+        elif(doc["geotype"]=="Polygon"):
+	   coordinates = []
+	
+	   for p in doc["geoposearray"]["poses"]:
+		coordinates.append([p["position"]["x"], p["position"]["y"]])
+           coordinates2=[]
+	   coordinates2.append(coordinates)
+	   #print coordinates2 
+	   doc["geoloc"] = {'type': doc['geotype'],'coordinates': coordinates2}
     
     #update _meta
     doc["_meta"] = result["_meta"]

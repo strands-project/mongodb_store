@@ -9,6 +9,7 @@ import rospy
 import mongodb_store_msgs.srv as dc_srv
 import mongodb_store.util as dc_util
 import pymongo
+from pymongo import GEO2D
 import json
 from bson import json_util
 from mongodb_store_msgs.msg import  StringPair, StringPairList
@@ -23,19 +24,23 @@ class MessageStore(object):
         self.replicate_on_write = replicate_on_write
 
         use_daemon = rospy.get_param('mongodb_use_daemon', False)
-        if use_daemon:            
+	# If you want to use a remote datacenter, then it should be set as false
+	use_localdatacenter = rospy.get_param('~mongodb_use_localdatacenter', True)
+        
+	if use_daemon:            
             db_host = rospy.get_param('mongodb_host')
             db_port = rospy.get_param('mongodb_port')
             is_daemon_alive = dc_util.check_connection_to_mongod(db_host, db_port)
             if not is_daemon_alive:
                 raise Exception("No Daemon?")
-        else:
+        else:	  
+	  if use_localdatacenter:
             have_dc = dc_util.wait_for_mongo()
             if not have_dc:
                 raise Exception("No Datacentre?")
-            # move these to after the wait_for_mongo check as they may not be set before the db is available
-            db_host = rospy.get_param('mongodb_host')
-            db_port = rospy.get_param('mongodb_port')
+          # move these to after the wait_for_mongo check as they may not be set before the db is available
+          db_host = rospy.get_param('mongodb_host')
+          db_port = rospy.get_param('mongodb_port')
 
 
         self._mongo_client=MongoClient(db_host, db_port)
@@ -74,12 +79,27 @@ class MessageStore(object):
         meta = dc_util.string_pair_list_to_dictionary(req.meta)
         # get requested collection from the db, creating if necessary
         collection = self._mongo_client[req.database][req.collection]
+	
+	#check if the object has the location attribute
+	if hasattr(obj, 'pose'):
+	   # if it does create a location index
+    	   collection.create_index([("loc", pymongo.GEO2D)])
+        #check if the object has the location attribute
+	if hasattr(obj, 'geotype'):
+	   # if it does create a location index
+    	   collection.create_index([("geoloc", pymongo.GEOSPHERE)])
+	
+	#check if the object has the timestamp attribute TODO ?? really necessary
+	#if hasattr(obj, 'logtimestamp'):
+	   # if it does create a location index
+    	 #  collection.create_index([("datetime", pymongo.GEO2D)])
+
 
         # try:
         meta['inserted_at'] = datetime.utcfromtimestamp(rospy.get_rostime().to_sec())
         meta['inserted_by'] = req._connection_header['callerid']
         obj_id = dc_util.store_message(collection, obj, meta)
-
+      
 
         if self.replicate_on_write:            
             # also do insert to extra datacentres, making sure object ids are consistent
