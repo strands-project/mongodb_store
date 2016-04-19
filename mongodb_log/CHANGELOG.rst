@@ -2,8 +2,8 @@
 Changelog for package mongodb_log
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.23 (2016-04-19)
+-------------------
 * Fixed missing namespace for mongodb_log
 * indigo-0.1.22
 * updated Changelogs
