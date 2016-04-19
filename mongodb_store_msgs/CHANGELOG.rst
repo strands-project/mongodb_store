@@ -2,13 +2,20 @@
 Changelog for package mongodb_store_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 
 0.1.22 (2016-02-23)
 -------------------
+* indigo-0.1.22
+* updated Changelogs
+* Contributors: Nick Hawes
 
 
 0.1.20 (2015-11-11)
 -------------------
+
 
 0.1.19 (2015-10-28)
 -------------------
