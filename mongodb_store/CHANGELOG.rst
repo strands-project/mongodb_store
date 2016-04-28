@@ -2,8 +2,14 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* checking object type and adding soma2 fields based on that has been added
+* Contributors: hkaraoguz
+
 0.1.24 (2016-04-19)
 -------------------
+
 
 0.1.23 (2016-04-19)
 -------------------
