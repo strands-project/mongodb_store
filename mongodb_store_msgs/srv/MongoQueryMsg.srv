@@ -17,6 +17,8 @@ StringPairList message_query
 StringPairList meta_query
 # key/values to be turned into a sort query
 StringPairList sort_query
+# key/values to be turned into a projection query
+StringPairList projection_query
 ---
 # messages which match the query
 SerialisedMessage[] messages

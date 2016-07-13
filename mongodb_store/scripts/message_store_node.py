@@ -217,8 +217,10 @@ class MessageStore(object):
                 sort_query_tuples.append((k, int(v)))
             except ValueError:
                 sort_query_tuples.append((k,v))
-
-        entries =  dc_util.query_message(collection, obj_query, sort_query_tuples, req.single, req.limit)
+ 	# this is a list of entries in dict format including meta
+        projection_query_dict = dc_util.string_pair_list_to_dictionary(req.projection_query)
+        
+        entries =  dc_util.query_message(collection, obj_query, sort_query_tuples, projection_query_dict,req.single, req.limit)
 
         # keep trying clients until we find an answer
         for extra_client in self.extra_clients:
@@ -237,11 +239,12 @@ class MessageStore(object):
         metas = ()
 
         for entry in entries:
+	    
             # load the class object for this type
             # TODO this should be the same for every item in the list, so could reuse
             cls = dc_util.load_class(entry["_meta"]["stored_class"])
             # instantiate the ROS message object from the dictionary retrieved from the db
-            message = dc_util.dictionary_to_message(entry, cls)            
+            message = dc_util.dictionary_to_message(entry, cls, projection_query_dict)            
             # the serialise this object in order to be sent in a generic form
             serialised_messages = serialised_messages + (dc_util.serialise_message(message), )            
             # add ObjectID into meta as it might be useful later

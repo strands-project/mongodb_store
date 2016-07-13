@@ -288,28 +288,31 @@ def fill_message(message, document):
     """
     for slot, slot_type in zip(message.__slots__,
                                getattr(message,"_slot_types",[""]*len(message.__slots__))):
-        value = document[slot]
-        # fill internal structures if value is a dictionary itself
-        if isinstance(value, dict):
-            fill_message(getattr(message, slot), value)
-        elif isinstance(value, list) and slot_type.find("/")!=-1:
-            # if its a list and the type is some message (contains a "/")
-            lst=[]
-            # Remove [] from message type ([:-2])
-            msg_type = type_to_class_string(slot_type[:-2])
-            msg_class = load_class(msg_type)
-            for i in value:
-                msg = msg_class()
-                fill_message(msg, i)
-                lst.append(msg)
-            setattr(message, slot, lst)
-        else:
-            if isinstance(value, unicode):
-                setattr(message, slot, str(value))
-            else:
-                setattr(message, slot, value)
 
-def dictionary_to_message(dictionary, cls):
+        # This check is required since projection queries can have absent keys
+        if slot in document.keys():
+            value = document[slot]
+        # fill internal structures if value is a dictionary itself
+            if isinstance(value, dict):
+                fill_message(getattr(message, slot), value)
+            elif isinstance(value, list) and slot_type.find("/")!=-1:
+            # if its a list and the type is some message (contains a "/")
+                lst=[]
+            # Remove [] from message type ([:-2])
+                msg_type = type_to_class_string(slot_type[:-2])
+                msg_class = load_class(msg_type)
+                for i in value:
+                    msg = msg_class()
+                    fill_message(msg, i)
+                    lst.append(msg)
+                    setattr(message, slot, lst)
+            else:
+                if isinstance(value, unicode):
+                    setattr(message, slot, str(value))
+                else:
+                    setattr(message, slot, value)
+
+def dictionary_to_message(dictionary, cls, projection_dictionary):
     """
     Create a ROS message from the given dictionary, using fill_message.
 
@@ -337,10 +340,12 @@ def dictionary_to_message(dictionary, cls):
       w: 0.0
     """
     message = cls()
+
     fill_message(message, dictionary)
+
     return message
 
-def query_message(collection, query_doc, sort_query=[], find_one=False, limit=0):
+def query_message(collection, query_doc, sort_query=[], projection_query={},find_one=False, limit=0):
     """
     Peform a query for a stored messages, returning results in list.
 
@@ -357,7 +362,12 @@ def query_message(collection, query_doc, sort_query=[], find_one=False, limit=0)
     if find_one:
         ids = ()
         if sort_query:
-            result = collection.find_one(query_doc, sort=sort_query)
+            if not projection_query:
+                result = collection.find_one(query_doc, sort=sort_query)
+            else:
+                result = collection.find_one(query_doc,  projection_query, sort=sort_query)
+        elif projection_query:
+            result = collection.find_one(query_doc, projection_query)
         else:
             result = collection.find_one(query_doc)
         if result:
@@ -366,7 +376,12 @@ def query_message(collection, query_doc, sort_query=[], find_one=False, limit=0)
             return []
     else:
         if sort_query:
-            return [ result for result in collection.find(query_doc).sort(sort_query).limit(limit) ]
+            if  not projection_query:
+            	return [ result for result in collection.find(query_doc).sort(sort_query).limit(limit) ]
+            else:
+                return [ result for result in collection.find(query_doc, projection_query).sort(sort_query).limit(limit) ]
+        elif projection_query:
+            return [ result for result in collection.find(query_doc, projection_query).limit(limit) ]
         else:
             return [ result for result in collection.find(query_doc).limit(limit) ]
 
