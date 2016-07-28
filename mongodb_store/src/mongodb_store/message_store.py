@@ -242,8 +242,6 @@ class MessageStoreProxy:
 
 		response = self.query_id_srv(self.database, self.collection, type, single, limit, StringPairList(message_tuple), StringPairList(meta_tuple), StringPairList(sort_tuple),StringPairList(projection_tuple))
 
-
-
 		if response.messages is None:
 			messages = []
 			metas = []

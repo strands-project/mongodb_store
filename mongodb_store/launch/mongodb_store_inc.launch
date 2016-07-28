@@ -43,7 +43,7 @@
     <param name="defaults_path" value="$(arg defaults_path)"/>
   </node>
 
-  <node name="message_store" pkg="mongodb_store" type="message_store_node.py" machine="$(arg machine)" output="screen"> 
+  <node name="message_store" pkg="mongodb_store" type="message_store_node.py" machine="$(arg machine)"> 
 	<param name="mongodb_use_localdatacenter" value="$(arg use_localdatacenter)" />
   </node> <!-- output="screen" -->
 

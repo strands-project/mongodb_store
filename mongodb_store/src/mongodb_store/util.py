@@ -222,10 +222,8 @@ def store_message(collection, msg, meta, oid=None):
     doc["_meta"]["stored_class"] = msg.__module__ + "." + msg.__class__.__name__
     doc["_meta"]["stored_type"] = msg._type
 
-    if msg._type == "soma2_msgs/SOMA2Object":
-        add_soma2_fields(msg,doc)
-
-
+    if msg._type == "soma2_msgs/SOMA2Object" or msg._type == "soma_msgs/SOMAObject":
+        add_soma_fields(msg,doc)
 
     if hasattr(msg, '_connection_header'):
         print getattr(msg, '_connection_header')
@@ -289,7 +287,7 @@ def fill_message(message, document):
     for slot, slot_type in zip(message.__slots__,
                                getattr(message,"_slot_types",[""]*len(message.__slots__))):
 
-        # This check is required since projection queries can have absent keys
+        # This check is required since objects returned with projection queries can have absent keys
         if slot in document.keys():
             value = document[slot]
         # fill internal structures if value is a dictionary itself
@@ -312,7 +310,7 @@ def fill_message(message, document):
                 else:
                     setattr(message, slot, value)
 
-def dictionary_to_message(dictionary, cls, projection_dictionary):
+def dictionary_to_message(dictionary, cls):
     """
     Create a ROS message from the given dictionary, using fill_message.
 
@@ -353,6 +351,7 @@ def query_message(collection, query_doc, sort_query=[], projection_query={},find
         | collection (pymongo.Collection): The collection to query
         | query_doc (dict): The MongoDB query to execute
         | sort_query (list of tuple): The MongoDB query to sort
+        | projection_query (dict): The projection query
         | find_one (bool): Returns one matching document if True, otherwise all matching.
         | limit (int): Limits number of return documents. 0 means no limit
     :Returns:
@@ -412,8 +411,8 @@ def update_message(collection, query_doc, msg, meta, upsert):
     # convert msg to db document
     doc=msg_to_document(msg)
 
-    if msg._type == "soma2_msgs/SOMA2Object":
-        add_soma2_fields(msg,doc)
+    if msg._type == "soma2_msgs/SOMA2Object" or "soma_msgs/SOMAObject":
+        add_soma_fields(msg,doc)
 
     #update _meta
     doc["_meta"] = result["_meta"]
@@ -552,7 +551,10 @@ def topic_name_to_collection_name(topic_name):
     """
     return topic_name.replace("/", "_")[1:]
 
-def add_soma2_fields(msg,doc):
+def add_soma_fields(msg,doc):
+    """
+    For soma Object msgs adds the required fields as indexes to the mongodb object.
+    """
 
     if hasattr(msg, 'pose'):
         doc["loc"] = [doc["pose"]["position"]["x"],doc["pose"]["position"]["y"]]
