@@ -218,9 +218,9 @@ class MessageStore(object):
             except ValueError:
                 sort_query_tuples.append((k,v))
  	    # this is a list of entries in dict format including meta
-        projection_query_dict = dc_util.string_pair_list_to_dictionary(req.projection_query)
+        #projection_query_dict = dc_util.string_pair_list_to_dictionary(req.projection_query)
 
-        entries =  dc_util.query_message(collection, obj_query, sort_query_tuples, projection_query_dict,req.single, req.limit)
+        entries =  dc_util.query_message(collection, obj_query, sort_query_tuples, {},req.single, req.limit)
 
         # keep trying clients until we find an answer
         for extra_client in self.extra_clients:
@@ -255,6 +255,70 @@ class MessageStore(object):
         return [serialised_messages, metas]
 
     query_messages_ros_srv.type=dc_srv.MongoQueryMsg
+
+    def query_with_projection_messages_ros_srv(self, req):
+        """
+        Returns t
+        """
+        collection = self._mongo_client[req.database][req.collection]
+
+        # build the query doc
+        obj_query = self.to_query_dict(req.message_query, req.meta_query)
+
+        # restrict results to have the type asked for
+        obj_query["_meta.stored_type"] = req.type
+
+        # TODO start using some string constants!
+
+        rospy.logdebug("query document: %s", obj_query)
+
+        # this is a list of entries in dict format including meta
+        sort_query_dict = dc_util.string_pair_list_to_dictionary(req.sort_query)
+        sort_query_tuples = []
+        for k,v in sort_query_dict.iteritems():
+            try:
+                sort_query_tuples.append((k, int(v)))
+            except ValueError:
+                sort_query_tuples.append((k,v))
+ 	    # this is a list of entries in dict format including meta
+        projection_query_dict = dc_util.string_pair_list_to_dictionary(req.projection_query)
+
+        entries =  dc_util.query_message(collection, obj_query, sort_query_tuples, projection_query_dict,req.single, req.limit)
+
+        # keep trying clients until we find an answer
+        for extra_client in self.extra_clients:
+            if len(entries) == 0:
+                extra_collection = extra_client[req.database][req.collection]
+                entries =  dc_util.query_message(extra_collection, obj_query, sort_query_tuples, req.single, req.limit)
+                if len(entries) > 0:
+                    rospy.loginfo("found result in extra datacentre")
+            else:
+                break
+
+
+        # rospy.logdebug("entries: %s", entries)
+
+        serialised_messages = ()
+        metas = ()
+
+        for entry in entries:
+
+            # load the class object for this type
+            # TODO this should be the same for every item in the list, so could reuse
+            cls = dc_util.load_class(entry["_meta"]["stored_class"])
+            # instantiate the ROS message object from the dictionary retrieved from the db
+            message = dc_util.dictionary_to_message(entry, cls)
+            # the serialise this object in order to be sent in a generic form
+            serialised_messages = serialised_messages + (dc_util.serialise_message(message), )
+            # add ObjectID into meta as it might be useful later
+            entry["_meta"]["_id"] = entry["_id"]
+            # serialise meta
+            metas = metas + (StringPairList([StringPair(dc_srv.MongoQuerywithProjectionMsgRequest.JSON_QUERY, json.dumps(entry["_meta"], default=json_util.default))]), )
+
+        return [serialised_messages, metas]
+
+    query_with_projection_messages_ros_srv.type=dc_srv.MongoQuerywithProjectionMsg
+
 
 
 if __name__ == '__main__':

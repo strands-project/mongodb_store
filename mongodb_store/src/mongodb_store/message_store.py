@@ -43,6 +43,7 @@ class MessageStoreProxy:
 		update_service = service_prefix + '/update'
 		delete_service = service_prefix + '/delete'
 		query_ids_service = service_prefix + '/query_messages'
+		query_with_projection_service = service_prefix + '/query_with_projection_messages'
                 # try and get the mongo service, block until available
                 found_services_first_try = True # if found straight away
                 while not rospy.is_shutdown():
@@ -51,6 +52,7 @@ class MessageStoreProxy:
                                 rospy.wait_for_service(update_service,5)
                                 rospy.wait_for_service(query_ids_service,5)
                                 rospy.wait_for_service(delete_service,5)
+				rospy.wait_for_service(query_with_projection_service,5)
                                 break
                         except rospy.ROSException, e:
                                 found_services_first_try = False
@@ -62,6 +64,7 @@ class MessageStoreProxy:
 		self.update_srv = rospy.ServiceProxy(update_service, dc_srv.MongoUpdateMsg)
 		self.query_id_srv = rospy.ServiceProxy(query_ids_service, dc_srv.MongoQueryMsg)
 		self.delete_srv = rospy.ServiceProxy(delete_service, dc_srv.MongoDeleteMsg)
+		self.query_with_projection_srv = rospy.ServiceProxy(query_with_projection_service,dc_srv.MongoQuerywithProjectionMsg)
 
 
 	def insert_named(self, name, message, meta = {}):
@@ -240,7 +243,10 @@ class MessageStoreProxy:
 		else:
 				sort_tuple = []
 
-		response = self.query_id_srv(self.database, self.collection, type, single, limit, StringPairList(message_tuple), StringPairList(meta_tuple), StringPairList(sort_tuple),StringPairList(projection_tuple))
+		if not projection_query:
+			response = self.query_id_srv(self.database, self.collection, type, single, limit, StringPairList(message_tuple), StringPairList(meta_tuple), StringPairList(sort_tuple))
+		else:
+			response = self.query_with_projection_srv(self.database, self.collection, type, single, limit, StringPairList(message_tuple), StringPairList(meta_tuple), StringPairList(sort_tuple),StringPairList(projection_tuple))
 
 		if response.messages is None:
 			messages = []
