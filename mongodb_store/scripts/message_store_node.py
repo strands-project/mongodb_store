@@ -289,7 +289,7 @@ class MessageStore(object):
         for extra_client in self.extra_clients:
             if len(entries) == 0:
                 extra_collection = extra_client[req.database][req.collection]
-                entries =  dc_util.query_message(extra_collection, obj_query, sort_query_tuples, req.single, req.limit)
+                entries =  dc_util.query_message(extra_collection, obj_query, sort_query_tuples, projection_query_dict, req.single, req.limit)
                 if len(entries) > 0:
                     rospy.loginfo("found result in extra datacentre")
             else:
@@ -311,7 +311,8 @@ class MessageStore(object):
             # the serialise this object in order to be sent in a generic form
             serialised_messages = serialised_messages + (dc_util.serialise_message(message), )
             # add ObjectID into meta as it might be useful later
-            entry["_meta"]["_id"] = entry["_id"]
+            if "_id" not in projection_query_dict.keys():
+            	entry["_meta"]["_id"] = entry["_id"]
             # serialise meta
             metas = metas + (StringPairList([StringPair(dc_srv.MongoQuerywithProjectionMsgRequest.JSON_QUERY, json.dumps(entry["_meta"], default=json_util.default))]), )
 

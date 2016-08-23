@@ -135,6 +135,15 @@ TEST(ROSDatacentre, cppTest)
     else {
       ADD_FAILURE() << "Documents are not limited";
     }
+    results.clear();
+    mongo::BSONObjBuilder builder;
+    builder.append("orientation",0);
+    if(messageStore.query<Pose>(results, mongo::BSONObj(), mongo::BSONObj(), mongo::BSONObj(), builder.obj(),false, 10)){
+      EXPECT_EQ(0,results[1]->orientation.z);
+    }
+    else {
+      ADD_FAILURE() << "Projection is not working correctly";
+    }
 
     ROS_INFO_STREAM("happy here");
 }

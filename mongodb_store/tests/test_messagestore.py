@@ -12,7 +12,8 @@ class TestMessageStoreProxy(unittest.TestCase):
         msg_store = MessageStoreProxy()
         POSE_NAME = "__test__pose__"
         p = Pose(Point(0, 1, 2), Quaternion(0, 0, 0, 1))
-      
+
+        
         # insert a pose object with a name
         msg_store.insert_named(POSE_NAME, p)
  
@@ -60,6 +61,14 @@ class TestMessageStoreProxy(unittest.TestCase):
         result_limited = msg_store.query(Pose._type, message_query={'orientation.z': {'$gt': 10} }, sort_query=[("$natural", 1)], limit=10)
         self.assertEqual(len(result_limited), 10)
         self.assertListEqual([int(doc[0].orientation.x) for doc in result_limited], range(10))
+
+	#get documents without "_id" field
+	result_no_id = msg_store.query(Pose._type, message_query={}, projection_query={"_id": 0})
+        for doc in result_no_id:
+		self.assertTrue('_id' not in doc[1]) 
+        #print result_no_id[0][1]
+        
+	
         
         # must remove the item or unittest only really valid once
         print meta["_id"]
