@@ -425,15 +425,14 @@ public:
 		//if there's no meta then no copying is necessary
 		if(!_meta_query.isEmpty()) {
  			msg.request.meta_query.pairs.push_back(makePair(mongodb_store_msgs::MongoQueryMsgRequest::JSON_QUERY, _meta_query.jsonString()));
-		}
-
-		fill_serialised_message(msg.request.message, _msg);
+		}		
 
 			//if there's no meta then no copying is necessary
   		if(!_meta.isEmpty()) {
  			msg.request.meta.pairs.push_back(makePair(mongodb_store_msgs::MongoQueryMsgRequest::JSON_QUERY, _meta.jsonString()));
 		}
 
+		fill_serialised_message(msg.request.message, _msg);
 
   		if(m_updateClient.call(msg)) {
   			return msg.response.success;

@@ -411,7 +411,7 @@ def update_message(collection, query_doc, msg, meta, upsert):
     # convert msg to db document
     doc=msg_to_document(msg)
 
-    if msg._type == "soma2_msgs/SOMA2Object" or "soma_msgs/SOMAObject":
+    if msg._type == "soma2_msgs/SOMA2Object" or msg._type == "soma_msgs/SOMAObject":
         add_soma_fields(msg,doc)
 
     #update _meta
