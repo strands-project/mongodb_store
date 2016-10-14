@@ -11,8 +11,8 @@ Changelog for package mongodb_store
 -------------------
 
 
-Forthcoming
------------
+0.1.26 (2016-10-14)
+-------------------
 * Fixed a bug during soma msg_type check.
 * Unit tests have been added for projection.
 * Created a new service for querying with projections

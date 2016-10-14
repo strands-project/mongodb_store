@@ -9,8 +9,8 @@ Changelog for package mongodb_log
 -------------------
 
 
-Forthcoming
------------
+0.1.26 (2016-10-14)
+-------------------
 * indigo-0.1.25
 * Updating changelogs
 * indigo-0.1.24
