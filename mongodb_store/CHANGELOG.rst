@@ -11,6 +11,20 @@ Changelog for package mongodb_store
 -------------------
 
 
+Forthcoming
+-----------
+* Fixed a bug during soma msg_type check.
+* Unit tests have been added for projection.
+* Created a new service for querying with projections
+* Added checks for new soma object message type. Performed code cleanup
+* Projection field to the queries is added
+* indigo-0.1.25
+* Updating changelogs
+* checking object type and adding soma2 fields based on that has been added
+* indigo-0.1.24
+* updated Changelogs
+* Contributors: Hakan, Nick Hawes, hkaraoguz
+
 0.1.23 (2016-04-19)
 -------------------
 * Using remote mongodb without ros option has been added

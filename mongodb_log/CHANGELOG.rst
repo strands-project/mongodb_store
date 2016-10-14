@@ -9,6 +9,14 @@ Changelog for package mongodb_log
 -------------------
 
 
+Forthcoming
+-----------
+* indigo-0.1.25
+* Updating changelogs
+* indigo-0.1.24
+* updated Changelogs
+* Contributors: Nick Hawes
+
 0.1.23 (2016-04-19)
 -------------------
 * Fixed missing namespace for mongodb_log
