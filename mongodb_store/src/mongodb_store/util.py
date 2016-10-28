@@ -566,7 +566,7 @@ def add_soma_fields(msg,doc):
         if(doc["geotype"] == "Point"):
             for p in doc["geoposearray"]["poses"]:
                 doc["geoloc"] = {'type': doc['geotype'],'coordinates': [p["position"]["x"], p["position"]["y"]]}
-        elif(msg._type == "soma_msgs/SOMAROIObject"):
+        if(msg._type =="soma_msgs/SOMAROIObject"):
             coordinates = []
             doc["geotype"] = "Polygon"
             for p in doc["geoposearray"]["poses"]:
