@@ -242,7 +242,7 @@ public:
   		msg.request.collection = m_collection;
   		msg.request.type = get_ros_type<MsgType>();
   		msg.request.single = _find_one;
-      msg.request.limit = _limit;
+                msg.request.limit = _limit;
                 /*mongo::BSONObjBuilder objb;
                 objb.append("_id",-1);*/
 
