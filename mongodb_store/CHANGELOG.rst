@@ -4,8 +4,8 @@ Changelog for package mongodb_store
 
 
 
-Forthcoming
------------
+0.1.27 (2016-11-01)
+-------------------
 * Fixed if statement
 * geotype of ROI has been added
 * The geospatial indexing of SOMA ROI objects is added
