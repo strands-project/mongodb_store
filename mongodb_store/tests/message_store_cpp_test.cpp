@@ -129,7 +129,7 @@ TEST(ROSDatacentre, cppTest)
       p.orientation.z = i;
       messageStore.insert<Pose>(p);
     }
-    if(messageStore.query<Pose>(results, mongo::BSONObj(), mongo::BSONObj(), mongo::BSONObj(), mongo::BSONObj(),false, 10)){
+    if(messageStore.query<Pose>(results, mongo::BSONObj(), mongo::BSONObj(), mongo::BSONObj(),false, 10)){
       EXPECT_EQ(10, results.size());
     }
     else {
@@ -138,7 +138,7 @@ TEST(ROSDatacentre, cppTest)
     results.clear();
     mongo::BSONObjBuilder builder;
     builder.append("orientation",0);
-    if(messageStore.query<Pose>(results, mongo::BSONObj(), mongo::BSONObj(), mongo::BSONObj(), builder.obj(),false, 10)){
+    if(messageStore.queryWithProjection<Pose>(results, mongo::BSONObj(), mongo::BSONObj(), mongo::BSONObj(), builder.obj(),false, 10)){
       EXPECT_EQ(0,results[1]->orientation.z);
     }
     else {
