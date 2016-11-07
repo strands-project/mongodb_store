@@ -236,6 +236,9 @@ class MessageStoreProxy:
 		# serialise the json queries to strings using json_util.dumps
 		message_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(message_query, default=json_util.default)),)
 		meta_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(meta_query, default=json_util.default)),)
+		if projection_query:
+			if "_meta" not in projection_query.keys():
+				projection_query["_meta"] = 1
 		projection_tuple =(StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(projection_query, default=json_util.default)),)
 
 		if len(sort_query) > 0:
