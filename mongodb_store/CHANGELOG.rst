@@ -3,6 +3,17 @@ Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
+Forthcoming
+-----------
+* Mongo C++ header location now exposed.
+* Fixed missing return value
+* Fixing the compatibility issues of messagestore cpp client with old SOMA versions
+* Fixed issue with projection query including fields instead of excluding
+* [mongodb_store/scripts/mongodb_server.py] connect with localhost when shutdown server
+* geotype of ROI has been added
+* The geospatial indexing of SOMA ROI objects is added
+* Contributors: Hakan, Nick Hawes, Yuki Furuta
+
 
 0.1.27 (2016-11-01)
 -------------------
@@ -10,6 +21,7 @@ Changelog for package mongodb_store
 * geotype of ROI has been added
 * The geospatial indexing of SOMA ROI objects is added
 * Contributors: Hakan
+
 
 0.1.26 (2016-10-14)
 -------------------
