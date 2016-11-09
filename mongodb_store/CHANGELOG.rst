@@ -3,8 +3,8 @@ Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
-Forthcoming
------------
+0.1.28 (2016-11-09)
+-------------------
 * Mongo C++ header location now exposed.
 * Fixed missing return value
 * Fixing the compatibility issues of messagestore cpp client with old SOMA versions
