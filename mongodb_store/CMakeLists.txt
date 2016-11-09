@@ -49,7 +49,7 @@ generate_messages(
 
 catkin_package(
  INCLUDE_DIRS include
- LIBRARIES message_store 
+ LIBRARIES message_store ${MongoClient_INCLUDE_DIR}
  CATKIN_DEPENDS mongodb_store_msgs
  DEPENDS MongoClient
 )
