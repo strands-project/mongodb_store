@@ -147,28 +147,23 @@ TEST(ROSDatacentre, cppTest)
 
     // non-wait insert
     unsigned int msg_num_before_insert = 0, msg_num_after_insert = 0;
-    mongo::BSONObjBuilder meta_builder;
-    meta_builder.append("no_wait", true);
+    const std::string no_wait_name = "no_wait";
     results.clear();
-    if (!messageStore.query<Pose>(results,
-                                  mongo::BSONObj(),
-                                  meta_builder.obj())) {
-      ADD_FAILURE() << "query failed";
+    // query should not found before insert
+    if (messageStore.queryNamed<Pose>(no_wait_name, results, false)) {
+      ADD_FAILURE() << "failed query before insert no wait";
     }
+
     msg_num_before_insert = results.size();
     for (int i = 0; i < 10; ++i) {
       geometry_msgs::Pose p;
       p.orientation.x = i;
-      messageStore.insert<Pose>(p,
-                                meta_builder.obj(),
-                                /* wait = */false);
+      messageStore.insertNamed<Pose>(no_wait_name, p, mongo::BSONObj(), /* wait = */false);
     }
     ros::Duration(2.0).sleep();
     results.clear();
-    if (!messageStore.query<Pose>(results,
-                                  mongo::BSONObj(),
-                                  meta_builder.obj())) {
-      ADD_FAILURE() << "query failed";
+    if (!messageStore.queryNamed<Pose>(no_wait_name, results, false)) {
+      ADD_FAILURE() << "failed query after insert no wait";
     }
     msg_num_after_insert = results.size();
     EXPECT_GT(msg_num_after_insert, msg_num_before_insert);
