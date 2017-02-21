@@ -12,7 +12,7 @@ import pymongo
 from pymongo import GEO2D
 import json
 from bson import json_util
-from mongodb_store_msgs.msg import  StringPair, StringPairList
+from mongodb_store_msgs.msg import  StringPair, StringPairList, Insert
 from bson.objectid import ObjectId
 from datetime import *
 
@@ -65,6 +65,18 @@ class MessageStore(object):
                 service=getattr(self, attr)
                 rospy.Service("/message_store/"+attr[:-8], service.type, service)
 
+        self.queue_size = rospy.get_param("queue_size", 100)
+        self.sub_insert = rospy.Subscriber("/message_store/insert", Insert,
+                                           self.insert_ros_msg,
+                                           queue_size=self.queue_size)
+
+
+    def insert_ros_msg(self, msg):
+        """
+        Receives a message published
+        """
+        # actually procedure is the same
+        self.insert_ros_srv(msg)
 
 
     def insert_ros_srv(self, req):

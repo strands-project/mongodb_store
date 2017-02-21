@@ -9,6 +9,7 @@ add_message_files(
   StringPair.msg
   StringPairList.msg
   SerialisedMessage.msg
+  Insert.msg
 )
 
 add_service_files(

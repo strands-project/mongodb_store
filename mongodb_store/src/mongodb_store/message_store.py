@@ -1,7 +1,7 @@
 import rospy
 import mongodb_store_msgs.srv as dc_srv
 import mongodb_store.util as dc_util
-from mongodb_store_msgs.msg import StringPair, StringPairList, SerialisedMessage
+from mongodb_store_msgs.msg import StringPair, StringPairList, SerialisedMessage, Insert
 from bson import json_util
 from bson.objectid import ObjectId
 import json
@@ -29,7 +29,7 @@ class MessageStoreProxy:
 
 	"""
 
-	def __init__(self, service_prefix='/message_store', database='message_store', collection='message_store'):
+	def __init__(self, service_prefix='/message_store', database='message_store', collection='message_store', queue_size=100):
 		"""
 		:Args:
 		    | service_prefix (str): The prefix to the *insert*, *update*, *delete* and
@@ -66,8 +66,11 @@ class MessageStoreProxy:
 		self.delete_srv = rospy.ServiceProxy(delete_service, dc_srv.MongoDeleteMsg)
 		self.query_with_projection_srv = rospy.ServiceProxy(query_with_projection_service,dc_srv.MongoQuerywithProjectionMsg)
 
+		insert_topic = service_prefix + '/insert'
+		self.pub_insert = rospy.Publisher(insert_topic, Insert, queue_size=queue_size)
 
-	def insert_named(self, name, message, meta = {}):
+
+	def insert_named(self, name, message, meta = {}, wait=True):
 		"""
 		Inserts a ROS message into the message storage, giving it a name for convenient
 		later retrieval.
@@ -78,16 +81,17 @@ class MessageStoreProxy:
 		    | message (ROS Message): An instance of a ROS message type to store
 		    | meta (dict): A dictionary of additional meta data to store in association
                       		    with thie message.
+		    | wait (bool): If true, waits until database returns object id after insert
 		:Returns:
 		    | (str) the ObjectId of the MongoDB document containing the stored message.
 		"""
 		# create a copy as we're modifying it
 		meta_copy = copy.copy(meta)
 		meta_copy["name"] = name
-		return self.insert(message, meta_copy)
+		return self.insert(message, meta_copy, wait=wait)
 
 
-	def insert(self, message, meta = {}):
+	def insert(self, message, meta = {}, wait=True):
 		"""
 		Inserts a ROS message into the message storage.
 
@@ -95,6 +99,7 @@ class MessageStoreProxy:
 		    | message (ROS Message): An instance of a ROS message type to store
 		    | meta (dict): A dictionary of additional meta data to store in association
                       		    with thie message.
+		    | wait (bool): If true, waits until database returns object id after insert
 		:Returns:
 		    | (str) the ObjectId of the MongoDB document containing the stored message.
 
@@ -102,7 +107,12 @@ class MessageStoreProxy:
 		# assume meta is a dict, convert k/v to tuple pairs
 		meta_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(meta, default=json_util.default)),)
 		serialised_msg = dc_util.serialise_message(message)
-		return self.insert_srv(self.database, self.collection, serialised_msg, StringPairList(meta_tuple)).id
+		if wait:
+			return self.insert_srv(self.database, self.collection, serialised_msg, StringPairList(meta_tuple)).id
+		else:
+			msg = Insert(self.database, self.collection, serialised_msg, StringPairList(meta_tuple))
+			self.pub_insert.publish(msg)
+			return True
 
 	def query_id(self, id, type):
 		"""

@@ -10,6 +10,7 @@
 #include "mongodb_store_msgs/MongoQuerywithProjectionMsg.h"
 #include "mongodb_store_msgs/StringPair.h"
 #include "mongodb_store_msgs/SerialisedMessage.h"
+#include "mongodb_store_msgs/Insert.h"
 
 //include to get BSON. There's probably a much smaller of set of headers we could get away with
 #include "mongo/client/dbclient.h"
@@ -96,6 +97,7 @@ public:
 		m_queryClient(handle.serviceClient<mongodb_store_msgs::MongoQueryMsg>(_servicePrefix + "/query_messages")),
 		m_querywithProjectionClient(handle.serviceClient<mongodb_store_msgs::MongoQuerywithProjectionMsg>(_servicePrefix + "/query_with_projection_messages")),
 		m_deleteClient(handle.serviceClient<mongodb_store_msgs::MongoDeleteMsg>(_servicePrefix + "/delete")),
+		m_insertPub(handle.advertise<mongodb_store_msgs::Insert>(_servicePrefix + "/insert", 100)),
 		m_database(_database),
 		m_collection(_collection)
 	{
@@ -114,7 +116,8 @@ public:
 		m_updateClient(_rhs.m_insertClient),
 		m_queryClient(_rhs.m_queryClient),
 		m_querywithProjectionClient(_rhs.m_querywithProjectionClient),
-		m_deleteClient(_rhs.m_deleteClient)
+		m_deleteClient(_rhs.m_deleteClient),
+		m_insertPub(_rhs.m_insertPub)
 	{}
 
 
@@ -122,14 +125,14 @@ public:
 
 
 	template<typename MsgType>
-	std::string insert(const MsgType & _msg, const mongo::BSONObj & _meta = mongo::BSONObj()) {
-		return insert(_msg, m_database, m_collection, _meta);
+	std::string insert(const MsgType & _msg, const mongo::BSONObj & _meta = mongo::BSONObj(), const bool _wait = true) {
+		return insert(_msg, m_database, m_collection, _meta, _wait);
 	}
 
 
 	template<typename MsgType>
 	std::string insertNamed(const std::string & _name, const MsgType & _msg,
-		const mongo::BSONObj & _meta = mongo::BSONObj()) {
+		const mongo::BSONObj & _meta = mongo::BSONObj(), const bool _wait = true) {
 
 		//create a copy of the meta data with the name included
 		mongo::BSONObjBuilder builder;
@@ -137,32 +140,43 @@ public:
 		builder.append("name", _name);
 
 		//and insert as usual
-		return insert(_msg, m_database, m_collection, builder.obj());
+		return insert(_msg, m_database, m_collection, builder.obj(), _wait);
 	}
 
 	template<typename MsgType>
 	std::string insert(const MsgType & _msg,
 		const std::string & _database,
 		const std::string & _collection,
-		const mongo::BSONObj & _meta = mongo::BSONObj()) {
+		const mongo::BSONObj & _meta = mongo::BSONObj(),
+		const bool _wait=true) {
 
+    if (_wait) {
   		//Create message with basic fields
   		mongodb_store_msgs::MongoInsertMsg srv;
   		srv.request.database = _database;
   		srv.request.collection = _collection;
 
 
- 		//if there's no meta then no copying is necessary
+      //if there's no meta then no copying is necessary
   		if(!_meta.isEmpty()) {
- 			srv.request.meta.pairs.push_back(makePair(mongodb_store_msgs::MongoQueryMsgRequest::JSON_QUERY, _meta.jsonString()));
-		}
+        srv.request.meta.pairs.push_back(makePair(mongodb_store_msgs::MongoQueryMsgRequest::JSON_QUERY, _meta.jsonString()));
+      }
 
-	 	fill_serialised_message(srv.request.message, _msg);
+      fill_serialised_message(srv.request.message, _msg);
 
   		//sent data over
   		m_insertClient.call(srv);
   		return srv.response.id;
-
+    } else {
+      mongodb_store_msgs::Insert msg;
+      msg.database = _database;
+      msg.collection = _collection;
+      if (!_meta.isEmpty())
+        msg.meta.pairs.push_back(makePair(mongodb_store_msgs::MongoQueryMsgRequest::JSON_QUERY, _meta.jsonString()));
+      fill_serialised_message(msg.message, _msg);
+      m_insertPub.publish(msg);
+      return "";
+    }
 	}
 
 	template<typename MsgType>
@@ -506,6 +520,7 @@ protected:
 	ros::ServiceClient m_queryClient;
 	ros::ServiceClient m_querywithProjectionClient;
 	ros::ServiceClient m_deleteClient;
+  ros::Publisher m_insertPub;
 
 	//an empty bson doc to save recreating one whenever one is not required
     static const mongo::BSONObj EMPTY_BSON_OBJ;
