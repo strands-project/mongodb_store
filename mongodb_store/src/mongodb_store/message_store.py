@@ -58,6 +58,7 @@ class MessageStoreProxy:
                                 found_services_first_try = False
                                 rospy.logerr("Could not get message store services. Maybe the message "
                                              "store has not been started? Retrying..")
+                                rospy.sleep(0.5)
                 if not found_services_first_try:
                         rospy.loginfo("Message store services found.")
 		self.insert_srv = rospy.ServiceProxy(insert_service, dc_srv.MongoInsertMsg)
