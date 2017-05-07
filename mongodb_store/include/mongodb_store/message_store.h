@@ -113,7 +113,7 @@ public:
 		m_database(_rhs.m_database),
 		m_collection(_rhs.m_collection),
 		m_insertClient(_rhs.m_insertClient),
-		m_updateClient(_rhs.m_insertClient),
+		m_updateClient(_rhs.m_updateClient),
 		m_queryClient(_rhs.m_queryClient),
 		m_querywithProjectionClient(_rhs.m_querywithProjectionClient),
 		m_deleteClient(_rhs.m_deleteClient),
