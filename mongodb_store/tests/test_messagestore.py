@@ -63,11 +63,11 @@ class TestMessageStoreProxy(unittest.TestCase):
         self.assertEqual(len(result_limited), 10)
         self.assertListEqual([int(doc[0].orientation.x) for doc in result_limited], range(10))
 
-	#get documents without "_id" field
-	result_no_id = msg_store.query(Pose._type, message_query={}, projection_query={"_id": 0})
+	#get documents without "orientation" field
+	result_no_id = msg_store.query(Pose._type, message_query={}, projection_query={"orientation": 0})
         for doc in result_no_id:
-		self.assertTrue('_id' not in doc[1]) 
-        #print result_no_id[0][1]
+		self.assertEqual(int(doc[0].orientation.z),0 ) 
+        
         
 	
         

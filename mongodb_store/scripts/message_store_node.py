@@ -295,13 +295,18 @@ class MessageStore(object):
  	    # this is a list of entries in dict format including meta
         projection_query_dict = dc_util.string_pair_list_to_dictionary(req.projection_query)
 
-        entries =  dc_util.query_message(collection, obj_query, sort_query_tuples, projection_query_dict,req.single, req.limit)
+        meta_projection_dict = dict()
 
+        meta_projection_dict["_meta"] = 1
+
+        entries =  dc_util.query_message(collection, obj_query, sort_query_tuples, projection_query_dict,req.single, req.limit)
+        meta_entries = dc_util.query_message(collection, obj_query, sort_query_tuples,meta_projection_dict,req.single, req.limit)
         # keep trying clients until we find an answer
         for extra_client in self.extra_clients:
             if len(entries) == 0:
                 extra_collection = extra_client[req.database][req.collection]
                 entries =  dc_util.query_message(extra_collection, obj_query, sort_query_tuples, projection_query_dict, req.single, req.limit)
+                meta_entries = dc_util.query_message(collection, obj_query, sort_query_tuples,meta_projection_dict,req.single, req.limit)
                 if len(entries) > 0:
                     rospy.loginfo("found result in extra datacentre")
             else:
@@ -313,8 +318,9 @@ class MessageStore(object):
         serialised_messages = ()
         metas = ()
 
-        for entry in entries:
 
+        for i,entry in enumerate(entries):
+            entry.update(meta_entries[i])
             # load the class object for this type
             # TODO this should be the same for every item in the list, so could reuse
             cls = dc_util.load_class(entry["_meta"]["stored_class"])
@@ -323,8 +329,9 @@ class MessageStore(object):
             # the serialise this object in order to be sent in a generic form
             serialised_messages = serialised_messages + (dc_util.serialise_message(message), )
             # add ObjectID into meta as it might be useful later
-            if "_id" not in projection_query_dict.keys():
-            	entry["_meta"]["_id"] = entry["_id"]
+            #if "_id" not in projection_query_dict.keys():
+            #print meta_entries[i]
+            entry["_meta"]["_id"] = meta_entries[i]["_id"]
             # serialise meta
             metas = metas + (StringPairList([StringPair(dc_srv.MongoQuerywithProjectionMsgRequest.JSON_QUERY, json.dumps(entry["_meta"], default=json_util.default))]), )
 
