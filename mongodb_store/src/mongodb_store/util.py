@@ -34,7 +34,7 @@ def check_connection_to_mongod(db_host, db_port):
         return False
 
 
-def wait_for_mongo():
+def wait_for_mongo(timeout):
     """
     Waits for the mongo server, as started through the mongodb_store/mongodb_server.py wrapper
 
@@ -43,7 +43,7 @@ def wait_for_mongo():
     """
     # Check that mongo is live, create connection
     try:
-        rospy.wait_for_service("/datacentre/wait_ready",10)
+        rospy.wait_for_service("/datacentre/wait_ready", timeout)
     except rospy.exceptions.ROSException, e:
         rospy.logerr("Can't connect to MongoDB server. Make sure mongodb_store/mongodb_server.py node is started.")
         return False
