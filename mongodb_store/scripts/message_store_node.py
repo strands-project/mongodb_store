@@ -26,6 +26,9 @@ class MessageStore(object):
         use_daemon = rospy.get_param('mongodb_use_daemon', False)
 	# If you want to use a remote datacenter, then it should be set as false
 	use_localdatacenter = rospy.get_param('~mongodb_use_localdatacenter', True)
+	local_timeout = rospy.get_param('~local_timeout', 10)
+        if str(local_timeout).lower() == "none":
+            local_timeout = None
 
 	if use_daemon:
             db_host = rospy.get_param('mongodb_host')
@@ -35,7 +38,8 @@ class MessageStore(object):
                 raise Exception("No Daemon?")
         else:
 	  if use_localdatacenter:
-            have_dc = dc_util.wait_for_mongo()
+            rospy.loginfo('Waiting for local datacentre (timeout: %s)' % str(local_timeout))
+            have_dc = dc_util.wait_for_mongo(local_timeout)
             if not have_dc:
                 raise Exception("No Datacentre?")
           # move these to after the wait_for_mongo check as they may not be set before the db is available
