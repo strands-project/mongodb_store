@@ -2,8 +2,8 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.29 (2017-06-19)
+-------------------
 * Support local datacentre timeout
   The timeout for the datacentre was hardcoded to 10 seconds. However, in
   some environments, for example in a cloud setup, this may not be enough.

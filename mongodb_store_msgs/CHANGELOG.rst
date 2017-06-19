@@ -3,8 +3,8 @@ Changelog for package mongodb_store_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
-Forthcoming
------------
+0.1.29 (2017-06-19)
+-------------------
 * [mongodb_store_msgs] add Insert.msg
 * Contributors: Nick Hawes, Yuki Furuta
 
