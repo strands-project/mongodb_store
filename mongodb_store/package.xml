@@ -10,7 +10,7 @@
   <author>Nick Hawes</author>
 
   <url type="website">http://www.ros.org/wiki/mongodb_store</url>
-
+  <url type="repository">https://github.com/strands-project/mongodb_store</url>
   <license>MIT</license>
 
   <buildtool_depend>catkin</buildtool_depend>
