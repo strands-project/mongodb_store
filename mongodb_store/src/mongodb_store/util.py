@@ -34,7 +34,7 @@ def check_connection_to_mongod(db_host, db_port):
         return False
 
 
-def wait_for_mongo(timeout):
+def wait_for_mongo(timeout=60):
     """
     Waits for the mongo server, as started through the mongodb_store/mongodb_server.py wrapper
 
