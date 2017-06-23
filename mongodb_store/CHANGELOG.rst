@@ -2,6 +2,14 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+
+Forthcoming
+-----------
+* [package.xml] Add link to devel repository
+  Without this, from [the package's wiki page](http://wiki.ros.org/mongodb_store) there's no way to tell where the repo is.
+* fixing error with launching mongodb_store
+* Contributors: Ferdian Jovan, Hakan, Isaac I.Y. Saito, Justin Huang
+
 0.1.29 (2017-06-19)
 -------------------
 * Support local datacentre timeout
@@ -45,6 +53,7 @@ Changelog for package mongodb_store
 * geotype of ROI has been added
 * The geospatial indexing of SOMA ROI objects is added
 * Contributors: Hakan
+
 
 
 
