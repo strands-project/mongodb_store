@@ -3,8 +3,8 @@ Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
-Forthcoming
------------
+0.1.30 (2017-06-23)
+-------------------
 * [package.xml] Add link to devel repository
   Without this, from [the package's wiki page](http://wiki.ros.org/mongodb_store) there's no way to tell where the repo is.
 * fixing error with launching mongodb_store
