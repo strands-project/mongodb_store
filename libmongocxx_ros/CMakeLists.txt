@@ -32,14 +32,34 @@ ExternalProject_add(mongocxx
 	UPDATE_COMMAND ""
 	CONFIGURE_COMMAND ""
 #	CONFIGURE_COMMAND "cp -R ${CMAKE_CURRENT_BINARY_DIR}/mongocxx/include ${libmongocxx_ros_SOURCE_DIR}/include"
-	BUILD_COMMAND scons -j 4 --sharedclient --disable-warnings-as-errors --prefix=${CATKIN_DEVEL_PREFIX} install && mkdir -p ${CMAKE_CURRENT_SOURCE_DIR}/include &&  cp -R ${CMAKE_CURRENT_BINARY_DIR}/include/. ${CMAKE_CURRENT_SOURCE_DIR}/include
+	BUILD_COMMAND scons -j 8 --ssl --sharedclient --disable-warnings-as-errors --prefix=${CATKIN_DEVEL_PREFIX} install && mkdir -p ${CMAKE_CURRENT_SOURCE_DIR}/include &&  cp -R ${CATKIN_DEVEL_PREFIX}/include/. ${CMAKE_CURRENT_SOURCE_DIR}/include
 	INSTALL_COMMAND ""
 	#CONFIGURE_COMMAND "scons -C ${CMAKE_CURRENT_BINARY_DIR}/libmongocxx"
 )
 
-add_library(mongoclient SHARED IMPORTED)
-set_target_properties(mongoclient PROPERTIES IMPORTED_LOCATION ${CATKIN_DEVEL_PREFIX}/lib/libmongoclient.so)
-add_dependencies(mongoclient mongocxx)
+add_library(mongoclient_imp SHARED IMPORTED)
+set_target_properties(mongoclient_imp PROPERTIES IMPORTED_LOCATION ${CATKIN_DEVEL_PREFIX}/lib/libmongoclient.so)
+
+#find_library(MCLIB NAMES "libmongoclient.so" PATHS "${CATKIN_DEVEL_PREFIX}/lib")
+#message(STATUS "${MCLIB}")
+
+add_library(mongoclient)
+# ${CATKIN_DEVEL_PREFIX}/lib/libmongoclient.so)
+add_custom_command( TARGET mongoclient POST_BUILD COMMAND cp ${CATKIN_DEVEL_PREFIX}/lib/libmongoclient.so ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/ )
+set_target_properties(mongoclient PROPERTIES LINKER_LANGUAGE CXX )
+
+
+add_dependencies(mongoclient_imp mongocxx)
+add_dependencies(mongoclient mongoclient_imp)
+
+#add_library(mongoclient_ros SHARED src/dummy.cpp)
+#add_dependencies(mongoclient_ros mongoclient)
+
+#target_link_libraries(mongoclient_ros
+#   PUBLIC mongoclient
+#   ${catkin_LIBRARIES}
+#)
+
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -140,7 +160,7 @@ add_dependencies(mongoclient mongocxx)
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+  include
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -189,17 +209,17 @@ include_directories(
 # )
 
 ## Mark executables and/or libraries for installation
-#install(TARGETS mongoclient
-#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-#)
-
-install(FILES 
-	${CATKIN_DEVEL_PREFIX}/lib/libmongoclient.so
-	${CATKIN_DEVEL_PREFIX}/lib/libmongoclient.a
-	DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+install(TARGETS mongoclient
+   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+
+#install(FILES 
+#	${CATKIN_DEVEL_PREFIX}/lib/libmongoclient.so
+#	${CATKIN_DEVEL_PREFIX}/lib/libmongoclient.a
+#	DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#)
 
 
 # Mark cpp header files for installation
