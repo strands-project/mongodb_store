@@ -57,8 +57,8 @@ Changelog for package mongodb_store
 
 
 
-Forthcoming
------------
+0.2.0 (2017-06-28)
+------------------
 * dependencies fixing
 * some attempts to build libmongocxx internally
 * indigo-0.1.30
