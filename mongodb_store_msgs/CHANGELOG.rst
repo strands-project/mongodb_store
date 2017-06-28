@@ -20,8 +20,8 @@ Changelog for package mongodb_store_msgs
 
 
 
-Forthcoming
------------
+0.2.1 (2017-06-28)
+------------------
 
 0.2.0 (2017-06-28)
 ------------------
