@@ -20,6 +20,9 @@ Changelog for package mongodb_store_msgs
 
 
 
+Forthcoming
+-----------
+
 0.2.0 (2017-06-28)
 ------------------
 * indigo-0.1.30

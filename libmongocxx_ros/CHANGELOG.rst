@@ -2,6 +2,11 @@
 Changelog for package libmongocxx_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* added git which was missing for the build
+* Contributors: Marc Hanheide
+
 0.2.0 (2017-06-28)
 ------------------
 * attempt to fix the cmake hell

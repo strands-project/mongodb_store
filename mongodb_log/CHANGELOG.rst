@@ -18,6 +18,9 @@ Changelog for package mongodb_log
 
 
 
+Forthcoming
+-----------
+
 0.2.0 (2017-06-28)
 ------------------
 * dependencies fixing
