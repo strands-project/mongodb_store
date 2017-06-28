@@ -224,7 +224,7 @@ install(TARGETS mongoclient
 
 # Mark cpp header files for installation
 install(DIRECTORY ${CATKIN_DEVEL_PREFIX}/include/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/include
   FILES_MATCHING PATTERN "*.h"
   PATTERN ".svn" EXCLUDE
 )
