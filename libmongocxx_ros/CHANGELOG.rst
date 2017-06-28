@@ -2,8 +2,8 @@
 Changelog for package libmongocxx_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.2.2 (2017-06-28)
+------------------
 * fixed wrong install place
 * Contributors: Marc Hanheide
 
