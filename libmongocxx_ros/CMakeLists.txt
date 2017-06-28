@@ -195,7 +195,9 @@ include_directories(
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 #)
 
-install(FILES ${CATKIN_DEVEL_PREFIX}/lib/libmongoclient.*
+install(FILES 
+	${CATKIN_DEVEL_PREFIX}/lib/libmongoclient.so
+	${CATKIN_DEVEL_PREFIX}/lib/libmongoclient.a
 	DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 )
 
