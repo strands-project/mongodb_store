@@ -20,6 +20,19 @@ Changelog for package mongodb_store_msgs
 
 
 
+Forthcoming
+-----------
+* indigo-0.1.30
+* updated Changelogs
+* indigo-0.1.29
+* updated Changelogs
+* [mongodb_store_msgs] add Insert.msg
+* indigo-0.1.28
+* updated Changelogs
+* indigo-0.1.27
+* updated Changelogs
+* Contributors: Nick Hawes, Yuki Furuta
+
 0.1.26 (2016-10-14)
 -------------------
 * Created a new service for querying with projections
