@@ -26,6 +26,7 @@
   <build_depend>mongodb</build_depend>
   <build_depend>mongodb-dev</build_depend>
   <build_depend>libssl-dev</build_depend>
+  <build_depend>libmongocxx_ros</build_depend>
   <!-- Used for examples -->
   <build_depend>geometry_msgs</build_depend>
 
@@ -37,6 +38,7 @@
   <run_depend>mongodb</run_depend>
   <run_depend>mongodb-dev</run_depend>
   <run_depend>mongodb_store_msgs</run_depend>
+  <run_depend>libmongocxx_ros</run_depend>
   <!-- Used for examples -->
   <run_depend>geometry_msgs</run_depend>
 
