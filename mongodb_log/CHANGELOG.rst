@@ -18,6 +18,25 @@ Changelog for package mongodb_log
 
 
 
+0.2.2 (2017-06-28)
+------------------
+
+0.2.1 (2017-06-28)
+------------------
+
+0.2.0 (2017-06-28)
+------------------
+* dependencies fixing
+* indigo-0.1.30
+* updated Changelogs
+* indigo-0.1.29
+* updated Changelogs
+* indigo-0.1.28
+* updated Changelogs
+* indigo-0.1.27
+* updated Changelogs
+* Contributors: Marc Hanheide, Nick Hawes
+
 0.1.26 (2016-10-14)
 -------------------
 * indigo-0.1.25

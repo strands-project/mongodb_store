@@ -1,3 +1,5 @@
+libmongocxx_ros/include/*
+
 *.py[cod]
 
 # C extensions
