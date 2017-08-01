@@ -151,7 +151,7 @@ if (CATKIN_ENABLE_TESTING)
 
   target_link_libraries(message_store_cpp_test
     message_store 
-  ${MongoClient_LIBRARIES} ${OPENSSL_LIBRARIES} 
+    ${OPENSSL_LIBRARIES} 
     ${catkin_LIBRARIES}
     ${Boost_LIBRARIES}
     gtest
