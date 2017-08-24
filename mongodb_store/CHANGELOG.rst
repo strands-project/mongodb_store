@@ -7,6 +7,10 @@ Forthcoming
 * remove mongoclient libs from CMakeLists
 * Contributors: Bruno Lacerda
 
+
+0.3.0 (2017-08-24)
+------------------
+
 0.2.2 (2017-06-28)
 ------------------
 
