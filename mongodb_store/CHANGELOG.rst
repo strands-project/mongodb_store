@@ -2,6 +2,55 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* remove mongoclient libs from CMakeLists
+* Contributors: Bruno Lacerda
+
+0.2.2 (2017-06-28)
+------------------
+
+0.2.1 (2017-06-28)
+------------------
+
+0.2.0 (2017-06-28)
+------------------
+* dependencies fixing
+* some attempts to build libmongocxx internally
+* indigo-0.1.30
+* updated Changelogs
+* [package.xml] Add link to devel repository
+  Without this, from [the package's wiki page](http://wiki.ros.org/mongodb_store) there's no way to tell where the repo is.
+* fixing error with launching mongodb_store
+* indigo-0.1.29
+* updated Changelogs
+* Support local datacentre timeout
+  The timeout for the datacentre was hardcoded to 10 seconds. However, in
+  some environments, for example in a cloud setup, this may not be enough.
+  Make this configurable and just default to the previous 10 seconds.
+* Merge pull request `#188 <https://github.com/strands-project/mongodb_store/issues/188>`_ from hkaraoguz/projectionerrorfix
+  Projectionerrorfix
+* Fixed updateClient assignment on copy.
+* The projection tests are changed
+* Revert back to original mongodb cmd
+* [mongodb_store/stests/message_store_cpp_test.cpp] fix test for non-wait insert
+* Fixed projection error happening when exclude and include field directives are mixed
+* [mongodb_store] add test for non-wait insert
+* [mongodb_store] add non-wait insert functionality
+* indigo-0.1.28
+* updated Changelogs
+* Mongo C++ header location not exposed.
+  Implemented fix from @ronwalf closes `#176 <https://github.com/strands-project/mongodb_store/issues/176>`_
+* Fixed missing return value
+* Fixing the compatibility issues of messagestore cpp client with old SOMA versions
+* Fixed issue with projection query including fields instead of excluding
+* indigo-0.1.27
+* updated Changelogs
+* [mongodb_store/scripts/mongodb_server.py] connect with localhost when shutdown server
+* Fixed if statement
+* geotype of ROI has been added
+* The geospatial indexing of SOMA ROI objects is added
+* Contributors: Ferdian Jovan, Hakan, Isaac I.Y. Saito, Justin Huang, Marc Hanheide, Nick Hawes, Tim Niemueller, Yuki Furuta
 
 0.1.30 (2017-06-23)
 -------------------
@@ -53,54 +102,6 @@ Changelog for package mongodb_store
 * geotype of ROI has been added
 * The geospatial indexing of SOMA ROI objects is added
 * Contributors: Hakan
-
-
-
-
-0.2.2 (2017-06-28)
-------------------
-
-0.2.1 (2017-06-28)
-------------------
-
-0.2.0 (2017-06-28)
-------------------
-* dependencies fixing
-* some attempts to build libmongocxx internally
-* indigo-0.1.30
-* updated Changelogs
-* [package.xml] Add link to devel repository
-  Without this, from [the package's wiki page](http://wiki.ros.org/mongodb_store) there's no way to tell where the repo is.
-* fixing error with launching mongodb_store
-* indigo-0.1.29
-* updated Changelogs
-* Support local datacentre timeout
-  The timeout for the datacentre was hardcoded to 10 seconds. However, in
-  some environments, for example in a cloud setup, this may not be enough.
-  Make this configurable and just default to the previous 10 seconds.
-* Merge pull request `#188 <https://github.com/strands-project/mongodb_store/issues/188>`_ from hkaraoguz/projectionerrorfix
-  Projectionerrorfix
-* Fixed updateClient assignment on copy.
-* The projection tests are changed
-* Revert back to original mongodb cmd
-* [mongodb_store/stests/message_store_cpp_test.cpp] fix test for non-wait insert
-* Fixed projection error happening when exclude and include field directives are mixed
-* [mongodb_store] add test for non-wait insert
-* [mongodb_store] add non-wait insert functionality
-* indigo-0.1.28
-* updated Changelogs
-* Mongo C++ header location not exposed.
-  Implemented fix from @ronwalf closes `#176 <https://github.com/strands-project/mongodb_store/issues/176>`_
-* Fixed missing return value
-* Fixing the compatibility issues of messagestore cpp client with old SOMA versions
-* Fixed issue with projection query including fields instead of excluding
-* indigo-0.1.27
-* updated Changelogs
-* [mongodb_store/scripts/mongodb_server.py] connect with localhost when shutdown server
-* Fixed if statement
-* geotype of ROI has been added
-* The geospatial indexing of SOMA ROI objects is added
-* Contributors: Ferdian Jovan, Hakan, Isaac I.Y. Saito, Justin Huang, Marc Hanheide, Nick Hawes, Tim Niemueller, Yuki Furuta
 
 0.1.26 (2016-10-14)
 -------------------

@@ -2,23 +2,8 @@
 Changelog for package mongodb_store_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-
-0.1.30 (2017-06-23)
--------------------
-
-
-0.1.29 (2017-06-19)
--------------------
-* [mongodb_store_msgs] add Insert.msg
-* Contributors: Nick Hawes, Yuki Furuta
-
-0.1.28 (2016-11-09)
--------------------
-
-0.1.27 (2016-11-01)
--------------------
-
-
+Forthcoming
+-----------
 
 0.2.2 (2017-06-28)
 ------------------
@@ -38,6 +23,20 @@ Changelog for package mongodb_store_msgs
 * indigo-0.1.27
 * updated Changelogs
 * Contributors: Nick Hawes, Yuki Furuta
+
+0.1.30 (2017-06-23)
+-------------------
+
+0.1.29 (2017-06-19)
+-------------------
+* [mongodb_store_msgs] add Insert.msg
+* Contributors: Nick Hawes, Yuki Furuta
+
+0.1.28 (2016-11-09)
+-------------------
+
+0.1.27 (2016-11-01)
+-------------------
 
 0.1.26 (2016-10-14)
 -------------------
