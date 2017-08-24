@@ -2,8 +2,8 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.1 (2017-08-24)
+------------------
 * remove mongoclient libs from CMakeLists
 * Contributors: Bruno Lacerda
 
