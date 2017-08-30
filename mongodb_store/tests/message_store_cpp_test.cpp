@@ -1,5 +1,6 @@
 #include "mongodb_store/message_store.h"
 #include "geometry_msgs/Pose.h"
+#include "topic_tools/shape_shifter.h"
 
 #include <boost/foreach.hpp>
 #include <gtest/gtest.h>
@@ -167,6 +168,43 @@ TEST(ROSDatacentre, cppTest)
     }
     msg_num_after_insert = results.size();
     EXPECT_GT(msg_num_after_insert, msg_num_before_insert);
+
+    // Using topic_tools::ShapeShifter
+    stored.position.x = 1;
+    stored.position.y = 2;
+    stored.position.z = 3;
+
+    // converting geometry_msgs/Pose message into topic_tools/ShapeShifter type
+    uint32_t serial_size = ros::serialization::serializationLength(stored);
+    boost::shared_array<uint8_t> buffer(new uint8_t[serial_size]);
+    ros::serialization::OStream ostream(buffer.get(), serial_size);
+    ros::serialization::serialize(ostream, stored);
+    topic_tools::ShapeShifter ss_msg;
+    ss_msg.morph(ros::message_traits::md5sum(stored),
+                 ros::message_traits::datatype(stored),
+                 ros::message_traits::definition(stored),
+                 "0" /* = latch: false */);
+    ros::serialization::IStream istream(buffer.get(), serial_size);
+    ss_msg.read(istream);
+
+    id = messageStore.insert(ss_msg);
+    if (id.empty()) {
+      ADD_FAILURE() << "Failed to insert message of type 'topic_tools::ShapeShifter'";
+    }
+    ROS_INFO_STREAM("Inserted message type of 'topic_tools::ShapeShifter': " << id);
+
+    results.clear();
+    if (!messageStore.queryID(id, results)) {
+      ADD_FAILURE() << "Failed to query after insertion of 'topic_tools::ShapeShifter' message";
+    }
+    EXPECT_EQ(1, results.size());
+    EXPECT_EQ(stored.position.x, results[0]->position.x);
+    EXPECT_EQ(stored.position.y, results[0]->position.y);
+    EXPECT_EQ(stored.position.z, results[0]->position.z);
+    EXPECT_EQ(stored.orientation.x, results[0]->orientation.x);
+    EXPECT_EQ(stored.orientation.y, results[0]->orientation.y);
+    EXPECT_EQ(stored.orientation.z, results[0]->orientation.z);
+    EXPECT_EQ(stored.orientation.w, results[0]->orientation.w);
 
     ROS_INFO_STREAM("happy here");
 }
