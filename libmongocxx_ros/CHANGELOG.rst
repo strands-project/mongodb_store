@@ -2,8 +2,8 @@
 Changelog for package libmongocxx_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.2 (2017-08-31)
+------------------
 * had to add `ca-certificates` as `build_depend`
   as the build step (git clone) in the cmake command to build the binary packages failed
 * Contributors: Marc Hanheide
