@@ -3,6 +3,7 @@
 
 #include "ros/ros.h"
 #include "ros/console.h"
+#include "topic_tools/shape_shifter.h"
 #include "mongodb_store_msgs/MongoInsertMsg.h"
 #include "mongodb_store_msgs/MongoUpdateMsg.h"
 #include "mongodb_store_msgs/MongoQueryMsg.h"
@@ -33,7 +34,7 @@ void fill_serialised_message(mongodb_store_msgs::SerialisedMessage & _sm,
 								const MsgType & _msg) {
 
 	//record type
-	_sm.type = ros::message_traits::DataType<MsgType>::value();
+	_sm.type = ros::message_traits::datatype(_msg);
 
 	//how long the data will be
 	uint32_t serial_size = ros::serialization::serializationLength(_msg);
