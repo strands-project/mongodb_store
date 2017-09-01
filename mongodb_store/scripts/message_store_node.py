@@ -46,6 +46,8 @@ class MessageStore(object):
           db_host = rospy.get_param('mongodb_host')
           db_port = rospy.get_param('mongodb_port')
 
+        
+        self.keep_trash = rospy.get_param('mongodb_keep_trash', True)
 
         self._mongo_client=MongoClient(db_host, db_port)
 
@@ -144,17 +146,18 @@ class MessageStore(object):
         # Remove the doc
         collection.remove({"_id": ObjectId(req.document_id)})
 
-        # But keep it into "trash"
-        bk_collection = self._mongo_client[req.database][req.collection + "_Trash"]
-        bk_collection.save(message)
+        if self.keep_trash:
+            # But keep it into "trash"
+            bk_collection = self._mongo_client[req.database][req.collection + "_Trash"]
+            bk_collection.save(message)
 
 
-        # also repeat in extras
-        for extra_client in self.extra_clients:
-            extra_collection = extra_client[req.database][req.collection]
-            extra_collection.remove({"_id": ObjectId(req.document_id)})
-            extra_bk_collection = extra_client[req.database][req.collection + "_Trash"]
-            extra_bk_collection.save(message)
+            # also repeat in extras
+            for extra_client in self.extra_clients:
+                extra_collection = extra_client[req.database][req.collection]
+                extra_collection.remove({"_id": ObjectId(req.document_id)})
+                extra_bk_collection = extra_client[req.database][req.collection + "_Trash"]
+                extra_bk_collection.save(message)
 
 
         return True
