@@ -2,6 +2,9 @@
 Changelog for package libmongocxx_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 0.3.2 (2017-08-31)
 ------------------
 * had to add `ca-certificates` as `build_depend`
