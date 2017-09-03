@@ -39,6 +39,7 @@
   <run_depend>mongodb</run_depend>
   <run_depend>mongodb_store_msgs</run_depend>
   <run_depend>libmongocxx_ros</run_depend>
+  <run_depend>topic_tools</run_depend>
   <!-- Used for examples -->
   <run_depend>geometry_msgs</run_depend>
 
