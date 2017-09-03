@@ -2,6 +2,9 @@
 Changelog for package libmongocxx_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 0.3.3 (2017-09-02)
 ------------------
 
