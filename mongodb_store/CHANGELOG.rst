@@ -2,6 +2,14 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#203 <https://github.com/strands-project/mongodb_store/issues/203>`_ from strands-project/marc-hanheide-patch-3
+  added `topic_tools`as `CATKIN_DEPEND`
+* topic_tools as run_depend
+* added `topic_tools`as `CATKIN_DEPEND`
+* Contributors: Marc Hanheide
+
 0.3.4 (2017-09-03)
 ------------------
 
