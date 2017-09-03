@@ -51,7 +51,7 @@ generate_messages(
 catkin_package(
  INCLUDE_DIRS include
  LIBRARIES message_store #${MongoClient_INCLUDE_DIR}
- CATKIN_DEPENDS libmongocxx_ros mongodb_store_msgs
+ CATKIN_DEPENDS libmongocxx_ros mongodb_store_msgs topic_tools
 # DEPENDS MongoClient
 )
 
