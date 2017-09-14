@@ -2,6 +2,9 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 0.3.5 (2017-09-03)
 ------------------
 * Merge pull request `#203 <https://github.com/strands-project/mongodb_store/issues/203>`_ from strands-project/marc-hanheide-patch-3
