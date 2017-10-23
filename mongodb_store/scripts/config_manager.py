@@ -67,7 +67,6 @@ class MongoTransformer(pymongo.son_manipulator.SONManipulator):
 class ConfigManager(object):
     def __init__(self):
         rospy.init_node("config_manager")
-        rospy.on_shutdown(self._on_node_shutdown)
 
         use_daemon = rospy.get_param('mongodb_use_daemon', False)
         db_host = rospy.get_param('mongodb_host')
@@ -81,6 +80,7 @@ class ConfigManager(object):
                 sys.exit(1)
         
         self._mongo_client = MongoClient(db_host, db_port)
+        rospy.on_shutdown(self._on_node_shutdown)
 
         self._database=self._mongo_client.config
         self._database.add_son_manipulator(MongoTransformer())
