@@ -68,9 +68,9 @@ def check_for_pymongo():
     try:
         import pymongo
     except:
-        print("ERROR!!!")
-        print("Can't import pymongo, this is needed by mongodb_store.")
-        print("Make sure it is installed (sudo pip install pymongo)")
+        rospy.logerr("ERROR!!!")
+        rospy.logerr("Can't import pymongo, this is needed by mongodb_store.")
+        rospy.logerr("Make sure it is installed (sudo pip install pymongo)")
         return False
 
     return True
