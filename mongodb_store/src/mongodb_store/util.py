@@ -22,13 +22,20 @@ def check_connection_to_mongod(db_host, db_port):
     """
     if check_for_pymongo():
         try:
-            from pymongo import Connection
-            Connection(db_host, db_port)
-            return True
-        except Exception as e:
-            print("Error: %s" % str(e))
-            print("Could not connect to mongo server %s:%d" % (db_host, db_port))
-            print("Make sure mongod is launched on your specified host/port")
+            try:
+                # pymongo 2.X
+                from pymongo import Connection
+                Connection(db_host, db_port)
+                return True
+            except:
+                # pymongo 3.X
+                from pymongo import MongoClient
+                client = MongoClient(db_host, db_port, connect=False)
+                result = client.admin.command('ismaster')
+                return True
+        except pymongo.errors.ConnectionFailure:
+            rospy.logerr("Could not connect to mongo server %s:%d" % (db_host, db_port))
+            rospy.logerr("Make sure mongod is launched on your specified host/port")
             return False
     else:
         return False

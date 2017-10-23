@@ -207,7 +207,11 @@ class ConfigManager(object):
         
         
     def _on_node_shutdown(self):
-        self._mongo_client.disconnect()
+        try:
+            # PyMongo 2.9 or later
+            self._mongo_client.close()
+        except Exception as e:
+            self._mongo_client.disconnect()
 
     # Could just use the ros parameter server to get the params
     # but one day might not back onto the parameter server...
