@@ -243,6 +243,7 @@ class ConfigManager(object):
             new['_id']=value['_id']
             config_db_local.update(value,new, manipulate=True)
             pass
+        rospy.set_param(new["path"], new["value"])
         return SetParamResponse(True)
 
     # This will take the current value from the rosparam server and save it into the DB
