@@ -8,6 +8,7 @@ find_package(catkin REQUIRED rospy roslib rosgraph rostopic tf sensor_msgs mongo
 
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED COMPONENTS system thread filesystem)
+find_package(OpenSSL REQUIRED)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -74,24 +75,18 @@ add_executable(mongodb_log_cimg src/mongodb_log_cimg.cpp)
 
 # rosbuild_add_executable(rosmongodb_log_trimesh src/rosmongodb_log_trimesh.cpp)
 target_link_libraries(mongodb_log_tf
-  ${catkin_LIBRARIES}
-  mongoclient
-  ssl
-  crypto
+  ${catkin_LIBRARIES}   
+  ${OPENSSL_LIBRARIES}
   ${Boost_LIBRARIES}
 )
 target_link_libraries(mongodb_log_pcl
-  ${catkin_LIBRARIES}
-  mongoclient
-  ssl
-  crypto
+  ${catkin_LIBRARIES}   
+  ${OPENSSL_LIBRARIES}
   ${Boost_LIBRARIES}
 )
 target_link_libraries(mongodb_log_cimg
-  ${catkin_LIBRARIES}
-  mongoclient
-  ssl
-  crypto
+  ${catkin_LIBRARIES}   
+  ${OPENSSL_LIBRARIES}
   ${Boost_LIBRARIES}
 )
 

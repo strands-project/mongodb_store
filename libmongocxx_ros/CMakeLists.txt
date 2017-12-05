@@ -3,6 +3,18 @@ project(libmongocxx_ros)
 
 find_package(catkin REQUIRED)
 
+find_package(OpenSSL REQUIRED)
+# workaround for exposing OpenSSL libraries
+set(OpenSSL_LIBRARIES ${OPENSSL_LIBRARIES})
+set(OpenSSL_INCLUDE_DIRS ${OPENSSL_INCLUDE_DIR})
+
+
+if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    set(LIB_EXT dylib)
+else()
+    set(LIB_EXT so)
+endif()
+
 # find MongoClient from system first
 # if not found, downloads and compiles from sources
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/" ${CMAKE_MODULE_PATH})
@@ -19,12 +31,12 @@ if (MongoClient_FOUND)
     DEPENDS ${CATKIN_DEVEL_PREFIX}/include/mongo)
   add_custom_command(OUTPUT ${CATKIN_DEVEL_PREFIX}/lib
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CATKIN_DEVEL_PREFIX}/lib)
-  add_custom_command(OUTPUT ${CATKIN_DEVEL_PREFIX}/lib/libmongoclient.so
-    COMMAND ${CMAKE_COMMAND} -E copy ${MongoClient_LIBRARY} ${CATKIN_DEVEL_PREFIX}/lib/libmongoclient.so
+  add_custom_command(OUTPUT ${CATKIN_DEVEL_PREFIX}/lib/libmongoclient.${LIB_EXT}
+    COMMAND ${CMAKE_COMMAND} -E copy ${MongoClient_LIBRARY} ${CATKIN_DEVEL_PREFIX}/lib/libmongoclient.${LIB_EXT}
     DEPENDS ${CATKIN_DEVEL_PREFIX}/lib)
   add_custom_target(mongocxx
     DEPENDS
-    ${CATKIN_DEVEL_PREFIX}/lib/libmongoclient.so
+    ${CATKIN_DEVEL_PREFIX}/lib/libmongoclient.${LIB_EXT}
     ${PROJECT_SOURCE_DIR}/include/mongo
     ${CATKIN_DEVEL_PREFIX}/include/mongo)
 else()
@@ -39,7 +51,7 @@ else()
     BUILD_IN_SOURCE 1
     UPDATE_COMMAND ""
     CONFIGURE_COMMAND ""
-    BUILD_COMMAND scons -j ${PROCESSOR_COUNT} --ssl --sharedclient --disable-warnings-as-errors --prefix=${CATKIN_DEVEL_PREFIX} install && mkdir -p ${CMAKE_CURRENT_SOURCE_DIR}/include && ${CMAKE_COMMAND} -E copy_directory ${CATKIN_DEVEL_PREFIX}/include ${CMAKE_CURRENT_SOURCE_DIR}/include
+    BUILD_COMMAND scons -j ${PROCESSOR_COUNT} --ssl --sharedclient --disable-warnings-as-errors --prefix=${CATKIN_DEVEL_PREFIX} --cpppath=${OPENSSL_INCLUDE_DIR} --libpath=${OPENSSL_ROOT_DIR}/lib install && mkdir -p ${CMAKE_CURRENT_SOURCE_DIR}/include && ${CMAKE_COMMAND} -E copy_directory ${CATKIN_DEVEL_PREFIX}/include ${CMAKE_CURRENT_SOURCE_DIR}/include
     INSTALL_COMMAND ""
   )
 endif()
@@ -47,10 +59,6 @@ endif()
 # dependencies of MongoClient
 find_package(Boost REQUIRED COMPONENTS system thread program_options filesystem)
 
-find_package(OpenSSL REQUIRED)
-# workaround for exposing OpenSSL libraries
-set(OpenSSL_LIBRARIES ${OPENSSL_LIBRARIES})
-set(OpenSSL_INCLUDE_DIRS ${OPENSSL_INCLUDE_DIR})
 
 catkin_package(
   LIBRARIES mongoclient
@@ -58,11 +66,11 @@ catkin_package(
   DEPENDS Boost OpenSSL)
 
 add_library(mongoclient_imp SHARED IMPORTED)
-set_target_properties(mongoclient_imp PROPERTIES IMPORTED_LOCATION ${CATKIN_DEVEL_PREFIX}/lib/libmongoclient.so)
+set_target_properties(mongoclient_imp PROPERTIES IMPORTED_LOCATION ${CATKIN_DEVEL_PREFIX}/lib/libmongoclient.${LIB_EXT})
 
 add_library(mongoclient)
 add_custom_command(TARGET mongoclient
-  POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CATKIN_DEVEL_PREFIX}/lib/libmongoclient.so ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/)
+  POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CATKIN_DEVEL_PREFIX}/lib/libmongoclient.${LIB_EXT} ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/)
 set_target_properties(mongoclient PROPERTIES LINKER_LANGUAGE CXX)
 
 add_dependencies(mongoclient_imp mongocxx)
