@@ -4,7 +4,7 @@
   <version>0.3.6</version>
   <description>The mongodb_store_msgs package</description>
 
-  <maintainer email="n.a.hawes@cs.bham.ac.uk">Nick Hawes</maintainer>
+  <maintainer email="nickh@robots.ox.ac.uk">Nick Hawes</maintainer>
 
 
   <!-- One license tag required, multiple allowed, one license per tag -->
@@ -12,7 +12,7 @@
   <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
   <license>MIT</license>
 
-  <author email="n.a.hawes@cs.bham.ac.uk">Nick Hawes</author>
+  <author email="nickh@robots.ox.ac.uk">Nick Hawes</author>
   
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>catkin</build_depend>
