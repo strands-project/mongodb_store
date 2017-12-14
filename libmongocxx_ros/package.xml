@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>libmongocxx_ros</name>
-  <version>0.3.6</version>
+  <version>0.3.7</version>
   <description>A wrapper for the libmongocxx for mongodb_store</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->

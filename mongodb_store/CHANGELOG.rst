@@ -2,8 +2,8 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.7 (2017-12-14)
+------------------
 * Merge pull request `#207 <https://github.com/strands-project/mongodb_store/issues/207>`_ from furushchev/fix-mongocxx
   Use system mongocxx client if possible
 * Merge pull request `#205 <https://github.com/strands-project/mongodb_store/issues/205>`_ from furushchev/pymongo3
