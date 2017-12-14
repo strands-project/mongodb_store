@@ -2,6 +2,17 @@
 Changelog for package libmongocxx_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#210 <https://github.com/strands-project/mongodb_store/issues/210>`_ from hawesie/kinetic-devel
+  Updated to build on OS X with the mongo client legacy version.
+* Updated to build on OS X with the mongo client legacy version.
+  This makes a couple of changes. For libmongocxx_ros the paths for openssl are added to the scons command and all ".so" and set to ".so" or ".dylib" depending on platform. For mongodb_log this removes the explicit linking of mongoclient which isn't needed since catkin_libraries includes the lib created by libmongocxx_ros.
+* Merge pull request `#207 <https://github.com/strands-project/mongodb_store/issues/207>`_ from furushchev/fix-mongocxx
+  Use system mongocxx client if possible
+* libmongocxx_ros: try to use system mongocxx lib if possible
+* Contributors: Nick Hawes, Yuki Furuta
+
 0.3.6 (2017-09-14)
 ------------------
 

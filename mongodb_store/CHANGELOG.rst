@@ -2,6 +2,21 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#207 <https://github.com/strands-project/mongodb_store/issues/207>`_ from furushchev/fix-mongocxx
+  Use system mongocxx client if possible
+* Merge pull request `#205 <https://github.com/strands-project/mongodb_store/issues/205>`_ from furushchev/pymongo3
+  Support Pymongo 3
+* libmongocxx_ros: try to use system mongocxx lib if possible
+* Merge pull request `#206 <https://github.com/strands-project/mongodb_store/issues/206>`_ from Pikrass/update-rosparam
+  Store the updated value to rosparam when calling set_param
+* Store the updated value to rosparam when calling set_param
+* mongodb_store.util: use rospy.log functions instead of print
+* config_manager.py: fix error on exit
+* support pymongo 3.X
+* Contributors: Bastien Scher, Nick Hawes, Yuki Furuta
+
 0.3.6 (2017-09-14)
 ------------------
 
