@@ -239,13 +239,13 @@ class MessageStore(object):
  	    # this is a list of entries in dict format including meta
         #projection_query_dict = dc_util.string_pair_list_to_dictionary(req.projection_query)
 
-        entries =  dc_util.query_message(collection, obj_query, sort_query_tuples, {},req.single, req.limit)
+        entries =  dc_util.query_message(collection, obj_query, sort_query_tuples, {}, req.single, req.limit)
 
         # keep trying clients until we find an answer
         for extra_client in self.extra_clients:
             if len(entries) == 0:
                 extra_collection = extra_client[req.database][req.collection]
-                entries =  dc_util.query_message(extra_collection, obj_query, sort_query_tuples, req.single, req.limit)
+                entries =  dc_util.query_message(extra_collection, obj_query, sort_query_tuples, {}, req.single, req.limit)
                 if len(entries) > 0:
                     rospy.loginfo("found result in extra datacentre")
             else:
