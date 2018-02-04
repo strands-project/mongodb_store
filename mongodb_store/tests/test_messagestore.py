@@ -1,9 +1,11 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import sys
 import unittest
 import random
 from mongodb_store.message_store import MessageStoreProxy
+from std_msgs.msg import String
 from geometry_msgs.msg import Pose, Point, Quaternion
 import rospy
 
@@ -86,6 +88,18 @@ class TestMessageStoreProxy(unittest.TestCase):
         rospy.sleep(2)
         count_after_insert = len(msg_store.query(Pose._type, meta_query={ "no_wait": True }))
         self.assertTrue(count_after_insert > count_before_insert)
+
+    def test_non_ascii(self):
+        msg_store = MessageStoreProxy()
+        msg = String(data="こんにちは")  # non ascii string
+        doc_id = msg_store.insert(msg)
+
+        try:
+            qmsg, _ = msg_store.query_id(doc_id, String._type)
+            self.assertEqual(msg.data, qmsg.data)
+        except rospy.service.ServiceException:
+            self.fail("non ascii unicode string cannot be queried")
+
 
 if __name__ == '__main__':
     import rostest

@@ -313,7 +313,7 @@ def fill_message(message, document):
                     setattr(message, slot, lst)
             else:
                 if isinstance(value, unicode):
-                    setattr(message, slot, str(value))
+                    setattr(message, slot, value.encode('utf-8'))
                 else:
                     setattr(message, slot, value)
 
