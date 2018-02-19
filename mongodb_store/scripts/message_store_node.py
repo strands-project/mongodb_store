@@ -21,8 +21,6 @@ MongoClient = dc_util.import_MongoClient()
 class MessageStore(object):
     def __init__(self, replicate_on_write=False):
 
-        self.replicate_on_write = replicate_on_write
-
         use_daemon = rospy.get_param('mongodb_use_daemon', False)
 	# If you want to use a remote datacenter, then it should be set as false
 	use_localdatacenter = rospy.get_param('~mongodb_use_localdatacenter', True)
@@ -52,19 +50,22 @@ class MessageStore(object):
 
         self._mongo_client=MongoClient(db_host, db_port)
 
-
-        extras = rospy.get_param('mongodb_store_extras', [])
-        self.extra_clients = []
-        for extra in extras:
-            try:
-                self.extra_clients.append(MongoClient(extra[0], extra[1]))
-            except pymongo.errors.ConnectionFailure, e:
-                rospy.logwarn('Could not connect to extra datacentre at %s:%s' % (extra[0], extra[1]))
-
+        self.replicate_on_write = rospy.get_param(
+            "mongodb_replicate_on_write", replicate_on_write)
         if self.replicate_on_write:
+            rospy.logwarn(
+                "The option 'replicate_on_write' is now deprecated and will be removed. "
+                "Use 'Replication' on MongoDB instead: "
+                "https://docs.mongodb.com/manual/replication/")
+
+            extras = rospy.get_param('mongodb_store_extras', [])
+            self.extra_clients = []
+            for extra in extras:
+                try:
+                    self.extra_clients.append(MongoClient(extra[0], extra[1]))
+                except pymongo.errors.ConnectionFailure, e:
+                    rospy.logwarn('Could not connect to extra datacentre at %s:%s' % (extra[0], extra[1]))
             rospy.loginfo('Replicating content to a futher %s datacentres',len(self.extra_clients))
-        else:
-            rospy.loginfo('Querying content in a futher %s datacentres',len(self.extra_clients))
 
         # advertise ros services
         for attr in dir(self):
@@ -154,12 +155,12 @@ class MessageStore(object):
 
 
             # also repeat in extras
-            for extra_client in self.extra_clients:
-                extra_collection = extra_client[req.database][req.collection]
-                extra_collection.remove({"_id": ObjectId(req.document_id)})
-                extra_bk_collection = extra_client[req.database][req.collection + "_Trash"]
-                extra_bk_collection.save(message)
-
+            if self.replicate_on_write:
+                for extra_client in self.extra_clients:
+                    extra_collection = extra_client[req.database][req.collection]
+                    extra_collection.remove({"_id": ObjectId(req.document_id)})
+                    extra_bk_collection = extra_client[req.database][req.collection + "_Trash"]
+                    extra_bk_collection.save(message)
 
         return True
     delete_ros_srv.type=dc_srv.MongoDeleteMsg
@@ -251,18 +252,19 @@ class MessageStore(object):
 
 
         # keep trying clients until we find an answer
-        for extra_client in self.extra_clients:
-            if len(entries) == 0:
-                extra_collection = extra_client[req.database][req.collection]
-                entries =  dc_util.query_message(
-                    extra_collection, obj_query, sort_query_tuples, projection_query_dict, req.single, req.limit)
-                if projection_query_dict:
-                    meta_entries = dc_util.query_message(
-                        extra_collection, obj_query, sort_query_tuples, projection_meta_dict, req.single, req.limit)
-                if len(entries) > 0:
-                    rospy.loginfo("found result in extra datacentre")
-            else:
-                break
+        if self.replicate_on_write:
+            for extra_client in self.extra_clients:
+                if len(entries) == 0:
+                    extra_collection = extra_client[req.database][req.collection]
+                    entries =  dc_util.query_message(
+                        extra_collection, obj_query, sort_query_tuples, projection_query_dict, req.single, req.limit)
+                    if projection_query_dict:
+                        meta_entries = dc_util.query_message(
+                            extra_collection, obj_query, sort_query_tuples, projection_meta_dict, req.single, req.limit)
+                    if len(entries) > 0:
+                        rospy.loginfo("found result in extra datacentre")
+                else:
+                    break
 
         serialised_messages = ()
         metas = ()
@@ -293,6 +295,7 @@ class MessageStore(object):
         Returns t
         """
         return self.query_messages_ros_srv(req)
+
     query_with_projection_messages_ros_srv.type=dc_srv.MongoQuerywithProjectionMsg
 
 
