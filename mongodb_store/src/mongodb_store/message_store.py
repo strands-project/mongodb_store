@@ -42,17 +42,15 @@ class MessageStoreProxy:
 		insert_service = service_prefix + '/insert'
 		update_service = service_prefix + '/update'
 		delete_service = service_prefix + '/delete'
-		query_ids_service = service_prefix + '/query_messages'
-		query_with_projection_service = service_prefix + '/query_with_projection_messages'
+		query_service = service_prefix + '/query_messages'
                 # try and get the mongo service, block until available
                 found_services_first_try = True # if found straight away
                 while not rospy.is_shutdown():
                         try:
                                 rospy.wait_for_service(insert_service,5)
                                 rospy.wait_for_service(update_service,5)
-                                rospy.wait_for_service(query_ids_service,5)
+                                rospy.wait_for_service(query_service,5)
                                 rospy.wait_for_service(delete_service,5)
-				rospy.wait_for_service(query_with_projection_service,5)
                                 break
                         except rospy.ROSException, e:
                                 found_services_first_try = False
@@ -62,9 +60,8 @@ class MessageStoreProxy:
                         rospy.loginfo("Message store services found.")
 		self.insert_srv = rospy.ServiceProxy(insert_service, dc_srv.MongoInsertMsg)
 		self.update_srv = rospy.ServiceProxy(update_service, dc_srv.MongoUpdateMsg)
-		self.query_id_srv = rospy.ServiceProxy(query_ids_service, dc_srv.MongoQueryMsg)
+		self.query_srv = rospy.ServiceProxy(query_service, dc_srv.MongoQueryMsg)
 		self.delete_srv = rospy.ServiceProxy(delete_service, dc_srv.MongoDeleteMsg)
-		self.query_with_projection_srv = rospy.ServiceProxy(query_with_projection_service,dc_srv.MongoQuerywithProjectionMsg)
 
 		insert_topic = service_prefix + '/insert'
 		self.pub_insert = rospy.Publisher(insert_topic, Insert, queue_size=queue_size)
@@ -246,9 +243,6 @@ class MessageStoreProxy:
 		# serialise the json queries to strings using json_util.dumps
 		message_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(message_query, default=json_util.default)),)
 		meta_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(meta_query, default=json_util.default)),)
-		#if projection_query:
-			#if "_meta" not in projection_query.keys():
-				#projection_query["_meta"] = 1
 		projection_tuple =(StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(projection_query, default=json_util.default)),)
 
 		if len(sort_query) > 0:
@@ -256,10 +250,12 @@ class MessageStoreProxy:
 		else:
 				sort_tuple = []
 
-		if not projection_query:
-			response = self.query_id_srv(self.database, self.collection, type, single, limit, StringPairList(message_tuple), StringPairList(meta_tuple), StringPairList(sort_tuple))
-		else:
-			response = self.query_with_projection_srv(self.database, self.collection, type, single, limit, StringPairList(message_tuple), StringPairList(meta_tuple), StringPairList(sort_tuple),StringPairList(projection_tuple))
+		response = self.query_srv(
+                            self.database, self.collection, type, single, limit,
+                            StringPairList(message_tuple),
+                            StringPairList(meta_tuple),
+                            StringPairList(sort_tuple),
+                            StringPairList(projection_tuple))
 
 		if response.messages is None:
 			messages = []

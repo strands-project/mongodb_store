@@ -10,6 +10,8 @@ import StringIO
 from mongodb_store_msgs.msg import SerialisedMessage
 from mongodb_store_msgs.srv import MongoQueryMsgRequest
 
+from pymongo.errors import ConnectionFailure
+
 import importlib
 from datetime import datetime
 
@@ -33,7 +35,7 @@ def check_connection_to_mongod(db_host, db_port):
                 client = MongoClient(db_host, db_port, connect=False)
                 result = client.admin.command('ismaster')
                 return True
-        except pymongo.errors.ConnectionFailure:
+        except ConnectionFailure:
             rospy.logerr("Could not connect to mongo server %s:%d" % (db_host, db_port))
             rospy.logerr("Make sure mongod is launched on your specified host/port")
             return False
