@@ -12,7 +12,7 @@ import os
 import shutil
 import subprocess
 from mongodb_store_msgs.msg import  MoveEntriesAction, MoveEntriesFeedback
-from datetime import *
+from datetime import datetime
 
 
 import mongodb_store.util

@@ -7,7 +7,7 @@ import os
 import re
 import signal
 import errno
-from std_srvs.srv import *
+from std_srvs.srv import Empty, EmptyResponse
 import shutil
 
 import mongodb_store.util
@@ -156,11 +156,12 @@ class MongoServer(object):
             return
         try:
             c = MongoClient(port=self._mongo_port)
-        except pymongo.errors.ConnectionFailure, c:
-            pass
+        except pymongo.errors.ConnectionFailure:
+            c = None
         try:
-            c.admin.command("shutdown")
-        except pymongo.errors.AutoReconnect, a:
+            if c is not None:
+                c.admin.command("shutdown")
+        except pymongo.errors.AutoReconnect:
             pass
         
         if self.test_mode:  # remove auto-created DB in the /tmp folder
