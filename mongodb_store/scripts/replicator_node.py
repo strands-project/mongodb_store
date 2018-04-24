@@ -67,8 +67,9 @@ class Replicator(object):
         master = None
         try:
             master = MongoClient(self.master_db_host, self.master_db_port)
-        except pymongo.errors.ConnectionFailure, e:
-            rospy.logwarn('Could not connect to master datacentre at %s:%s' % (mongodb_host, mongodb_port))
+        except pymongo.errors.ConnectionFailure:
+            rospy.logwarn('Could not connect to master datacentre at %s:%s' % (
+                self.master_db_host, self.master_db_port))
             return None, None
 
 
@@ -121,11 +122,15 @@ class Replicator(object):
             self.server.set_succeeded()
 
     def do_restore(self, extras, db='message_store'):       
-        # restore collection to extras
+        """restore collection to extras"""
         for extra in extras:            
             if self.server.is_preempt_requested():
                 break
-            rest_args = ['mongorestore',  '--host',  extra.host, '--port',  str(extra.port), self.dump_path]
+            try:
+                host, port = extra.address  # pymongo >= 3.0
+            except:
+                host, port = extra.host, extra.port
+            rest_args = ['mongorestore',  '--host',  host, '--port',  str(port), self.dump_path]
             self.restore_process = subprocess.Popen(rest_args)
             self.restore_process.wait()
 
@@ -140,11 +145,12 @@ class Replicator(object):
 
 
     def do_dump(self, collection, master, less_time_time=None, db='message_store'):       
-        # dump collection
-
-        # print 'dumping ', collection
-
-        args = ['mongodump',  '--host',  master.host, '--port',  str(master.port), '--db', db, '--collection', collection, '-o', self.dump_path]
+        """dump collection"""
+        try:
+            host, port = master.address  # pymongo >= 3.0
+        except:
+            host, port = master.host, master.port
+        args = ['mongodump',  '--host',  host, '--port',  str(port), '--db', db, '--collection', collection, '-o', self.dump_path]
 
         if less_time_time is not None:
             # match only objects with an insterted data less than this
