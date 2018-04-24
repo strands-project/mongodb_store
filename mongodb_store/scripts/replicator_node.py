@@ -5,13 +5,14 @@
 Provides a service to store ROS message objects in a mongodb database in JSON.
 """
 
+from bson import json_util
 import rospy
 import actionlib
 import pymongo
 import os
 import shutil
 import subprocess
-from mongodb_store_msgs.msg import  MoveEntriesAction, MoveEntriesFeedback
+from mongodb_store_msgs.msg import MoveEntriesAction, MoveEntriesFeedback
 from datetime import datetime
 
 
@@ -104,14 +105,18 @@ class Replicator(object):
         
         less_time_time = rospy.get_rostime() - goal.move_before
 
-        for collection in goal.collections.data:                    
-            self.do_dump(collection, master, less_time_time, db=goal.database)
+        query = mongodb_store.util.string_pair_list_to_dictionary(goal.query)
+
+        for collection in goal.collections.data:
+            self.do_dump(collection, master, less_time_time,
+                         db=goal.database, query=query)
 
         self.do_restore(extras, db=goal.database)
 
-        if goal.delete_after_move:  
-            for collection in goal.collections.data:                    
-                self.do_delete(collection, master, less_time_time, db=goal.database)
+        if goal.delete_after_move:
+            for collection in goal.collections.data:
+                self.do_delete(collection, master, less_time_time,
+                               db=goal.database, query=query)
 
         # clean up
         self.remove_path()
@@ -135,16 +140,20 @@ class Replicator(object):
             self.restore_process.wait()
 
 
-    def do_delete(self, collection, master, less_time_time=None, db='message_store'):       
+    def do_delete(self, collection, master, less_time_time=None, db='message_store', query=None):
         coll = master[db][collection]
-        spec = None
+        spec = dict()
+        if query is not None:
+            spec.update(query)
         if less_time_time is not None:
-            spec = {"_meta.inserted_at": { "$lt": datetime.utcfromtimestamp(less_time_time.to_sec())}}
+            spec.update({
+                "_meta.inserted_at": {"$lt": datetime.utcfromtimestamp(less_time_time.to_sec())}
+            })
         coll.remove(spec)
 
 
 
-    def do_dump(self, collection, master, less_time_time=None, db='message_store'):       
+    def do_dump(self, collection, master, less_time_time=None, db='message_store', query=None):
         """dump collection"""
         try:
             host, port = master.address  # pymongo >= 3.0
@@ -152,12 +161,17 @@ class Replicator(object):
             host, port = master.host, master.port
         args = ['mongodump',  '--host',  host, '--port',  str(port), '--db', db, '--collection', collection, '-o', self.dump_path]
 
+        spec = dict()
+        if query is not None:
+            spec.update(query)
         if less_time_time is not None:
-            # match only objects with an insterted data less than this
-            args.append('--query')
-            args.append('{ \"_meta.inserted_at\": { $lt: new Date(%s)}}' % (less_time_time.secs * 1000))
+            spec.update({
+                "_meta.inserted_at": {"$lt": datetime.utcfromtimestamp(less_time_time.to_sec())}
+            })
 
-        # print args
+        # match only objects with an insterted data less than this
+        args.append('--query')
+        args.append(json_util.dumps(spec))
 
         self.dump_process = subprocess.Popen(args)
         self.dump_process.wait()
