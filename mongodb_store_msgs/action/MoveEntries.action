@@ -4,7 +4,10 @@ string database
 StringList collections
 # only entries before rospy.get_rostime() - move_before are moved. if 0, all are moved
 duration move_before
+# delete moved entries after replication
 bool delete_after_move
+# query to move entries by
+StringPairList query
 ---
 
 ---
