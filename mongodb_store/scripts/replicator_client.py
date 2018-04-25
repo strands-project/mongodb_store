@@ -5,13 +5,11 @@
 Provides a service to store ROS message objects in a mongodb database in JSON.
 """
 
-from bson import json_util
 import argparse
 import rospy
 import actionlib
+from mongodb_store_msgs.msg import StringList
 from mongodb_store_msgs.msg import MoveEntriesAction, MoveEntriesGoal
-from mongodb_store_msgs.msg import StringList, StringPair, StringPairList
-from mongodb_store_msgs.srv import MongoQueryMsgRequest
 
 
 def feedback(feedback):

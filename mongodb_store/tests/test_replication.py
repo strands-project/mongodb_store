@@ -2,13 +2,20 @@
 # -*- coding: utf-8 -*-
 # Author: furushchev <furushchev@jsk.imi.i.u-tokyo.ac.jp>
 
+import os
 import pymongo
-import subprocess
 import rospy
+import subprocess
 import unittest
 from mongodb_store.util import import_MongoClient, wait_for_mongo
 from mongodb_store.message_store import MessageStoreProxy
 from geometry_msgs.msg import Wrench
+
+
+def get_script_path():
+    test_dir = os.path.dirname(os.path.realpath(__file__))
+    pkg_dir = os.path.dirname(test_dir)
+    return os.path.join(pkg_dir, "scripts", "replicator_client.py")
 
 
 class TestReplication(unittest.TestCase):
@@ -35,7 +42,7 @@ class TestReplication(unittest.TestCase):
         # move entries
         rospy.sleep(3)
         retcode = subprocess.check_call([
-            'rosrun', 'mongodb_store', 'replicator_client.py',
+            get_script_path(),
             '--move-before', '0',
             replication_db, replication_col])
         self.assertEqual(retcode, 0, "replicator_client returns code 0")
@@ -49,7 +56,7 @@ class TestReplication(unittest.TestCase):
         data, meta = msg_store.query_named(msg_name, Wrench._type)
         self.assertIsNotNone(data, "entry is still in source")
         retcode = subprocess.check_call([
-            'rosrun', 'mongodb_store', 'replicator_client.py',
+            get_script_path(),
             '--move-before', '0',
             '--delete-after-move',
             replication_db, replication_col])
