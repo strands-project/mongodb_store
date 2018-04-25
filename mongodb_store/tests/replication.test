@@ -1,0 +1,32 @@
+<launch>
+  <node name="mongo_server" pkg="mongodb_store" type="mongodb_server.py">
+    <rosparam>
+      test_mode: true
+      master: true
+    </rosparam>
+  </node>
+  <node name="message_store" pkg="mongodb_store" type="message_store_node.py"/>
+
+  <node name="mongo_server2" pkg="mongodb_store" type="mongodb_server.py">
+    <remap from="/datacentre/shutdown" to="/datacentre2/shutdown"/>
+    <remap from="/datacentre/wait_ready" to="/datacentre2/wait_ready"/>
+    <rosparam>
+      test_mode: true
+      master: false
+      host: localhost
+      port: 49163
+    </rosparam>
+  </node>
+
+  <node name="replicator_node" pkg="mongodb_store" type="replicator_node.py">
+    <rosparam subst_value="true">
+      replicator_dump_path: $(anon /tmp/replicator_dumps)
+    </rosparam>
+  </node>
+  <rosparam>
+    mongodb_store_extras: [["localhost", 49163]]
+  </rosparam>
+
+  <test test-name="test_replication" pkg="mongodb_store" type="test_replication.py"
+        retry="3" />
+</launch>

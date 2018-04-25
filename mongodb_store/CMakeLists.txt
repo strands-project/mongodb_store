@@ -144,6 +144,7 @@ if (CATKIN_ENABLE_TESTING)
   find_package(catkin REQUIRED COMPONENTS rostest)
 
   add_rostest(tests/message_store.test)
+  add_rostest(tests/replication.test)
 
   add_executable(message_store_cpp_test tests/message_store_cpp_test.cpp)
 
