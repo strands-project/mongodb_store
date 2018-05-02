@@ -2,6 +2,20 @@
 Changelog for package mongodb_store_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#220 <https://github.com/strands-project/mongodb_store/issues/220>`_ from furushchev/replication-with-query
+  Replication with query
+* mongodb_store_msgs: add query slot to MoveEntries action
+* Merge remote-tracking branch 'origin/kinetic-devel' into fix/encode-utf8
+* Merge remote-tracking branch 'origin/kinetic-devel' into option-query-extra
+  Conflicts:
+  mongodb_store/scripts/message_store_node.py
+* Merge pull request `#215 <https://github.com/strands-project/mongodb_store/issues/215>`_ from furushchev/remove-dup-projection
+  mongodb_store: Remove duplicated codes for projection
+* mongodb_store: remove duplicated codes for querying with projection
+* Contributors: Furushchev, Nick Hawes
+
 0.3.7 (2017-12-14)
 ------------------
 
