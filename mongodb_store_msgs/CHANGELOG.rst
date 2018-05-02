@@ -2,8 +2,8 @@
 Changelog for package mongodb_store_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.8 (2018-05-02)
+------------------
 * Merge pull request `#220 <https://github.com/strands-project/mongodb_store/issues/220>`_ from furushchev/replication-with-query
   Replication with query
 * mongodb_store_msgs: add query slot to MoveEntries action

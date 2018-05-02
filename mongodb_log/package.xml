@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>mongodb_log</name>
-  <version>0.3.7</version>
+  <version>0.3.8</version>
   <description>The mongodb_log package</description>
 
   <author email="tim@niemueller.de">Tim Niemueller</author>
