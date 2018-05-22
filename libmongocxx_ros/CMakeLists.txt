@@ -15,12 +15,14 @@ else()
     set(LIB_EXT so)
 endif()
 
-
-include(CheckCXXCompilerFlag)
-check_cxx_compiler_flag("-std=c++11" COMPILER_SUPPORTS_CXX11)
-if(COMPILER_SUPPORTS_CXX11)
+# for ROS kinetic compile mongocxx with c++11 support
+if($ENV{ROS_DISTRO} STREQUAL "kinetic")
   set(SCONS_CXX11_FLAG "--c++11=on")
+  message(STATUS "Building with C++11 support")
+else()
+  message(STATUS "Building without C++11 support")
 endif()
+
 
 # find MongoClient from system first
 # if not found, downloads and compiles from sources

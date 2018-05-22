@@ -1,10 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(mongodb_store)
 
-
-include(CheckCXXCompilerFlag)
-check_cxx_compiler_flag("-std=c++11" COMPILER_SUPPORTS_CXX11)
-if(COMPILER_SUPPORTS_CXX11)
+# for ROS kinetic compile mongocxx with c++11 support
+if($ENV{ROS_DISTRO} STREQUAL "kinetic")
   add_compile_options(-std=c++11)
 endif()
 
