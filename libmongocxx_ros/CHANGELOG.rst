@@ -2,8 +2,8 @@
 Changelog for package libmongocxx_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.4.0 (2018-05-23)
+------------------
 * if compiler supports it use C++11
 * Contributors: Ferenc Balint-Benczedi
 
