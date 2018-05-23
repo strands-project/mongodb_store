@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(mongodb_log)
 
-# for ROS kinetic build with C++11 support
-if($ENV{ROS_DISTRO} STREQUAL "kinetic")
+# for ROS indigo build without C++11 support
+if(NOT $ENV{ROS_DISTRO} STREQUAL "indigo")
   add_compile_options(-std=c++11)
 endif()
 

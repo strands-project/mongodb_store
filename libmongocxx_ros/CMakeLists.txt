@@ -15,8 +15,8 @@ else()
     set(LIB_EXT so)
 endif()
 
-# for ROS kinetic compile mongocxx with c++11 support
-if($ENV{ROS_DISTRO} STREQUAL "kinetic")
+# for ROS indigo compile mongocxx without c++11 support
+if(NOT $ENV{ROS_DISTRO} STREQUAL "indigo")
   set(SCONS_CXX11_FLAG "--c++11=on")
   message(STATUS "Building with C++11 support")
 else()
