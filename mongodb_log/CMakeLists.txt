@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(mongodb_log)
 
+# for ROS indigo build without C++11 support
+if(NOT $ENV{ROS_DISTRO} STREQUAL "indigo")
+  add_compile_options(-std=c++11)
+endif()
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages

@@ -15,6 +15,15 @@ else()
     set(LIB_EXT so)
 endif()
 
+# for ROS indigo compile mongocxx without c++11 support
+if(NOT $ENV{ROS_DISTRO} STREQUAL "indigo")
+  set(SCONS_CXX11_FLAG "--c++11=on")
+  message(STATUS "Building with C++11 support")
+else()
+  message(STATUS "Building without C++11 support")
+endif()
+
+
 # find MongoClient from system first
 # if not found, downloads and compiles from sources
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/" ${CMAKE_MODULE_PATH})
@@ -51,7 +60,7 @@ else()
     BUILD_IN_SOURCE 1
     UPDATE_COMMAND ""
     CONFIGURE_COMMAND ""
-    BUILD_COMMAND scons -j ${PROCESSOR_COUNT} --ssl --sharedclient --disable-warnings-as-errors --prefix=${CATKIN_DEVEL_PREFIX} --cpppath=${OPENSSL_INCLUDE_DIR} --libpath=${OPENSSL_ROOT_DIR}/lib install && mkdir -p ${CMAKE_CURRENT_SOURCE_DIR}/include && ${CMAKE_COMMAND} -E copy_directory ${CATKIN_DEVEL_PREFIX}/include ${CMAKE_CURRENT_SOURCE_DIR}/include
+    BUILD_COMMAND scons -j ${PROCESSOR_COUNT} --ssl --sharedclient --disable-warnings-as-errors --prefix=${CATKIN_DEVEL_PREFIX} --cpppath=${OPENSSL_INCLUDE_DIR} --libpath=${OPENSSL_ROOT_DIR}/lib ${SCONS_CXX11_FLAG} install && mkdir -p ${CMAKE_CURRENT_SOURCE_DIR}/include && ${CMAKE_COMMAND} -E copy_directory ${CATKIN_DEVEL_PREFIX}/include ${CMAKE_CURRENT_SOURCE_DIR}/include
     INSTALL_COMMAND ""
   )
 endif()
