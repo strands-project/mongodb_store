@@ -2,6 +2,11 @@
 Changelog for package mongodb_log
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.4.0 (2018-05-23)
+------------------
+* if compiler supports it use C++11
+* Contributors: Ferenc Balint-Benczedi
+
 0.3.8 (2018-05-02)
 ------------------
 

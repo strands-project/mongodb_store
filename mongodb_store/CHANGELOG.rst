@@ -2,6 +2,12 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.4.0 (2018-05-23)
+------------------
+
+* if compiler supports it use C++11
+* Contributors: Ferenc Balint-Benczedi
+
 0.3.8 (2018-05-02)
 ------------------
 * Merge pull request `#220 <https://github.com/strands-project/mongodb_store/issues/220>`_ from furushchev/replication-with-query
