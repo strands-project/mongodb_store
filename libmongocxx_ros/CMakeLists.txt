@@ -8,21 +8,33 @@ find_package(OpenSSL REQUIRED)
 set(OpenSSL_LIBRARIES ${OPENSSL_LIBRARIES})
 set(OpenSSL_INCLUDE_DIRS ${OPENSSL_INCLUDE_DIR})
 
-
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(LIB_EXT dylib)
 else()
     set(LIB_EXT so)
 endif()
 
-# for ROS indigo compile mongocxx without c++11 support
-if(NOT $ENV{ROS_DISTRO} STREQUAL "indigo")
-  set(SCONS_CXX11_FLAG "--c++11=on")
-  message(STATUS "Building with C++11 support")
+#for ROS indigo compile mongocxx without c++11 support
+if(DEFINED ENV{ROS_DISTRO})
+  if(NOT $ENV{ROS_DISTRO} STREQUAL "indigo")
+    set(SCONS_CXX11_FLAG "--c++11=on")
+    message(STATUS "Building with C++11 support")
+  else() 
+    message(STATUS "ROS Indigo: building without C++11 support")
+  endif()
 else()
-  message(STATUS "Building without C++11 support")
+  message(STATUS "Environmental variable ROS_DISTRO not defined, checking OS version")
+  execute_process(COMMAND lsb_release -cs 
+    OUTPUT_VARIABLE RELEASE_CODENAME
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+  if(NOT ${RELEASE_CODENAME} STREQUAL "trusty")	
+    set(SCONS_CXX11_FLAG "--c++11=on")
+    message(STATUS "Building with C++11 support")
+  else()
+    message(STATUS "Building without C++11 support")
+  endif()
 endif()
-
 
 # find MongoClient from system first
 # if not found, downloads and compiles from sources
