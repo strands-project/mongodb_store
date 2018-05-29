@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>mongodb_store</name>
-  <version>0.4.0</version>
+  <version>0.4.1</version>
   <description>A package to support MongoDB-based storage and analysis for data from a ROS system, eg. saved messages, configurations etc</description>
 
   <maintainer email="nickh@robots.ox.ac.uk">Nick Hawes</maintainer>

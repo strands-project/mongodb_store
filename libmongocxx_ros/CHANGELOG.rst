@@ -2,8 +2,8 @@
 Changelog for package libmongocxx_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.4.1 (2018-05-29)
+------------------
 * check if env. var. exists if not decide based on OS version
 * Contributors: Ferenc Balint-Benczedi
 
