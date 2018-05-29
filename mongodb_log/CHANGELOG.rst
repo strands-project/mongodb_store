@@ -2,6 +2,11 @@
 Changelog for package mongodb_log
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* check if env. var. exists if not decide based on OS version
+* Contributors: Ferenc Balint-Benczedi
+
 0.4.0 (2018-05-23)
 ------------------
 * if compiler supports it use C++11
