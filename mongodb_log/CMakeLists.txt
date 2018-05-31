@@ -12,9 +12,9 @@ if(DEFINED ENV{ROS_DISTRO})
   endif()
 else()
   message(STATUS "Environmental variable ROS_DISTRO not defined, checking OS version")
-  execute_process(COMMAND lsb_release -cs OUTPUT_VARIABLE RELEASE_CODENAME
-                  OUTPUT_STRIP_TRAILING_WHITESPACE)
-  if(NOT ${RELEASE_CODENAME} STREQUAL "trusty") 
+  file(STRINGS /etc/os-release RELEASE_CODENAME
+		REGEX "VERSION_CODENAME=")
+  if(NOT ${RELEASE_CODENAME} MATCHES "trusty") 
     add_compile_options(-std=c++11)
     message(STATUS "OS distro is not trusty: building with C++11 support")
   else()
