@@ -2,6 +2,11 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* instead of lsb-release read /etc/os-version from CMake to find OS version
+* Contributors: Ferenc Balint-Benczedi
+
 0.4.1 (2018-05-29)
 ------------------
 * check if env. var. exists if not decide based on OS version
