@@ -249,7 +249,8 @@ int main(int argc, char **argv) {
   
   ros::init(argc, argv, nodename);
   ros::NodeHandle n;
-  
+
+  mongo::client::initialize(); 
   std::string errmsg;
   mongodb_conn = new DBClientConnection(/* auto reconnect*/ true);
   if (! mongodb_conn->connect(mongodb, errmsg)) {

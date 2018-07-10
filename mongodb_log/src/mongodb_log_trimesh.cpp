@@ -166,6 +166,7 @@ main(int argc, char **argv)
   ros::init(argc, argv, nodename);
   ros::NodeHandle n;
 
+  mongo::client::intialize();
   std::string errmsg;
   mongodb_conn = new DBClientConnection(/* auto reconnect*/ true);
   if (! mongodb_conn->connect(mongodb, errmsg)) {
