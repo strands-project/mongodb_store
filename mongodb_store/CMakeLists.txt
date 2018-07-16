@@ -23,7 +23,7 @@ endif()
 
 find_package(catkin REQUIRED COMPONENTS roscpp message_generation rospy std_msgs std_srvs mongodb_store_msgs topic_tools libmongocxx_ros)
 
-#find_package(MongoClient REQUIRED)
+find_package(MongoClient REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -66,9 +66,9 @@ generate_messages(
 
 catkin_package(
  INCLUDE_DIRS include
- LIBRARIES message_store #${MongoClient_INCLUDE_DIR}
+ LIBRARIES message_store ${MongoClient_INCLUDE_DIR}
  CATKIN_DEPENDS libmongocxx_ros mongodb_store_msgs topic_tools
-# DEPENDS MongoClient
+ DEPENDS MongoClient
 )
 
 ###########
@@ -80,7 +80,7 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  #${MongoClient_INCLUDE_DIR} 
+  ${MongoClient_INCLUDE_DIR} 
 )
 
 link_directories(${catkin_LINK_DIRS})
