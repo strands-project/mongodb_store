@@ -25,7 +25,7 @@ MongoClient = mongodb_store.util.import_MongoClient()
 class MongoTransformer(pymongo.son_manipulator.SONManipulator):
     def __init__(self):
         pass
-    
+
     def transform_incoming(self, son, collection):
         if isinstance(son, list):
             return self.transform_incoming_list(son, collection)
@@ -41,14 +41,14 @@ class MongoTransformer(pymongo.son_manipulator.SONManipulator):
         new_lst = map(lambda x: self.transform_incoming(x, collection),
                   lst)
         return new_lst
-    
+
     def transform_outgoing(self, son, collection):
         if isinstance(son, list):
             return self.transform_outgoing_list(son, collection)
         elif isinstance(son, dict):
             for (key, value) in son.items():
                 son[key] = self.transform_outgoing(value, collection)
-    
+
             if "__xmlrpclib_object" in son:
                 if son["__xmlrpclib_object"] == "xmlrpclib.Binary":
                     b = xmlrpclib.Binary(son['data'])
@@ -58,12 +58,12 @@ class MongoTransformer(pymongo.son_manipulator.SONManipulator):
             else:
                 return son
         return son
-    
+
     def transform_outgoing_list(self, lst, collection):
         new_lst = map(lambda x: self.transform_outgoing(x, collection),
                   lst)
         return new_lst
-    
+
 class ConfigManager(object):
     def __init__(self):
         rospy.init_node("config_manager")
@@ -78,7 +78,7 @@ class ConfigManager(object):
         else:
             if not mongodb_store.util.wait_for_mongo():
                 sys.exit(1)
-        
+
         self._mongo_client = MongoClient(db_host, db_port)
         rospy.on_shutdown(self._on_node_shutdown)
 
@@ -89,7 +89,7 @@ class ConfigManager(object):
         try:
             path = rospy.get_param("~defaults_path")
             if len(path)==0:
-                raise 
+                raise
         except:
             rospy.loginfo("Default parameters path not supplied, assuming none.")
         else:
@@ -159,8 +159,8 @@ class ConfigManager(object):
                     new.update(existing)
                     new['value']=val
                     defaults_collection.update(existing, new, manipulate=True)
-                
-                
+
+
         # Load the settings onto the ros parameter server
         defaults_collection = self._database.defaults
         local_collection = self._database.local
@@ -168,13 +168,19 @@ class ConfigManager(object):
             name=param["path"]
             val=param["value"]
             if local_collection.find_one({"path":name}) is None:
-                rospy.set_param(name,val)
+                if val is not None:
+                    rospy.set_param(name,val)
+                else:
+                    rospy.logerr("Unable to set parameter %, its value is None.", name)
         for param in local_collection.find():
             name=param["path"]
             val=param["value"]
-            rospy.set_param(name,val)
+            if val is not None:
+                rospy.set_param(name,val)
+            else:
+                rospy.logerr("Unable to set parameter %, its value is None.", name)
 
-        
+
         # Advertise ros services for parameter setting / getting
         self._getparam_srv = rospy.Service("/config_manager/get_param",
                                            GetParam,
@@ -185,9 +191,9 @@ class ConfigManager(object):
         self._saveparam_srv = rospy.Service("/config_manager/save_param",
                                            SetParam,
                                            self._saveparam_srv_cb)
-        
+
         #self._list_params()
-        
+
         # Start the main loop
         rospy.spin()
 
@@ -204,8 +210,8 @@ class ConfigManager(object):
             filename=param["from_file"]
             print name, " "*(30-len(name)),val," "*(30-len(str(val))),filename
         print
-        
-        
+
+
     def _on_node_shutdown(self):
         try:
             # PyMongo 2.9 or later
@@ -237,6 +243,11 @@ class ConfigManager(object):
         if not (new.has_key("path") and new.has_key("value")):
             rospy.logerr("Trying to set parameter but not giving full spec")
             return SetParamResponse(False)
+
+        if new["value"] is None:
+            rospy.logerr("Unable to set parameter to None.")
+            return SetParamResponse(False)
+
         config_db_local = self._database.local
         value = config_db_local.find_one({"path":new["path"]}, manipulate=False)
         if value is None:
@@ -270,7 +281,7 @@ class ConfigManager(object):
             config_db_local.update(value, new, manipulate=True)
 
         return SetParamResponse(True)
-   
+
 
 if __name__ == '__main__':
     server = ConfigManager()
