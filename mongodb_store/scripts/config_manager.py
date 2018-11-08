@@ -6,12 +6,15 @@ import sys
 import os
 import collections
 import json
-import xmlrpclib
+import xmlrpc.client
 from bson.binary import Binary
 
 import mongodb_store.util
 
-from mongodb_store.srv import *
+from mongodb_store.srv import (
+    GetParam, GetParamResponse,
+    SetParam, SetParamResponse
+)
 from std_srvs.srv import *
 import rosparam
 
@@ -30,28 +33,27 @@ class MongoTransformer(pymongo.son_manipulator.SONManipulator):
         if isinstance(son, list):
             return self.transform_incoming_list(son, collection)
         elif isinstance(son, dict):
-            for (key, value) in son.items():
+            for (key, value) in list(son.items()):
                 son[key] = self.transform_incoming(value, collection)
-        elif isinstance(son, xmlrpclib.Binary):
+        elif isinstance(son, xmlrpc.client.Binary):
             return {'__xmlrpclib_object':'xmlrpclib.Binary',
                    'data': Binary(son.data)}
         return son
 
     def transform_incoming_list(self, lst, collection):
-        new_lst = map(lambda x: self.transform_incoming(x, collection),
-                  lst)
+        new_lst = [self.transform_incoming(x, collection) for x in lst]
         return new_lst
     
     def transform_outgoing(self, son, collection):
         if isinstance(son, list):
             return self.transform_outgoing_list(son, collection)
         elif isinstance(son, dict):
-            for (key, value) in son.items():
+            for (key, value) in list(son.items()):
                 son[key] = self.transform_outgoing(value, collection)
     
             if "__xmlrpclib_object" in son:
                 if son["__xmlrpclib_object"] == "xmlrpclib.Binary":
-                    b = xmlrpclib.Binary(son['data'])
+                    b = xmlrpc.client.Binary(son['data'])
                     return b
                 else:
                     raise Exception("Unhandled xmlrpclib type.")
@@ -60,8 +62,7 @@ class MongoTransformer(pymongo.son_manipulator.SONManipulator):
         return son
     
     def transform_outgoing_list(self, lst, collection):
-        new_lst = map(lambda x: self.transform_outgoing(x, collection),
-                  lst)
+        new_lst = [self.transform_outgoing(x, collection) for x in lst]
         return new_lst
     
 class ConfigManager(object):
@@ -89,7 +90,7 @@ class ConfigManager(object):
         try:
             path = rospy.get_param("~defaults_path")
             if len(path)==0:
-                raise 
+                raise  RuntimeError("No Path found")
         except:
             rospy.loginfo("Default parameters path not supplied, assuming none.")
         else:
@@ -100,7 +101,7 @@ class ConfigManager(object):
                 pkg_dir=parts[1]
                 try:
                     path = os.path.join(roslib.packages.get_pkg_dir(pkg), pkg_dir)
-                except roslib.packages.InvalidROSPkgException, e:
+                except roslib.packages.InvalidROSPkgException as e:
                     rospy.logerr("Supplied defaults path '%s' cannot be found. \n"%path +
                                  "The ROS package '%s' could not be located."%pkg)
                     sys.exit(1)
@@ -109,13 +110,13 @@ class ConfigManager(object):
                 sys.exit(1)
             try:
                 files = os.listdir(path)
-            except OSError, e:
+            except OSError as e:
                 rospy.logerr("Can't list defaults directory %s. Check permissions."%path)
                 sys.exit(1)
             defaults=[]  # a list of 3-tuples, (param, val, originating_filename)
             def flatten(d, c="", f_name="" ):
                 l=[]
-                for k, v in d.iteritems():
+                for k, v in d.items():
                     if isinstance(v, collections.Mapping):
                         l.extend(flatten(v,c+"/"+k, f_name))
                     else:
@@ -195,15 +196,15 @@ class ConfigManager(object):
     debug function, prints out all parameters known
     """
     def _list_params(self):
-        print "#"*10
-        print "Defaults:"
-        print
+        print("#"*10)
+        print("Defaults:")
+        print()
         for param in self._database.defaults.find():
             name=param["path"]
             val=param["value"]
             filename=param["from_file"]
-            print name, " "*(30-len(name)),val," "*(30-len(str(val))),filename
-        print
+            print(name, " "*(30-len(name)),val," "*(30-len(str(val))),filename)
+        print()
         
         
     def _on_node_shutdown(self):
@@ -234,7 +235,7 @@ class ConfigManager(object):
     def _setparam_srv_cb(self,req):
         print ("parse json")
         new = json.loads(req.param)
-        if not (new.has_key("path") and new.has_key("value")):
+        if not ("path" in new and "value" in new):
             rospy.logerr("Trying to set parameter but not giving full spec")
             return SetParamResponse(False)
         config_db_local = self._database.local

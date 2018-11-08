@@ -79,7 +79,8 @@ class MongoServer(object):
         # Check that mongodb is installed
         try:
             mongov = subprocess.check_output(["mongod","--version"])
-            match = re.search("db version v(\d+\.\d+\.\d+)",mongov)
+            print(" ===>", mongov)
+            match = re.search("db version v(\d+\.\d+\.\d+)", mongov.decode('utf-8'))
             self._mongo_version=match.group(1)
         except subprocess.CalledProcessError:
             rospy.logerr("Can't find MongoDB executable. Is it installed?\nInstall it with  \"sudo apt-get install mongodb\"")
@@ -100,8 +101,6 @@ class MongoServer(object):
         # Start the mongodb server
         self._mongo_loop()
 
-        
-        
     def _mongo_loop(self):
 
         # Blocker to prevent Ctrl-C being passed to the mongo server
@@ -121,13 +120,14 @@ class MongoServer(object):
         while self._mongo_process.poll() is None:# and not rospy.is_shutdown():
             try:
                 stdout = self._mongo_process.stdout.readline()
-            except IOError, e: # probably interupt because shutdown cut it up
+            except IOError as e: # probably interupt because shutdown cut it up
                 if e.errno == errno.EINTR:
                     continue
                 else:
                     raise
             if stdout is not None:
-                if stdout.find("ERROR") !=-1:
+                stdout = stdout.decode('utf-8')
+                if stdout.find("ERROR") != -1:
                     rospy.logerr(stdout.strip())
                 else:
                     rospy.loginfo(stdout.strip())
@@ -167,7 +167,7 @@ class MongoServer(object):
         if self.test_mode:  # remove auto-created DB in the /tmp folder
             try:
                 shutil.rmtree(self.default_path)
-            except Exception,e:
+            except Exception as e:
                 rospy.logerr(e)
 
     def _shutdown_srv_cb(self,req):

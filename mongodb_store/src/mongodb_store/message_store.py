@@ -52,7 +52,7 @@ class MessageStoreProxy:
                                 rospy.wait_for_service(query_service,5)
                                 rospy.wait_for_service(delete_service,5)
                                 break
-                        except rospy.ROSException, e:
+                        except rospy.ROSException as e:
                                 found_services_first_try = False
                                 rospy.logerr("Could not get message store services. Maybe the message "
                                              "store has not been started? Retrying..")
@@ -261,8 +261,8 @@ class MessageStoreProxy:
 			messages = []
 			metas = []
 		else:
-			messages = map(dc_util.deserialise_message, response.messages)
-			metas = map(dc_util.string_pair_list_to_dictionary, response.metas)
+			messages = list(map(dc_util.deserialise_message, response.messages))
+			metas = list(map(dc_util.string_pair_list_to_dictionary, response.metas))
 
 		if single:
 			if len(messages) > 0:
@@ -270,4 +270,4 @@ class MessageStoreProxy:
 			else:
 				return [None, None]
 		else:
-			return zip(messages,metas)
+			return list(zip(messages,metas))

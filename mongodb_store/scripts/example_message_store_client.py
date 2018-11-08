@@ -6,7 +6,7 @@ import mongodb_store_msgs.srv as dc_srv
 import mongodb_store.util as dc_util
 from mongodb_store.message_store import MessageStoreProxy
 from geometry_msgs.msg import Pose, Point, Quaternion
-import StringIO
+import io
 
 
 if __name__ == '__main__':
@@ -29,7 +29,7 @@ if __name__ == '__main__':
         p_id = msg_store.insert(['test1', 'test2'])         
 
         # get it back with a name
-        print msg_store.query_named("my favourite pose", Pose._type)
+        print(msg_store.query_named("my favourite pose", Pose._type))
 
         p.position.x = 666
 
@@ -45,37 +45,37 @@ if __name__ == '__main__':
 
         assert stored_p.position.x == 666
         assert stored_p.position.y == 2020
-        print "stored object ok"
-        print "stored object inserted at %s (UTC rostime) by %s" % (meta['inserted_at'], meta['inserted_by'])
-        print "stored object last updated at %s (UTC rostime) by %s" % (meta['last_updated_at'], meta['last_updated_by'])
+        print("stored object ok")
+        print("stored object inserted at %s (UTC rostime) by %s" % (meta['inserted_at'], meta['inserted_by']))
+        print("stored object last updated at %s (UTC rostime) by %s" % (meta['last_updated_at'], meta['last_updated_by']))
 
         # some other things you can do...
 
         # get it back with a name
-        print msg_store.query_named("my favourite pose", Pose._type)
+        print(msg_store.query_named("my favourite pose", Pose._type))
 
 
         # try to get it back with an incorrect name, so get None instead
-        print msg_store.query_named("my favourite position", Pose._type)
+        print(msg_store.query_named("my favourite position", Pose._type))
 
         # get all poses  
-        print msg_store.query(Pose._type)
+        print(msg_store.query(Pose._type))
 
         # get the latest one pose
-        print msg_store.query(Pose._type, sort_query=[("$natural", -1)], single=True)
+        print(msg_store.query(Pose._type, sort_query=[("$natural", -1)], single=True))
 
         # get all non-existant typed objects, so get an empty list back
-        print msg_store.query( "not my type")
+        print(msg_store.query( "not my type"))
         
         # get all poses where the y position is 1
-        print msg_store.query(Pose._type, {"position.y": 1})
+        print(msg_store.query(Pose._type, {"position.y": 1}))
 
         # get all poses where the y position greater than 0
-        print msg_store.query(Pose._type, {"position.y": {"$gt": 0}})
+        print(msg_store.query(Pose._type, {"position.y": {"$gt": 0}}))
 
         
-    except rospy.ServiceException, e:
-        print "Service call failed: %s"%e
+    except rospy.ServiceException as e:
+        print("Service call failed: %s"%e)
 
 
         

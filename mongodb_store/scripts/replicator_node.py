@@ -79,7 +79,7 @@ class Replicator(object):
         for extra in extras:
             try:
                 extra_clients.append(MongoClient(extra[0], extra[1]))
-            except pymongo.errors.ConnectionFailure, e:
+            except pymongo.errors.ConnectionFailure as e:
                 rospy.logwarn('Could not connect to extra datacentre at %s:%s' % (extra[0], extra[1]))
 
 

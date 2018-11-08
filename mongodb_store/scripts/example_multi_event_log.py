@@ -7,7 +7,7 @@ import mongodb_store.util as dc_util
 from mongodb_store.message_store import MessageStoreProxy
 from geometry_msgs.msg import Pose, Point, Quaternion
 from std_msgs.msg import Bool
-import StringIO
+import io
 from datetime import *
 
 if __name__ == '__main__':
@@ -49,17 +49,17 @@ if __name__ == '__main__':
         results = msg_store.query(StringPairList._type)
         for message, meta in results:
             if 'description' in meta:
-                print 'description: %s' % meta['description']
-            print 'result time (UTC from rostime): %s' % meta['result_time']            
-            print 'inserted at (UTC from rostime): %s' % meta['inserted_at']
+                print('description: %s' % meta['description'])
+            print('result time (UTC from rostime): %s' % meta['result_time'])            
+            print('inserted at (UTC from rostime): %s' % meta['inserted_at'])
             pose = msg_store.query_id(message.pairs[0].second, Pose._type)
             point = msg_store.query_id(message.pairs[1].second, Point._type)
             quaternion = msg_store.query_id(message.pairs[2].second, Quaternion._type)
             result = msg_store.query_id(message.pairs[3].second, Bool._type)
 
         
-    except rospy.ServiceException, e:
-        print "Service call failed: %s"%e
+    except rospy.ServiceException as e:
+        print("Service call failed: %s"%e)
 
 
         
