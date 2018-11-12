@@ -13,7 +13,7 @@ import rospy
 import mongodb_store.util as dc_util
 from mongodb_store.srv import *
 import pymongo
-import bson.json_util 
+import bson.json_util
 import json
 
 MongoClient = dc_util.import_MongoClient()
@@ -49,15 +49,15 @@ class MongoBridge(object):
                               json.loads(req.update, object_hook=json_util.object_hook))
         return json.dumps(docs, default=json_util.default)
     update_ros_srv.type=MongoUpdate
-                                               
+
     def insert_ros_srv(self,req):
         collection = self._mongo_client[req.db][req.collection]
         res=collection.insert(json.loads(req.document, object_hook=json_util.object_hook))
         return json.dumps(res, default=json_util.default)
     insert_ros_srv.type=MongoInsert
-                                              
+
 
 if __name__ == '__main__':
     bridge = MongoBridge()
-    
+
     rospy.spin()

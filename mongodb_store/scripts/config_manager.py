@@ -6,17 +6,19 @@ import sys
 import os
 import collections
 import json
-try:
-    import xmlrpclib
-    _PY3 = False
-except ModuleNotFoundError:
+import platform
+
+if float(platform.python_version()[0:2]) >= 3.0:
     import xmlrpc.client
     _PY3 = True
     xmlrpclib = xmlrpc.client
+else:
+    import xmlrpclib
+    _PY3 = False
+
 from bson.binary import Binary
 
 import mongodb_store.util
-
 from mongodb_store.srv import (
     GetParam, GetParamResponse,
     SetParam, SetParamResponse
@@ -39,26 +41,23 @@ class MongoTransformer(pymongo.son_manipulator.SONManipulator):
         if isinstance(son, list):
             return self.transform_incoming_list(son, collection)
         elif isinstance(son, dict):
-            if _PY3:
-                for (key, value) in list(son.items()):
-                    son[key] = self.transform_incoming(value, collection)
-            else:
-               for (key, value) in son.items():
-                    son[key] = self.transform_incoming(value, collection)
+           for (key, value) in son.items():
+                son[key] = self.transform_incoming(value, collection)
         elif isinstance(son, xmlrpclib.Binary):
-            return {'__xmlrpclib_object':'xmlrpclib.Binary',
+            return {'__xmlrpclib_object': 'xmlrpclib.Binary',
                    'data': Binary(son.data)}
         return son
 
     def transform_incoming_list(self, lst, collection):
-        new_lst = [self.transform_incoming(x, collection) for x in lst]
+        new_lst = map(lambda x: self.transform_incoming(x, collection),
+                  lst)
         return new_lst
 
     def transform_outgoing(self, son, collection):
         if isinstance(son, list):
             return self.transform_outgoing_list(son, collection)
         elif isinstance(son, dict):
-            for (key, value) in list(son.items()):
+            for (key, value) in son.items():
                 son[key] = self.transform_outgoing(value, collection)
 
             if "__xmlrpclib_object" in son:
@@ -72,7 +71,8 @@ class MongoTransformer(pymongo.son_manipulator.SONManipulator):
         return son
 
     def transform_outgoing_list(self, lst, collection):
-        new_lst = [self.transform_outgoing(x, collection) for x in lst]
+        new_lst = map(lambda x: self.transform_outgoing(x, collection),
+                  lst)
         return new_lst
 
 class ConfigManager(object):
@@ -100,7 +100,7 @@ class ConfigManager(object):
         try:
             path = rospy.get_param("~defaults_path")
             if len(path)==0:
-                raise  RuntimeError("No Path found")
+                raise RuntimeError("No Path found")
         except:
             rospy.loginfo("Default parameters path not supplied, assuming none.")
         else:
@@ -126,11 +126,19 @@ class ConfigManager(object):
             defaults=[]  # a list of 3-tuples, (param, val, originating_filename)
             def flatten(d, c="", f_name="" ):
                 l=[]
-                for k, v in d.items():
-                    if isinstance(v, collections.Mapping):
-                        l.extend(flatten(v,c+"/"+k, f_name))
-                    else:
-                        l.append((c+"/"+k, v, f_name))
+                if _PY3:
+                    for k, v in d.items():
+                        if isinstance(v, collections.Mapping):
+                            l.extend(flatten(v,c+"/"+k, f_name))
+                        else:
+                            l.append((c+"/"+k, v, f_name))
+                else:
+                    for k, v in d.iteritems():
+                        if isinstance(v, collections.Mapping):
+                            l.extend(flatten(v,c+"/"+k, f_name))
+                        else:
+                            l.append((c+"/"+k, v, f_name))
+
                 return l
 
             for f in files:
@@ -206,9 +214,7 @@ class ConfigManager(object):
     debug function, prints out all parameters known
     """
     def _list_params(self):
-        print("#"*10)
-        print("Defaults:")
-        print()
+        print("#"*10,"\nDefaults:\n")
         for param in self._database.defaults.find():
             name=param["path"]
             val=param["value"]
@@ -245,9 +251,14 @@ class ConfigManager(object):
     def _setparam_srv_cb(self,req):
         print ("parse json")
         new = json.loads(req.param)
-        if not ("path" in new and "value" in new):
-            rospy.logerr("Trying to set parameter but not giving full spec")
-            return SetParamResponse(False)
+        if _PY3:
+            if not ("path" in new and "value" in new):
+                rospy.logerr("Trying to set parameter but not giving full spec")
+                return SetParamResponse(False)
+        else:
+            if not (new.has_key("path") and new.has_key("value")):
+                rospy.logerr("Trying to set parameter but not giving full spec")
+                return SetParamResponse(False)
         config_db_local = self._database.local
         value = config_db_local.find_one({"path":new["path"]}, manipulate=False)
         if value is None:

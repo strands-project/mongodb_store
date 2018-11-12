@@ -7,8 +7,14 @@ import mongodb_store.util as dc_util
 from mongodb_store.message_store import MessageStoreProxy
 from geometry_msgs.msg import Pose, Point, Quaternion
 from std_msgs.msg import Bool
-import io
 from datetime import *
+import platform
+if float(platform.python_version()[0:2]) >= 3.0:
+    import io
+    _PY3 = True
+else:
+    import StringIO
+    _PY3 = False
 
 if __name__ == '__main__':
     rospy.init_node("example_multi_event_log")
@@ -33,7 +39,7 @@ if __name__ == '__main__':
         stored.append([point._type, msg_store.insert(point)])
         stored.append([quaternion._type, msg_store.insert(quaternion)])
         stored.append([result._type, msg_store.insert(result)])
-        
+
         # now store ids togther in store, addition types for safety
         spl = StringPairList()
         for pair in stored:
@@ -41,7 +47,7 @@ if __name__ == '__main__':
 
         # and add some meta information
         meta = {}
-        meta['description'] = "this wasn't great"    
+        meta['description'] = "this wasn't great"
         meta['result_time'] = datetime.utcfromtimestamp(rospy.get_rostime().to_sec())
         msg_store.insert(spl, meta = meta)
 
@@ -50,16 +56,16 @@ if __name__ == '__main__':
         for message, meta in results:
             if 'description' in meta:
                 print('description: %s' % meta['description'])
-            print('result time (UTC from rostime): %s' % meta['result_time'])            
+            print('result time (UTC from rostime): %s' % meta['result_time'])
             print('inserted at (UTC from rostime): %s' % meta['inserted_at'])
             pose = msg_store.query_id(message.pairs[0].second, Pose._type)
             point = msg_store.query_id(message.pairs[1].second, Point._type)
             quaternion = msg_store.query_id(message.pairs[2].second, Quaternion._type)
             result = msg_store.query_id(message.pairs[3].second, Bool._type)
 
-        
+
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)
 
 
-        
+
