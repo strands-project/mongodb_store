@@ -8,8 +8,10 @@ import collections
 import json
 try:
     import xmlrpclib
+    _PY3 = False
 except ModuleNotFoundError:
     import xmlrpc.client
+    _PY3 = True
     xmlrpclib = xmlrpc.client
 from bson.binary import Binary
 
@@ -37,8 +39,12 @@ class MongoTransformer(pymongo.son_manipulator.SONManipulator):
         if isinstance(son, list):
             return self.transform_incoming_list(son, collection)
         elif isinstance(son, dict):
-            for (key, value) in list(son.items()):
-                son[key] = self.transform_incoming(value, collection)
+            if _PY3:
+                for (key, value) in list(son.items()):
+                    son[key] = self.transform_incoming(value, collection)
+            else:
+               for (key, value) in son.items():
+                    son[key] = self.transform_incoming(value, collection)
         elif isinstance(son, xmlrpclib.Binary):
             return {'__xmlrpclib_object':'xmlrpclib.Binary',
                    'data': Binary(son.data)}
