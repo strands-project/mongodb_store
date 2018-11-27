@@ -21,9 +21,10 @@ else()
   endif()
 endif()
 
-find_package(catkin REQUIRED COMPONENTS roscpp message_generation rospy std_msgs std_srvs mongodb_store_msgs topic_tools libmongocxx_ros)
+find_package(catkin REQUIRED COMPONENTS roscpp message_generation rospy std_msgs std_srvs mongodb_store_msgs topic_tools)
 
-#find_package(MongoClient REQUIRED)
+set(CMAKE_MODULE_PATH   ${PROJECT_SOURCE_DIR}/cmake)
+find_package(MongoClient REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -66,9 +67,9 @@ generate_messages(
 
 catkin_package(
  INCLUDE_DIRS include
- LIBRARIES message_store #${MongoClient_INCLUDE_DIR}
- CATKIN_DEPENDS libmongocxx_ros mongodb_store_msgs topic_tools
-# DEPENDS MongoClient
+ LIBRARIES message_store ${MongoClient_INCLUDE_DIR}
+ CATKIN_DEPENDS mongodb_store_msgs topic_tools
+ DEPENDS MongoClient
 )
 
 ###########
@@ -80,7 +81,7 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  #${MongoClient_INCLUDE_DIR} 
+  ${MongoClient_INCLUDE_DIR} 
 )
 
 link_directories(${catkin_LINK_DIRS})
@@ -97,7 +98,7 @@ add_dependencies(example_mongodb_store_cpp_client mongodb_store_msgs_generate_me
 add_dependencies(message_store mongodb_store_msgs_generate_messages_cpp )
 
 target_link_libraries(message_store
-  #${MongoClient_LIBRARIES}
+  ${MongoClient_LIBRARIES}
   ${catkin_LIBRARIES}
 )
 
@@ -106,19 +107,19 @@ target_link_libraries(message_store
 # Specify libraries to link a library or executable target against
 target_link_libraries(example_mongodb_store_cpp_client
   message_store
-  #${MongoClient_LIBRARIES}  
+  ${MongoClient_LIBRARIES}  
   ${catkin_LIBRARIES}  
 )
 
 target_link_libraries(example_multi_event_log
   message_store
-  #${MongoClient_LIBRARIES}  
+  ${MongoClient_LIBRARIES}  
   ${catkin_LIBRARIES}  
 )
 
 target_link_libraries(example_multi_event_log
   message_store
-  #${MongoClient_LIBRARIES}  
+  ${MongoClient_LIBRARIES}  
   ${catkin_LIBRARIES}  
 )
 
