@@ -2,8 +2,8 @@
 Changelog for package mongodb_log
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.5.0 (2018-12-20)
+------------------
 * Merge pull request `#231 <https://github.com/strands-project/mongodb_store/issues/231>`_ from bbferka/melodic-devel
   Melodic devel
 * back to system mongo
