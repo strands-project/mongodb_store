@@ -1,27 +1,22 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+from __future__ import absolute_import, print_function
+from future.utils import iteritems
 """
 Provides a service to store ROS message objects in a mongodb database in JSON.
 """
 
 import rospy
-import mongodb_store_msgs.srv as dc_srv
-import mongodb_store.util as dc_util
 import pymongo
 from pymongo import GEO2D
 import json
 from bson import json_util
-from mongodb_store_msgs.msg import  StringPair, StringPairList, Insert
 from bson.objectid import ObjectId
 from datetime import *
-import platform
-if float(platform.python_version()[0:2]) >= 3.0:
-    _PY3 = True
-else:
-    _PY3 = False
 
-
+import mongodb_store_msgs.srv as dc_srv
+import mongodb_store.util  as dc_util
+from mongodb_store_msgs.msg import  StringPair, StringPairList, Insert
 
 MongoClient = dc_util.import_MongoClient()
 
@@ -208,12 +203,8 @@ class MessageStore(object):
         """
         obj_query = dc_util.string_pair_list_to_dictionary(message_query)
         bare_meta_query = dc_util.string_pair_list_to_dictionary(meta_query)
-        if _PY3:
-            for (k, v) in bare_meta_query.items():
-                obj_query["_meta." + k] = v
-        else:
-            for (k, v) in bare_meta_query.iteritems():
-                obj_query["_meta." + k] = v
+        for (k, v) in iteritems(bare_meta_query):
+            obj_query["_meta." + k] = v
         return obj_query
 
     def query_messages_ros_srv(self, req):
@@ -235,19 +226,12 @@ class MessageStore(object):
         # this is a list of entries in dict format including meta
         sort_query_dict = dc_util.string_pair_list_to_dictionary(req.sort_query)
         sort_query_tuples = []
-        if _PY3:
-            for k,v in sort_query_dict.items():
-                try:
-                    sort_query_tuples.append((k, int(v)))
-                except ValueError:
-                    sort_query_tuples.append((k,v))
-        else:
-            for k,v in sort_query_dict.iteritems():
-                try:
-                    sort_query_tuples.append((k, int(v)))
-                except ValueError:
-                    sort_query_tuples.append((k,v))
-                    # this is a list of entries in dict format including meta
+        for k, v in iteritems(sort_query_dict):
+            try:
+                sort_query_tuples.append((k, int(v)))
+            except ValueError:
+                sort_query_tuples.append((k,v))
+               # this is a list of entries in dict format including meta
 
 
         projection_query_dict = dc_util.string_pair_list_to_dictionary(req.projection_query)

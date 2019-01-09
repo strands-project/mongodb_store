@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+from __future__ import print_function
 import rospy
 import mongodb_store_msgs.srv as dc_srv
 import mongodb_store.util as dc_util
@@ -9,11 +9,8 @@ from geometry_msgs.msg import Pose, Point, Quaternion
 import platform
 if float(platform.python_version()[0:2]) >= 3.0:
     import io
-    _PY3 = True
 else:
     import StringIO
-    _PY3 = False
-
 
 
 if __name__ == '__main__':

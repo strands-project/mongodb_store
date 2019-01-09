@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import absolute_import
+from future.utils import iteritems
 
 import roslib; roslib.load_manifest('mongodb_store')
 import rospy
@@ -10,14 +12,15 @@ import platform
 
 if float(platform.python_version()[0:2]) >= 3.0:
     import xmlrpc.client
-    _PY3 = True
     xmlrpclib = xmlrpc.client
+    _PY3 = True
 else:
     import xmlrpclib
     _PY3 = False
 
 from bson.binary import Binary
 
+import mongodb_store
 import mongodb_store.util
 from mongodb_store.srv import (
     GetParam, GetParamResponse,
@@ -126,19 +129,11 @@ class ConfigManager(object):
             defaults=[]  # a list of 3-tuples, (param, val, originating_filename)
             def flatten(d, c="", f_name="" ):
                 l=[]
-                if _PY3:
-                    for k, v in d.items():
-                        if isinstance(v, collections.Mapping):
-                            l.extend(flatten(v,c+"/"+k, f_name))
-                        else:
-                            l.append((c+"/"+k, v, f_name))
-                else:
-                    for k, v in d.iteritems():
-                        if isinstance(v, collections.Mapping):
-                            l.extend(flatten(v,c+"/"+k, f_name))
-                        else:
-                            l.append((c+"/"+k, v, f_name))
-
+                for k, v in iteritems(d):
+                    if isinstance(v, collections.Mapping):
+                        l.extend(flatten(v,c+"/"+k, f_name))
+                    else:
+                        l.append((c+"/"+k, v, f_name))
                 return l
 
             for f in files:

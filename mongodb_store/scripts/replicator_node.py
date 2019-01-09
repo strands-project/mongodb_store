@@ -1,22 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+from __future__ import absolute_import
 """
 Provides a service to store ROS message objects in a mongodb database in JSON.
 """
 
-from bson import json_util
 import rospy
 import actionlib
 import pymongo
 import os
 import shutil
 import subprocess
-from mongodb_store_msgs.msg import MoveEntriesAction, MoveEntriesFeedback
+from bson import json_util
 from datetime import datetime
 
-
 import mongodb_store.util
+from mongodb_store_msgs.msg import MoveEntriesAction, MoveEntriesFeedback
 MongoClient = mongodb_store.util.import_MongoClient()
 
 class Replicator(object):
@@ -28,7 +27,7 @@ class Replicator(object):
 
         if use_daemon:
             self.master_db_host = rospy.get_param('mongodb_host')
-            self.master_db_port = rospy.get_param('mongodb_port')        
+            self.master_db_port = rospy.get_param('mongodb_port')
             is_daemon_alive = mongodb_store.util.check_connection_to_mongod(self.master_db_host, self.master_db_port)
             if not is_daemon_alive:
                 raise Exception("No Daemon?")
@@ -36,8 +35,7 @@ class Replicator(object):
             if not mongodb_store.util.wait_for_mongo():
                 raise Exception("No Datacentre?")
             self.master_db_host = rospy.get_param('mongodb_host')
-            self.master_db_port = rospy.get_param('mongodb_port')        
-        
+            self.master_db_port = rospy.get_param('mongodb_port')
         # this is just a test, connections are remade every call for long-running processes
         master, extras = self.make_connections()
         if master is None:
@@ -55,12 +53,12 @@ class Replicator(object):
         self.remove_path()
 
 
-    def make_path(self):        
+    def make_path(self):
         if not os.path.isdir(self.dump_path):
-            os.makedirs(self.dump_path) 
+            os.makedirs(self.dump_path)
         elif not os.access(self.dump_path, os.W_OK):
             raise Exception('Cannot write to dump path: %s' % self.dump_path)
-        
+
     def remove_path(self):
         shutil.rmtree(self.dump_path)
 
@@ -91,18 +89,16 @@ class Replicator(object):
 
         # create place to put temp stuf
         self.make_path()
-        
         # don't use the connections, just sanity check their existence
         master, extras = self.make_connections()
-        
         if len(extras) == 0:
             rospy.logwarn('No datacentres to move to, not performing move')
-            self.server.set_aborted()    
-            return 
+            self.server.set_aborted()
+            return
 
         completed = []
         feedback = MoveEntriesFeedback(completed=completed)
-        
+
         less_time_time = rospy.get_rostime() - goal.move_before
 
         query = mongodb_store.util.string_pair_list_to_dictionary(goal.query)
@@ -126,9 +122,9 @@ class Replicator(object):
         else:
             self.server.set_succeeded()
 
-    def do_restore(self, extras, db='message_store'):       
+    def do_restore(self, extras, db='message_store'):
         """restore collection to extras"""
-        for extra in extras:            
+        for extra in extras:
             if self.server.is_preempt_requested():
                 break
             try:
@@ -191,7 +187,5 @@ class Replicator(object):
 
 if __name__ == '__main__':
     rospy.init_node("mongodb_replicator")
-
     store = Replicator()
-    
     rospy.spin()

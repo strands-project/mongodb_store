@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+from __future__ import absolute_import
 import rospy
 import subprocess
 import sys
@@ -84,10 +84,7 @@ class MongoServer(object):
         # Check that mongodb is installed
         try:
             mongov = subprocess.check_output(["mongod","--version"])
-            if _PY3:
-                match = re.search("db version v(\d+\.\d+\.\d+)", mongov.decode('utf-8'))
-            else:
-                match = re.search("db version v(\d+\.\d+\.\d+)",mongov)
+            match = re.search("db version v(\d+\.\d+\.\d+)", mongov.decode('utf-8'))
             self._mongo_version=match.group(1)
         except subprocess.CalledProcessError:
             rospy.logerr("Can't find MongoDB executable. Is it installed?\nInstall it with  \"sudo apt-get install mongodb\"")
@@ -126,15 +123,13 @@ class MongoServer(object):
 
         while self._mongo_process.poll() is None:# and not rospy.is_shutdown():
             try:
-                stdout = self._mongo_process.stdout.readline()
+                stdout = self._mongo_process.stdout.readline().decode('utf-8')
             except IOError as e: # probably interupt because shutdown cut it up
                 if e.errno == errno.EINTR:
                     continue
                 else:
                     raise
             if stdout is not None:
-                if _PY3:
-                    stdout = stdout.decode('utf-8')
                 if stdout.find("ERROR") != -1:
                     rospy.logerr(stdout.strip())
                 else:

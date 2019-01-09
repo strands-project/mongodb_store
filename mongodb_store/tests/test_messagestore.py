@@ -16,10 +16,10 @@ class TestMessageStoreProxy(unittest.TestCase):
         POSE_NAME = "__test__pose__"
         p = Pose(Point(0, 1, 2), Quaternion(0, 0, 0, 1))
 
-        
+
         # insert a pose object with a name
         msg_store.insert_named(POSE_NAME, p)
- 
+
         # get it back with a name
         stored, meta = msg_store.query_named(POSE_NAME, Pose._type)
 
@@ -55,7 +55,7 @@ class TestMessageStoreProxy(unittest.TestCase):
         for i in range(100):
             p = Pose(Point(0, 0, 0), Quaternion(i, 0, 100, 1))
             msg_store.insert(p)
-            
+
         result = msg_store.query(Pose._type, message_query={ 'orientation.z': {'$gt': 10} }, sort_query=[("$natural", -1)])
         self.assertEqual(len(result), 100)
         self.assertEqual(result[0][0].orientation.x, 99)
@@ -68,11 +68,11 @@ class TestMessageStoreProxy(unittest.TestCase):
 	#get documents without "orientation" field
 	result_no_id = msg_store.query(Pose._type, message_query={}, projection_query={"orientation": 0})
         for doc in result_no_id:
-		self.assertEqual(int(doc[0].orientation.z),0 ) 
-        
-        
-	
-        
+		self.assertEqual(int(doc[0].orientation.z),0 )
+
+
+
+
         # must remove the item or unittest only really valid once
         print meta["_id"]
         print str(meta["_id"])
@@ -106,5 +106,5 @@ if __name__ == '__main__':
     PKG = 'mongodb_store'
     rospy.init_node('test_message_store_proxy')
     rostest.rosrun(PKG, 'test_message_store_proxy', TestMessageStoreProxy)
-    
- 
+
+

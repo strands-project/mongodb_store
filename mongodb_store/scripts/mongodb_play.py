@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import print_function
 
 import rospy
 import mongodb_store.util as mg_util
@@ -16,10 +17,8 @@ import signal
 from optparse import OptionParser
 import platform
 if float(platform.python_version()[0:2]) >= 3.0:
-    _PY3 = True
     import queue as Queue
 else:
-    _PY3 = False
     import Queue
 
 
