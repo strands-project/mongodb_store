@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>mongodb_store</name>
-  <version>0.4.2</version>
+  <version>0.5.0</version>
   <description>A package to support MongoDB-based storage and analysis for data from a ROS system, eg. saved messages, configurations etc</description>
 
   <maintainer email="nickh@robots.ox.ac.uk">Nick Hawes</maintainer>
@@ -23,9 +23,11 @@
   <build_depend>rostest</build_depend>
   <build_depend>python-catkin-pkg</build_depend>
   <build_depend>mongodb</build_depend>
-  <build_depend>libssl-dev</build_depend>
-  <build_depend>libmongocxx_ros</build_depend>
+  <!--this needs to get merged into rosdistro (PR sent)-->
+  <!--build_depend>libmongoclient-dev</build_depend-->
+  <build_depend>libssl-dev</build_depend> 
   <build_depend>topic_tools</build_depend>
+ 
 
   <!-- Used for examples -->
   <build_depend>geometry_msgs</build_depend>
@@ -37,7 +39,7 @@
   <run_depend>python-pymongo</run_depend>
   <run_depend>mongodb</run_depend>
   <run_depend>mongodb_store_msgs</run_depend>
-  <run_depend>libmongocxx_ros</run_depend>
+  <!--run_depend>libmongoclient-dev</run_depend-->
   <run_depend>topic_tools</run_depend>
   <!-- Used for examples -->
   <run_depend>geometry_msgs</run_depend>

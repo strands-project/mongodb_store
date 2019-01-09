@@ -2,6 +2,15 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.5.0 (2018-12-20)
+------------------
+* Merge pull request `#231 <https://github.com/strands-project/mongodb_store/issues/231>`_ from bbferka/melodic-devel
+  Melodic devel
+* add dependency to package xml
+* make it run
+* back to system mongo
+* Contributors: Ferenc Balint-Benczedi, Nick Hawes
+
 0.4.2 (2018-06-04)
 ------------------
 * instead of lsb-release read /etc/os-version from CMake to find OS version

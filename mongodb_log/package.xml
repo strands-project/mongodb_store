@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>mongodb_log</name>
-  <version>0.4.2</version>
+  <version>0.5.0</version>
   <description>The mongodb_log package</description>
 
   <author email="tim@niemueller.de">Tim Niemueller</author>
@@ -17,7 +17,6 @@
   <build_depend>rostopic</build_depend>
   <build_depend>tf</build_depend>
   <build_depend>sensor_msgs</build_depend>
-  <build_depend>libmongocxx_ros</build_depend>
   <build_depend>libssl-dev</build_depend>
   <build_depend>mongodb_store</build_depend>
 
@@ -27,7 +26,6 @@
   <run_depend>rostopic</run_depend>  
   <run_depend>tf</run_depend>
   <run_depend>sensor_msgs</run_depend>
-  <run_depend>libmongocxx_ros</run_depend>
   <run_depend>python-pymongo</run_depend>
   <run_depend>mongodb_store</run_depend>
 
