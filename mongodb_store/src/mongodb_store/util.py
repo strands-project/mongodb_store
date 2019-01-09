@@ -1,4 +1,4 @@
-from __future__ import print_function, absolut_import
+from __future__ import print_function, absolute_import
 import rospy
 import genpy
 from std_srvs.srv import Empty
