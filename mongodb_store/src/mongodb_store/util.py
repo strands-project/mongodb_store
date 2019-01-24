@@ -1,3 +1,4 @@
+from __future__ import print_function, absolute_import
 import rospy
 import genpy
 from std_srvs.srv import Empty
@@ -6,7 +7,13 @@ from bson import json_util, Binary
 import json
 
 import copy
-import StringIO
+import platform
+if float(platform.python_version()[0:2]) >= 3.0:
+    _PY3 = True
+    import io as StringIO
+else:
+    _PY3 = False
+    import StringIO
 from mongodb_store_msgs.msg import SerialisedMessage
 from mongodb_store_msgs.srv import MongoQueryMsgRequest
 
@@ -53,7 +60,7 @@ def wait_for_mongo(timeout=60, ns="/datacentre"):
     # Check that mongo is live, create connection
     try:
         rospy.wait_for_service(ns + "/wait_ready", timeout)
-    except rospy.exceptions.ROSException, e:
+    except rospy.exceptions.ROSException as e:
         rospy.logerr("Can't connect to MongoDB server. Make sure mongodb_store/mongodb_server.py node is started.")
         return False
     wait = rospy.ServiceProxy(ns + '/wait_ready', Empty)
@@ -186,8 +193,11 @@ def sanitize_value(attr, v, type):
         else:
             # ensure unicode
             try:
-                v = unicode(v, "utf-8")
-            except UnicodeDecodeError, e:
+                if _PY3:
+                    v = str(v, "utf-8")
+                else:
+                    v = unicode(v, "utf-8")
+            except UnicodeDecodeError as e:
                 # at this point we can deal with the encoding, so treat it as binary
                 v = Binary(v)
         # no need to carry on with the other type checks below
@@ -235,7 +245,7 @@ def store_message(collection, msg, meta, oid=None):
         add_soma_fields(msg,doc)
 
     if hasattr(msg, '_connection_header'):
-        print getattr(msg, '_connection_header')
+        print(getattr(msg, '_connection_header'))
 
     if oid != None:
         doc["_id"] = oid
@@ -314,7 +324,8 @@ def fill_message(message, document):
                     lst.append(msg)
                     setattr(message, slot, lst)
             else:
-                if isinstance(value, unicode):
+                if ( (not _PY3 and isinstance(value, unicode)) or
+                    (_PY3 and isinstance(value, str)) ):
                     setattr(message, slot, value.encode('utf-8'))
                 else:
                     setattr(message, slot, value)

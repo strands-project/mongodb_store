@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import absolute_import
+from future.utils import iteritems
 
 import roslib; roslib.load_manifest('mongodb_store')
 import rospy
@@ -6,12 +8,24 @@ import sys
 import os
 import collections
 import json
-import xmlrpclib
+import platform
+
+if float(platform.python_version()[0:2]) >= 3.0:
+    import xmlrpc.client
+    xmlrpclib = xmlrpc.client
+    _PY3 = True
+else:
+    import xmlrpclib
+    _PY3 = False
+
 from bson.binary import Binary
 
+import mongodb_store
 import mongodb_store.util
-
-from mongodb_store.srv import *
+from mongodb_store.srv import (
+    GetParam, GetParamResponse,
+    SetParam, SetParamResponse
+)
 from std_srvs.srv import *
 import rosparam
 
@@ -25,15 +39,15 @@ MongoClient = mongodb_store.util.import_MongoClient()
 class MongoTransformer(pymongo.son_manipulator.SONManipulator):
     def __init__(self):
         pass
-    
+
     def transform_incoming(self, son, collection):
         if isinstance(son, list):
             return self.transform_incoming_list(son, collection)
         elif isinstance(son, dict):
-            for (key, value) in son.items():
+           for (key, value) in son.items():
                 son[key] = self.transform_incoming(value, collection)
         elif isinstance(son, xmlrpclib.Binary):
-            return {'__xmlrpclib_object':'xmlrpclib.Binary',
+            return {'__xmlrpclib_object': 'xmlrpclib.Binary',
                    'data': Binary(son.data)}
         return son
 
@@ -41,14 +55,14 @@ class MongoTransformer(pymongo.son_manipulator.SONManipulator):
         new_lst = map(lambda x: self.transform_incoming(x, collection),
                   lst)
         return new_lst
-    
+
     def transform_outgoing(self, son, collection):
         if isinstance(son, list):
             return self.transform_outgoing_list(son, collection)
         elif isinstance(son, dict):
             for (key, value) in son.items():
                 son[key] = self.transform_outgoing(value, collection)
-    
+
             if "__xmlrpclib_object" in son:
                 if son["__xmlrpclib_object"] == "xmlrpclib.Binary":
                     b = xmlrpclib.Binary(son['data'])
@@ -58,12 +72,12 @@ class MongoTransformer(pymongo.son_manipulator.SONManipulator):
             else:
                 return son
         return son
-    
+
     def transform_outgoing_list(self, lst, collection):
         new_lst = map(lambda x: self.transform_outgoing(x, collection),
                   lst)
         return new_lst
-    
+
 class ConfigManager(object):
     def __init__(self):
         rospy.init_node("config_manager")
@@ -78,7 +92,7 @@ class ConfigManager(object):
         else:
             if not mongodb_store.util.wait_for_mongo():
                 sys.exit(1)
-        
+
         self._mongo_client = MongoClient(db_host, db_port)
         rospy.on_shutdown(self._on_node_shutdown)
 
@@ -89,7 +103,7 @@ class ConfigManager(object):
         try:
             path = rospy.get_param("~defaults_path")
             if len(path)==0:
-                raise 
+                raise RuntimeError("No Path found")
         except:
             rospy.loginfo("Default parameters path not supplied, assuming none.")
         else:
@@ -100,7 +114,7 @@ class ConfigManager(object):
                 pkg_dir=parts[1]
                 try:
                     path = os.path.join(roslib.packages.get_pkg_dir(pkg), pkg_dir)
-                except roslib.packages.InvalidROSPkgException, e:
+                except roslib.packages.InvalidROSPkgException as e:
                     rospy.logerr("Supplied defaults path '%s' cannot be found. \n"%path +
                                  "The ROS package '%s' could not be located."%pkg)
                     sys.exit(1)
@@ -109,13 +123,13 @@ class ConfigManager(object):
                 sys.exit(1)
             try:
                 files = os.listdir(path)
-            except OSError, e:
+            except OSError as e:
                 rospy.logerr("Can't list defaults directory %s. Check permissions."%path)
                 sys.exit(1)
             defaults=[]  # a list of 3-tuples, (param, val, originating_filename)
             def flatten(d, c="", f_name="" ):
                 l=[]
-                for k, v in d.iteritems():
+                for k, v in iteritems(d):
                     if isinstance(v, collections.Mapping):
                         l.extend(flatten(v,c+"/"+k, f_name))
                     else:
@@ -159,8 +173,8 @@ class ConfigManager(object):
                     new.update(existing)
                     new['value']=val
                     defaults_collection.update(existing, new, manipulate=True)
-                
-                
+
+
         # Load the settings onto the ros parameter server
         defaults_collection = self._database.defaults
         local_collection = self._database.local
@@ -174,7 +188,7 @@ class ConfigManager(object):
             val=param["value"]
             rospy.set_param(name,val)
 
-        
+
         # Advertise ros services for parameter setting / getting
         self._getparam_srv = rospy.Service("/config_manager/get_param",
                                            GetParam,
@@ -185,9 +199,9 @@ class ConfigManager(object):
         self._saveparam_srv = rospy.Service("/config_manager/save_param",
                                            SetParam,
                                            self._saveparam_srv_cb)
-        
+
         #self._list_params()
-        
+
         # Start the main loop
         rospy.spin()
 
@@ -195,17 +209,15 @@ class ConfigManager(object):
     debug function, prints out all parameters known
     """
     def _list_params(self):
-        print "#"*10
-        print "Defaults:"
-        print
+        print("#"*10,"\nDefaults:\n")
         for param in self._database.defaults.find():
             name=param["path"]
             val=param["value"]
             filename=param["from_file"]
-            print name, " "*(30-len(name)),val," "*(30-len(str(val))),filename
-        print
-        
-        
+            print(name, " "*(30-len(name)),val," "*(30-len(str(val))),filename)
+        print()
+
+
     def _on_node_shutdown(self):
         try:
             # PyMongo 2.9 or later
@@ -234,9 +246,14 @@ class ConfigManager(object):
     def _setparam_srv_cb(self,req):
         print ("parse json")
         new = json.loads(req.param)
-        if not (new.has_key("path") and new.has_key("value")):
-            rospy.logerr("Trying to set parameter but not giving full spec")
-            return SetParamResponse(False)
+        if _PY3:
+            if not ("path" in new and "value" in new):
+                rospy.logerr("Trying to set parameter but not giving full spec")
+                return SetParamResponse(False)
+        else:
+            if not (new.has_key("path") and new.has_key("value")):
+                rospy.logerr("Trying to set parameter but not giving full spec")
+                return SetParamResponse(False)
         config_db_local = self._database.local
         value = config_db_local.find_one({"path":new["path"]}, manipulate=False)
         if value is None:
@@ -270,7 +287,7 @@ class ConfigManager(object):
             config_db_local.update(value, new, manipulate=True)
 
         return SetParamResponse(True)
-   
+
 
 if __name__ == '__main__':
     server = ConfigManager()
