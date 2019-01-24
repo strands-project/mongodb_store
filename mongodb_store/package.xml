@@ -36,6 +36,7 @@
   <run_depend>roscpp</run_depend>
   <run_depend>std_msgs</run_depend>
   <run_depend>std_srvs</run_depend>
+  <run_depend>python-future</run_depend>
   <run_depend>python-pymongo</run_depend>
   <run_depend>mongodb</run_depend>
   <run_depend>mongodb_store_msgs</run_depend>
