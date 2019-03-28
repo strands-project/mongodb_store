@@ -509,7 +509,9 @@ public:
   		return srv.response.success;
 	}
 
-
+  uint32_t getNumInsertSubscribers() const {
+    return m_insertPub.getNumSubscribers();
+  }
 
 protected:
 
