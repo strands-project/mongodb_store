@@ -2,6 +2,25 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#243 <https://github.com/strands-project/mongodb_store/issues/243>`_ from furushchev/get-publisher
+  add method to get num subscribers for insertion
+* Merge pull request `#242 <https://github.com/strands-project/mongodb_store/issues/242>`_ from furushchev/shutdown
+  shutdown publisher on destruction
+* Merge pull request `#241 <https://github.com/strands-project/mongodb_store/issues/241>`_ from furushchev/add-published-at
+  append _meta.published_at for stamped messages
+* Merge pull request `#240 <https://github.com/strands-project/mongodb_store/issues/240>`_ from furushchev/fix-replicate
+  display more info on replication
+* add method to get num subscribers for insertion
+* shutdown publisher on destruction
+* append _meta.published_at for stamped messages
+* display more info on replication
+* Merge pull request `#234 <https://github.com/strands-project/mongodb_store/issues/234>`_ from jorgenfb/fix/prevent-null-values
+  Make sure None / null values reaches the parameter server
+* Make sure None / null values reaches the parameter server
+* Contributors: Jørgen Borgesen, Nick Hawes, Yuki Furuta
+
 0.4.2 (2018-06-04)
 ------------------
 * instead of lsb-release read /etc/os-version from CMake to find OS version

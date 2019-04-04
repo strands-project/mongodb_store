@@ -2,6 +2,14 @@
 Changelog for package mongodb_log
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#238 <https://github.com/strands-project/mongodb_store/issues/238>`_ from charlielito/patch-1
+  Fix typo in log message
+* Fix typo in log message
+  It is subscribe rather than subsribe
+* Contributors: Carlos Andrés Álvarez Restrepo, Nick Hawes
+
 0.4.2 (2018-06-04)
 ------------------
 * instead of lsb-release read /etc/os-version from CMake to find OS version
