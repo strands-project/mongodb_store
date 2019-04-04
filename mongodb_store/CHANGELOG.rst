@@ -2,8 +2,8 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.4.3 (2019-04-04)
+------------------
 * Merge pull request `#243 <https://github.com/strands-project/mongodb_store/issues/243>`_ from furushchev/get-publisher
   add method to get num subscribers for insertion
 * Merge pull request `#242 <https://github.com/strands-project/mongodb_store/issues/242>`_ from furushchev/shutdown
