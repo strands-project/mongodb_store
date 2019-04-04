@@ -5,6 +5,7 @@
 Provides a service to store ROS message objects in a mongodb database in JSON.
 """
 
+import genpy
 import rospy
 import mongodb_store_msgs.srv as dc_srv
 import mongodb_store.util as dc_util
@@ -15,8 +16,11 @@ from bson import json_util
 from mongodb_store_msgs.msg import  StringPair, StringPairList, Insert
 from bson.objectid import ObjectId
 from datetime import *
+from tf2_msgs.msg import TFMessage
+
 
 MongoClient = dc_util.import_MongoClient()
+
 
 class MessageStore(object):
     def __init__(self, replicate_on_write=False):
@@ -116,8 +120,21 @@ class MessageStore(object):
 
 
         # try:
-        meta['inserted_at'] = datetime.utcfromtimestamp(rospy.get_rostime().to_sec())
+        stamp = rospy.get_rostime()
+        meta['inserted_at'] = datetime.utcfromtimestamp(stamp.to_sec())
         meta['inserted_by'] = req._connection_header['callerid']
+        if hasattr(obj, "header") and hasattr(obj.header, "stamp") and\
+           isinstance(obj.header.stamp, genpy.Time):
+            stamp = obj.header.stamp
+        elif isinstance(obj, TFMessage):
+            if obj.transforms:
+                transforms = sorted(obj.transforms,
+                                    key=lambda m: m.header.stamp, reverse=True)
+                stamp = transforms[0].header.stamp
+
+        meta['published_at'] = datetime.utcfromtimestamp(stamp.to_sec())
+        meta['timestamp'] = stamp.to_nsec()
+
         obj_id = dc_util.store_message(collection, obj, meta)
 
 
