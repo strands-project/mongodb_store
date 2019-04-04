@@ -122,7 +122,14 @@ public:
 	{}
 
 
-	~MessageStoreProxy() {}
+	~MessageStoreProxy() {
+		m_insertClient.shutdown();
+		m_updateClient.shutdown();
+		m_queryClient.shutdown();
+		m_querywithProjectionClient.shutdown();
+		m_deleteClient.shutdown();
+		m_insertPub.shutdown();
+  }
 
 
 	template<typename MsgType>
