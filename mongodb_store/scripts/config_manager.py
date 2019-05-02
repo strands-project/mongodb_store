@@ -192,6 +192,9 @@ class ConfigManager(object):
                                            SetParam,
                                            self._saveparam_srv_cb)
 
+        self._resetparams_srv = rospy.Service("/config_manager/reset_params",
+                                           Trigger,
+                                           self._resetparams_srv_cb)
         #self._list_params()
 
         # Start the main loop
@@ -281,6 +284,31 @@ class ConfigManager(object):
             config_db_local.update(value, new, manipulate=True)
 
         return SetParamResponse(True)
+
+    # Reset all parameters to their default value by wiping all entries in the local database
+    def _resetparams_srv_cb(self, req):
+        defaults_collection = self._database.defaults
+        local_collection = self._database.local
+
+        # Delete all parameters found in the local database but not in the defaults collection
+        # This happens when someone uses SetParam for a parameter not defined in defaults.
+        for param in local_collection.find():
+            name = param["path"]
+            exist_in_defaults = defaults_collection.find_one({"path": name}, manipulate=False)
+            if not exist_in_defaults:
+                rospy.delete_param(name)
+
+        # Delete all entries in local database
+        self._database.local.delete_many({})
+
+        # Apply all default values onto the ros parameter server
+        # resetting / overwriting local values on parameter server.
+        for param in defaults_collection.find():
+            name = param["path"]
+            val = param["value"]
+            rospy.set_param(name, val)
+
+        return TriggerResponse(success=True, message='')
 
 
 if __name__ == '__main__':
