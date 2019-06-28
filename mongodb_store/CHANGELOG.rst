@@ -2,8 +2,8 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.4.5 (2019-06-28)
+------------------
 
 * Allow to bind mongod to host
   The existing solution bind the mongod server to all interfaces. This
