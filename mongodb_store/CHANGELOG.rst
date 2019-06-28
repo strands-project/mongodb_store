@@ -2,8 +2,8 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.5.1 (2019-06-28)
+------------------
 * added python-future to package.xml
 * removed flags for most of files for simplicity, also included future.utils, may introduce undesireable dependency though
 * resolved python2 backward compatibility issues
