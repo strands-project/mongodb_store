@@ -2,6 +2,9 @@
 Changelog for package mongodb_log
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 0.4.3 (2019-04-04)
 ------------------
 * Merge pull request `#238 <https://github.com/strands-project/mongodb_store/issues/238>`_ from charlielito/patch-1
