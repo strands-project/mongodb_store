@@ -131,7 +131,7 @@ class Replicator(object):
                 host, port = extra.address  # pymongo >= 3.0
             except:
                 host, port = extra.host, extra.port
-            rest_args = ['mongorestore',  '--host',  host, '--port',  str(port), self.dump_path]
+            rest_args = ['mongorestore',  '--host',  str(host), '--port',  str(port), self.dump_path]
             self.restore_process = subprocess.Popen(rest_args)
             self.restore_process.wait()
 
