@@ -448,7 +448,7 @@ class MongoWriter(object):
                 self.collnames |= set([collname])
                 self.topics |= set([topic])
             except Exception, e:
-                print('Failed to subsribe to %s due to %s' % (topic, e))
+                print('Failed to subscribe to %s due to %s' % (topic, e))
                 missing_topics.add(topic)
 
         return missing_topics

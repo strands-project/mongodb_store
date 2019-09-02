@@ -2,6 +2,12 @@
 Changelog for package libmongocxx_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.4.5 (2019-06-28)
+------------------
+
+0.4.3 (2019-04-04)
+------------------
+
 0.4.2 (2018-06-04)
 ------------------
 * instead of lsb-release read /etc/os-version from CMake to find OS version

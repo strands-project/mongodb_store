@@ -8,15 +8,182 @@ Provides a service to store ROS message objects in a mongodb database in JSON.
 import rospy
 import actionlib
 import pymongo
+try:
+    from Queue import Queue
+except ImportError:
+    from queue import Queue
 import os
+import re
 import shutil
 import subprocess
 from bson import json_util
+import sys
+import time
+from threading import Thread, Lock
+from mongodb_store_msgs.msg import MoveEntriesAction, MoveEntriesFeedback
 from datetime import datetime
 
 import mongodb_store.util
 from mongodb_store_msgs.msg import MoveEntriesAction, MoveEntriesFeedback
 MongoClient = mongodb_store.util.import_MongoClient()
+
+
+class Process(object):
+    def __init__(self, cmd):
+        self.lock = Lock()
+        self.cmd = cmd
+        self.process = None
+        self.threads = []
+
+    def _message_callback(self, stream, callback):
+        buf = str()
+        for line in iter(stream.readline, b''):
+            callback(line.strip())
+
+    def __del__(self):
+        self.shutdown()
+
+    def start(self):
+        with self.lock:
+            self.process = subprocess.Popen(
+                self.cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                bufsize=1, close_fds='posix' in sys.builtin_module_names,
+                env=os.environ.copy())
+
+            self.threads = [
+                Thread(target=self._message_callback,
+                       args=(self.process.stdout, self.on_stdout)),
+                Thread(target=self._message_callback,
+                       args=(self.process.stderr, self.on_stderr))
+            ]
+            for th in self.threads:
+                th.daemon = True
+                th.start()
+
+            rospy.loginfo('[{}] started with pid={}'.format(self.cmd[0], self.process.pid))
+
+            self.on_start()
+
+    def shutdown(self):
+        with self.lock:
+            cmdstr = ' '.join(self.cmd)
+            if self.process is not None:
+                if self.process.poll() is None:
+                    rospy.loginfo('Terminating the process "{}"'.format(cmdstr))
+                    self.process.terminate()
+                    self.wait(timeout=15.0)
+                if self.process.poll() is None:
+                    rospy.loginfo('Escalated to SIGKILL')
+                    self.process.kill()
+                    self.wait(timeout=5.0)
+                if self.process.poll() is None:
+                    rospy.logerr('[{}] The process could not be killed. (pid={}).'.format(
+                        self.cmd[0], self.process.pid))
+                else:
+                    if self.process.poll() == 0:
+                        rospy.loginfo('[{}] The process (pid={}) was successfully shutdown (code={})'.format(
+                            self.cmd[0], self.process.pid, self.process.returncode))
+                    else:
+                        rospy.logerr('[{}] The process (pid={}) was shutdown abnormaly (code={})'.format(
+                            self.cmd[0], self.process.pid, self.process.returncode))
+
+                    for th in self.threads:
+                        try:
+                            th.join()
+                        except:
+                            pass
+                    self.threads = []
+                    self.process = None
+                    self.on_shutdown()
+
+    def wait(self, timeout=None):
+        if self.process is None:
+            return
+        if self.process.poll() is None:
+            end_time = None
+            if timeout is not None:
+                end_time = time.time() + timeout
+            while self.process.poll() is None:
+                now = time.time()
+                if end_time is not None and now > end_time:
+                    return
+                rospy.sleep(0.1)
+            self.shutdown()
+
+    def poll(self):
+        if self.process is not None:
+            return self.process.poll()
+        else:
+            return -1
+
+    def on_start(self):
+        pass
+
+    def on_shutdown(self):
+        pass
+
+    def on_stdout(self, msg):
+        rospy.loginfo('[{}] {}'.format(self.cmd[0], msg))
+
+    def on_stderr(self, msg):
+        rospy.logerr('[{}] {}'.format(self.cmd[0], msg))
+
+
+class MongoProcess(Process):
+    _regex = re.compile(r'^([0-9]+/[0-9]+)$')
+
+    def on_start(self):
+        self._progress = 0.0
+        super(MongoProcess, self).on_start()
+
+    def on_output(self, msg):
+        super(MongoProcess, self).on_output(msg)
+        try:
+            progress = filter(self._regex.match, msg.split())
+            current, total = progress[0].split('/')
+            self._progress = float(current) / float(total) * 100.0
+        except:
+            pass
+
+    @property
+    def progress(self):
+        self._progress
+
+
+class MongoDumpProcess(MongoProcess):
+    def __init__(self, host, port, db, collection, dump_path, less_time=None, query=None):
+        cmd = [
+            'mongodump', '--verbose', '-o', dump_path,
+            '--host', host, '--port', str(port),
+            '--db', db, '--collection', collection,
+        ]
+
+        if query is None:
+            query = {}
+        if less_time is not None:
+            query.update({
+                '_meta.inserted_at': {'$lt': datetime.utcfromtimestamp(less_time.to_sec())}
+            })
+
+        if query:
+            query = json_util.dumps(query)
+            cmd += ['--query', query]
+
+        super(MongoDumpProcess, self).__init__(cmd=cmd)
+
+
+class MongoRestoreProcess(MongoProcess):
+    def __init__(self, host, port, dump_path, db=None, collection=None):
+        cmd = [
+            'mongorestore', '--verbose', '--host', host, '--port', str(port),
+        ]
+        if db is not None:
+            cmd += ['--db', db]
+        if collection is not None:
+            cmd += [ '--collection', collection]
+        cmd += [dump_path]
+        super(MongoRestoreProcess, self).__init__(cmd=cmd)
+
 
 class Replicator(object):
     def __init__(self):
@@ -129,12 +296,15 @@ class Replicator(object):
                 break
             try:
                 host, port = extra.address  # pymongo >= 3.0
-            except:
+            except TypeError:
                 host, port = extra.host, extra.port
-            rest_args = ['mongorestore',  '--host',  str(host), '--port',  str(port), self.dump_path]
-            self.restore_process = subprocess.Popen(rest_args)
+            except pymongo.errors.ServerSelectionTimeoutError:
+                rospy.logerr('Failed to connect to the extra server {}'.format(extra))
+                continue
+            self.restore_process = MongoRestoreProcess(host=host, port=port, dump_path=self.dump_path)
+            self.restore_process.start()
             self.restore_process.wait()
-
+            self.restore_process = None
 
     def do_delete(self, collection, master, less_time_time=None, db='message_store', query=None):
         coll = master[db][collection]
@@ -147,43 +317,30 @@ class Replicator(object):
             })
         coll.remove(spec)
 
-
-
     def do_dump(self, collection, master, less_time_time=None, db='message_store', query=None):
         """dump collection"""
         try:
             host, port = master.address  # pymongo >= 3.0
-        except:
+        except TypeError:
             host, port = master.host, master.port
-        args = ['mongodump',  '--host',  host, '--port',  str(port), '--db', db, '--collection', collection, '-o', self.dump_path]
+        except pymongo.errors.ServerSelectionTimeoutError:
+            rospy.logerr('Failed to connect to the master server {}'.format(master))
+            return False
 
-        spec = dict()
-        if query is not None:
-            spec.update(query)
-        if less_time_time is not None:
-            spec.update({
-                "_meta.inserted_at": {"$lt": datetime.utcfromtimestamp(less_time_time.to_sec())}
-            })
-
-        # match only objects with an insterted data less than this
-        args.append('--query')
-        args.append(json_util.dumps(spec))
-
-        self.dump_process = subprocess.Popen(args)
+        self.dump_process = MongoDumpProcess(host=host, port=port, db=db, collection=collection,
+                                             dump_path=self.dump_path,
+                                             less_time=less_time_time, query=query)
+        self.dump_process.start()
         self.dump_process.wait()
-
+        self.dump_process = None
 
     def do_cancel(self):
-        if self.restore_process is not None and self.restore_process.poll() is None:
-            rospy.loginfo("mongorestore process is being terminated...")
-            self.restore_process.terminate()
-        if self.dump_process is not None and self.dump_process.poll() is None:
-            rospy.loginfo("mongodump process is being terminated...")
-            self.dump_process.terminate()
-        if self.restore_process is not None:
-            self.restore_process.wait()
-        if self.dump_process is not None:
-            self.dump_process.wait()
+        if self.dump_process:
+            self.dump_process.shutdown()
+            self.dump_process = None
+        if self.restore_process:
+            self.restore_process.shutdown()
+            self.restore_process = None
 
 if __name__ == '__main__':
     rospy.init_node("mongodb_replicator")

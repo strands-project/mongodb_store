@@ -182,11 +182,18 @@ class ConfigManager(object):
             name=param["path"]
             val=param["value"]
             if local_collection.find_one({"path":name}) is None:
-                rospy.set_param(name,val)
+                if val is not None:
+                    rospy.set_param(name,val)
+                else:
+                    rospy.logerr("Unable to set parameter %, its value is None.", name)
         for param in local_collection.find():
             name=param["path"]
             val=param["value"]
-            rospy.set_param(name,val)
+            if val is not None:
+                rospy.set_param(name,val)
+            else:
+                rospy.logerr("Unable to set parameter %, its value is None.", name)
+
 
 
         # Advertise ros services for parameter setting / getting
@@ -200,6 +207,9 @@ class ConfigManager(object):
                                            SetParam,
                                            self._saveparam_srv_cb)
 
+        self._resetparams_srv = rospy.Service("/config_manager/reset_params",
+                                           Trigger,
+                                           self._resetparams_srv_cb)
         #self._list_params()
 
         # Start the main loop
@@ -254,6 +264,11 @@ class ConfigManager(object):
             if not (new.has_key("path") and new.has_key("value")):
                 rospy.logerr("Trying to set parameter but not giving full spec")
                 return SetParamResponse(False)
+
+        if new["value"] is None:
+            rospy.logerr("Unable to set parameter to None.")
+            return SetParamResponse(False)
+
         config_db_local = self._database.local
         value = config_db_local.find_one({"path":new["path"]}, manipulate=False)
         if value is None:
@@ -287,6 +302,31 @@ class ConfigManager(object):
             config_db_local.update(value, new, manipulate=True)
 
         return SetParamResponse(True)
+
+    # Reset all parameters to their default value by wiping all entries in the local database
+    def _resetparams_srv_cb(self, req):
+        defaults_collection = self._database.defaults
+        local_collection = self._database.local
+
+        # Delete all parameters found in the local database but not in the defaults collection
+        # This happens when someone uses SetParam for a parameter not defined in defaults.
+        for param in local_collection.find():
+            name = param["path"]
+            exist_in_defaults = defaults_collection.find_one({"path": name}, manipulate=False)
+            if not exist_in_defaults:
+                rospy.delete_param(name)
+
+        # Delete all entries in local database
+        self._database.local.delete_many({})
+
+        # Apply all default values onto the ros parameter server
+        # resetting / overwriting local values on parameter server.
+        for param in defaults_collection.find():
+            name = param["path"]
+            val = param["value"]
+            rospy.set_param(name, val)
+
+        return TriggerResponse(success=True, message='')
 
 
 if __name__ == '__main__':

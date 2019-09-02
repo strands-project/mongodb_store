@@ -16,6 +16,7 @@
   <arg name="use_repl_set" default="false" />
   <arg name="repl_set" default="rs0" />
   <arg name="queue_size" default="100" />
+  <arg name="bind_to_host" default="false" />
 
   <arg name="use_localdatacenter" default="true" />
 
@@ -32,6 +33,7 @@
     <arg name="use_repl_set" value="$(arg use_repl_set)"/>
     <arg name="repl_set" value="$(arg repl_set)"/>
     <arg name="queue_size" value="$(arg queue_size)" />
+    <arg name="bind_to_host" value="$(arg bind_to_host)" />
   </include>
 
 </launch>
