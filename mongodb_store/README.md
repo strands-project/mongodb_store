@@ -10,7 +10,7 @@ Two nodes are provided:
 These node depends on MongoDB and the Python client libraries (>=2.3). Install by:
 
 ```
-sudo apt-get install python-pymongo mongodb
+sudo apt-get install python-pymongo mongodb scons
 ```
 If this does not give the required version, you can use:
 
@@ -42,7 +42,7 @@ rosparam set mongodb_use_daemon true
 rosparam set mongodb_port 62345
 rosparam set mongodb_host localhost
 
-roslaunch mongodb_store mongodb_store use_daemon:=true
+roslaunch mongodb_store mongodb_store.launch use_daemon:=true
 ```
 
 Config Manager Overview
