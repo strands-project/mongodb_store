@@ -10,7 +10,7 @@ Two nodes are provided:
 These node depends on MongoDB and the Python client libraries (>=2.3). Install by:
 
 ```
-sudo apt-get install python-pymongo mongodb
+sudo apt-get install python-pymongo mongodb scons
 ```
 If this does not give the required version, you can use:
 
