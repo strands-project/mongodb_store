@@ -2,8 +2,8 @@
 Changelog for package mongodb_log
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.5.2 (2019-11-11)
+------------------
 * back to system mongo
 * Contributors: Ferenc Balint-Benczedi, Nick Hawes, Shingo Kitagawa, Volker Gabler
 
