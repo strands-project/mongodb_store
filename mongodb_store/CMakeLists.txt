@@ -6,14 +6,14 @@ if(DEFINED ENV{ROS_DISTRO})
   if(NOT $ENV{ROS_DISTRO} STREQUAL "indigo")
     add_compile_options(-std=c++11)
     message(STATUS "Building with C++11 support")
-  else() 
+  else()
     message(STATUS "ROS Indigo: building without C++11 support")
   endif()
 else()
   message(STATUS "Environmental variable ROS_DISTRO not defined, checking OS version")
   file(STRINGS /etc/os-release RELEASE_CODENAME
 		REGEX "VERSION_CODENAME=")
-  if(NOT ${RELEASE_CODENAME} MATCHES "trusty") 
+  if(NOT ${RELEASE_CODENAME} MATCHES "trusty")
     add_compile_options(-std=c++11)
     message(STATUS "OS distro is not trusty: building with C++11 support")
   else()
@@ -164,17 +164,18 @@ if (CATKIN_ENABLE_TESTING)
   find_package(catkin REQUIRED COMPONENTS rostest)
 
   add_rostest(tests/message_store.test)
+  add_rostest(tests/config_manager.test)
   add_rostest(tests/replication.test)
 
   add_executable(message_store_cpp_test tests/message_store_cpp_test.cpp)
 
   target_link_libraries(message_store_cpp_test
-    message_store 
-    ${OPENSSL_LIBRARIES} 
+    message_store
+    ${OPENSSL_LIBRARIES}
     ${catkin_LIBRARIES}
     ${Boost_LIBRARIES}
     gtest
-  ) 
+  )
 
   add_rostest(tests/message_store_cpp_client.test)
 

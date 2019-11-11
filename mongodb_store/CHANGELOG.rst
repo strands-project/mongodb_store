@@ -25,6 +25,51 @@ Changelog for package mongodb_store
 * back to system mongo
 * Contributors: Ferenc Balint-Benczedi, Nick Hawes
 
+0.4.5 (2019-06-28)
+------------------
+
+* Allow to bind mongod to host
+  The existing solution bind the mongod server to all interfaces. This
+  exposes the server to the outside. This could be a potensial security
+  issue if someone has access to your network. This change allows you
+  to only bind the server to the host specified by the
+  `mongodb_host` parameter. The solution was created with a flag
+  defaulting to false to prevent this from being a breaking change.
+  Specifying the argument `bind_to_host` will add a bind argument to the
+  executable:
+  ```
+  [..., "--bind_ip", self._mongo_host]
+  ```
+  Info: The `bind_ip` argument [supports hostnames, ipaddresses
+  and socket
+  paths](https://docs.mongodb.com/manual/reference/program/mongod/#cmdoption-mongod-bind-ip)
+  so using `localhost` or `127.0.0.1` is valid for binding to
+  localhost only. To bind to all interfaces use `0.0.0.0`.
+* adds service to reset all local overrides.
+  Exposes a new service `/config_manager/reset_params std_srvs/Trigger`
+  that will reset all local overrides their default value. This provides
+  a ROS compatible way of getting back to the default values.
+* Contributors: Jørgen Borgesen, Nick Hawes, Marc Hanheide
+
+0.4.3 (2019-04-04)
+------------------
+* Merge pull request `#243 <https://github.com/strands-project/mongodb_store/issues/243>`_ from furushchev/get-publisher
+  add method to get num subscribers for insertion
+* Merge pull request `#242 <https://github.com/strands-project/mongodb_store/issues/242>`_ from furushchev/shutdown
+  shutdown publisher on destruction
+* Merge pull request `#241 <https://github.com/strands-project/mongodb_store/issues/241>`_ from furushchev/add-published-at
+  append _meta.published_at for stamped messages
+* Merge pull request `#240 <https://github.com/strands-project/mongodb_store/issues/240>`_ from furushchev/fix-replicate
+  display more info on replication
+* add method to get num subscribers for insertion
+* shutdown publisher on destruction
+* append _meta.published_at for stamped messages
+* display more info on replication
+* Merge pull request `#234 <https://github.com/strands-project/mongodb_store/issues/234>`_ from jorgenfb/fix/prevent-null-values
+  Make sure None / null values reaches the parameter server
+* Make sure None / null values reaches the parameter server
+* Contributors: Jørgen Borgesen, Nick Hawes, Yuki Furuta
+
 0.4.2 (2018-06-04)
 ------------------
 * instead of lsb-release read /etc/os-version from CMake to find OS version

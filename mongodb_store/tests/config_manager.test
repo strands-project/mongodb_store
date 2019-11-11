@@ -1,0 +1,11 @@
+<launch>
+  <include file="$(find mongodb_store)/launch/mongodb_store.launch">
+    <arg name="db_path" value="/tmp" />
+  </include>
+j
+  <!-- rosout and diagnostic topic logger -->
+  <!-- <node name="diagnostics_logger" pkg="strands_diagnostics" type="logger"/> -->
+
+  <test test-name="test_configmanager" pkg="mongodb_store" type="test_configmanager.py" />
+
+</launch>

@@ -12,6 +12,17 @@ Changelog for package mongodb_log
 * back to system mongo
 * Contributors: Ferenc Balint-Benczedi, Nick Hawes
 
+0.4.5 (2019-06-28)
+------------------
+
+0.4.3 (2019-04-04)
+------------------
+* Merge pull request `#238 <https://github.com/strands-project/mongodb_store/issues/238>`_ from charlielito/patch-1
+  Fix typo in log message
+* Fix typo in log message
+  It is subscribe rather than subsribe
+* Contributors: Carlos Andrés Álvarez Restrepo, Nick Hawes
+
 0.4.2 (2018-06-04)
 ------------------
 * instead of lsb-release read /etc/os-version from CMake to find OS version

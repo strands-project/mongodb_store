@@ -43,6 +43,7 @@ class MongoServer(object):
 
         self.test_mode = rospy.get_param("~test_mode", False)
         self.repl_set = rospy.get_param("~repl_set", None)
+        self.bind_to_host = rospy.get_param("~bind_to_host", False)
 
 
         if self.test_mode:
@@ -114,6 +115,11 @@ class MongoServer(object):
 
         #cmd = ["mongod","--dbpath",self._db_path,"--port",str(self._mongo_port),"--smallfiles","--bind_ip","127.0.0.1"]
         cmd = ["mongod","--dbpath",self._db_path,"--port",str(self._mongo_port),"--smallfiles"]
+
+        if self.bind_to_host:
+            cmd.append("--bind_ip")
+            cmd.append(self._mongo_host)
+
         if self.repl_set is not None:
             cmd.append("--replSet")
             cmd.append(self.repl_set)
