@@ -114,7 +114,7 @@ class MongoServer(object):
 #            signal.signal(signal.SIGINT, signal.SIG_IGN)
 
         #cmd = ["mongod","--dbpath",self._db_path,"--port",str(self._mongo_port),"--smallfiles","--bind_ip","127.0.0.1"]
-        cmd = ["mongod","--dbpath",self._db_path,"--port",str(self._mongo_port),"--smallfiles"]
+        cmd = ["mongod","--dbpath",self._db_path,"--port",str(self._mongo_port)]
 
         if self.bind_to_host:
             cmd.append("--bind_ip")
