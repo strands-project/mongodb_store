@@ -83,17 +83,31 @@ class ConfigManager(object):
         rospy.init_node("config_manager")
 
         use_daemon = rospy.get_param('mongodb_use_daemon', False)
+        connection_string = rospy.get_param('mongodb_connection_string', '')
+        use_connection_string = len(connection_string) > 0
+        if use_connection_string:
+            use_daemon = True
+            rospy.loginfo('Using connection string: %s', connection_string)
+
+
         db_host = rospy.get_param('mongodb_host')
         db_port = rospy.get_param('mongodb_port')
         if use_daemon:
-            is_daemon_alive = mongodb_store.util.check_connection_to_mongod(db_host, db_port)
+            if use_connection_string:
+                is_daemon_alive = mongodb_store.util.check_connection_to_mongod(None, None, connection_string=connection_string)
+            else:
+                is_daemon_alive = mongodb_store.util.check_connection_to_mongod(db_host, db_port)
             if not is_daemon_alive:
                 sys.exit(1)
         else:
             if not mongodb_store.util.wait_for_mongo():
                 sys.exit(1)
 
-        self._mongo_client = MongoClient(db_host, db_port)
+        if use_connection_string:
+            self._mongo_client=MongoClient(connection_string)
+        else:
+            self._mongo_client=MongoClient(db_host, db_port)
+
         rospy.on_shutdown(self._on_node_shutdown)
 
         self._database=self._mongo_client.config

@@ -7,6 +7,9 @@
   <arg name="defaults_path" default=""/>
   <arg name="replicator_dump_path" default="/tmp/replicator_dumps"/>
   <arg name="use_daemon" default="false" />
+  
+  <!-- Connect via full URI/Connection string. Requires use_daemon to be true -->
+  <arg name="connection_string" default="$(arg connection_string)" />
 
   <arg name="machine"/>
   <arg name="test_mode" default="false" />
@@ -18,10 +21,14 @@
   <arg name="use_localdatacenter" default="true" />
 
   <param name="mongodb_use_daemon" value="$(arg use_daemon)" />
+  <param name="mongodb_connection_string" value="$(arg connection_string)" />
+
+
   <group if="$(arg use_daemon)">
     <param name="mongodb_port" value="$(arg port)" />
     <param name="mongodb_host" value="$(optenv ROS_HOSTNAME localhost)" />
   </group>
+
   <group unless="$(arg use_daemon)">
   	<!-- launch in test mode -->
   	<group if="$(arg test_mode)">

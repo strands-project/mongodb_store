@@ -9,6 +9,9 @@
   <arg name="replicator_dump_path" default="/tmp/replicator_dumps"/>
   <arg name="use_daemon" default="false" />
 
+  <!-- Connect via full URI/Connection string. Requires use_daemon to be true -->
+  <arg name="connection_string" default="" />
+
 
   <arg name="machine" default="localhost" />
   <arg name="user" default="" />
@@ -28,6 +31,7 @@
     <arg name="defaults_path" value="$(arg defaults_path)"/>
     <arg name="replicator_dump_path" value="$(arg replicator_dump_path)"/>
     <arg name="use_daemon" value="$(arg use_daemon)"/>
+    <arg name="connection_string" value="$(arg connection_string)"/>
     <arg name="machine" value="$(arg machine)"/>    
     <arg name="test_mode" value="$(arg test_mode)"/>
     <arg name="use_repl_set" value="$(arg use_repl_set)"/>

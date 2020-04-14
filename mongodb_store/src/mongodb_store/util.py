@@ -22,7 +22,7 @@ from pymongo.errors import ConnectionFailure
 import importlib
 from datetime import datetime
 
-def check_connection_to_mongod(db_host, db_port):
+def check_connection_to_mongod(db_host, db_port, connection_string=None):
     """
     Check connection to mongod server
 
@@ -39,12 +39,20 @@ def check_connection_to_mongod(db_host, db_port):
             except:
                 # pymongo 3.X
                 from pymongo import MongoClient
-                client = MongoClient(db_host, db_port, connect=False)
+                if connection_string is None:
+                    client = MongoClient(db_host, db_port, connect=False)
+                else:
+                    client = MongoClient(connection_string)
                 result = client.admin.command('ismaster')
                 return True
         except ConnectionFailure:
-            rospy.logerr("Could not connect to mongo server %s:%d" % (db_host, db_port))
-            rospy.logerr("Make sure mongod is launched on your specified host/port")
+            if connection_string is None:
+                rospy.logerr("Could not connect to mongo server %s:%d" % (db_host, db_port))
+                rospy.logerr("Make sure mongod is launched on your specified host/port")
+            else:
+                rospy.logerr("Could not connect to mongo server %s" % (connection_string))
+                rospy.logerr("Make sure mongod is launched on your specified host/port")
+        
             return False
     else:
         return False

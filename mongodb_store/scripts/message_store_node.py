@@ -28,6 +28,12 @@ class MessageStore(object):
     def __init__(self, replicate_on_write=False):
 
         use_daemon = rospy.get_param('mongodb_use_daemon', False)
+        connection_string = rospy.get_param('mongodb_connection_string', '')
+        use_connection_string = len(connection_string) > 0
+        if use_connection_string:
+            use_daemon = True
+            rospy.loginfo('Using connection string: %s', connection_string)
+
         # If you want to use a remote datacenter, then it should be set as false
         use_localdatacenter = rospy.get_param('~mongodb_use_localdatacenter', True)
         local_timeout = rospy.get_param('~local_timeout', 10)
@@ -43,7 +49,10 @@ class MessageStore(object):
         db_port = rospy.get_param('mongodb_port')
 
         if use_daemon:
-            is_daemon_alive = dc_util.check_connection_to_mongod(db_host, db_port)
+            if use_connection_string:
+                is_daemon_alive = dc_util.check_connection_to_mongod(None, None, connection_string=connection_string)
+            else:
+                is_daemon_alive = dc_util.check_connection_to_mongod(db_host, db_port)
             if not is_daemon_alive:
                 raise Exception("No Daemon?")
         elif use_localdatacenter:
@@ -54,7 +63,10 @@ class MessageStore(object):
 
         self.keep_trash = rospy.get_param('mongodb_keep_trash', True)
 
-        self._mongo_client=MongoClient(db_host, db_port)
+        if use_connection_string:
+            self._mongo_client=MongoClient(connection_string)
+        else:
+            self._mongo_client=MongoClient(db_host, db_port)
 
         self.replicate_on_write = rospy.get_param(
             "mongodb_replicate_on_write", replicate_on_write)

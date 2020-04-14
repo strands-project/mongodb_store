@@ -190,12 +190,23 @@ class Replicator(object):
 
         # don't start up until master is there
         use_daemon = rospy.get_param('mongodb_use_daemon', False)
+        connection_string = rospy.get_param('mongodb_connection_string', '')
+        use_connection_string = len(connection_string) > 0
+        if use_connection_string:
+            use_daemon = True
+            rospy.loginfo('Using connection string: %s', connection_string)
 
+        self.connection_string = ''
 
         if use_daemon:
             self.master_db_host = rospy.get_param('mongodb_host')
             self.master_db_port = rospy.get_param('mongodb_port')
-            is_daemon_alive = mongodb_store.util.check_connection_to_mongod(self.master_db_host, self.master_db_port)
+
+            if use_connection_string:
+                self.connection_string = connection_string
+                is_daemon_alive = mongodb_store.util.check_connection_to_mongod(None, None, connection_string=connection_string)
+            else:
+                is_daemon_alive = mongodb_store.util.check_connection_to_mongod(db_host, db_port)
             if not is_daemon_alive:
                 raise Exception("No Daemon?")
         else:
@@ -232,7 +243,10 @@ class Replicator(object):
     def make_connections(self):
         master = None
         try:
-            master = MongoClient(self.master_db_host, self.master_db_port)
+            if len(self.connection_string) > 0:
+                master = MongoClient(self.connection_string)
+            else:
+                master = MongoClient(self.master_db_host, self.master_db_port)
         except pymongo.errors.ConnectionFailure:
             rospy.logwarn('Could not connect to master datacentre at %s:%s' % (
                 self.master_db_host, self.master_db_port))
