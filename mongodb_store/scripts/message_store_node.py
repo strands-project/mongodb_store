@@ -23,7 +23,6 @@ from mongodb_store_msgs.msg import  StringPair, StringPairList, Insert
 
 MongoClient = dc_util.import_MongoClient()
 
-
 class MessageStore(object):
     def __init__(self, replicate_on_write=False):
 

@@ -23,6 +23,9 @@
 
   <arg name="use_localdatacenter" default="true" />
 
+  <arg name="launch_config" default="true" />
+  <arg name="launch_replicator" default="true" />
+
   <machine name="$(arg machine)" address="$(arg machine)" env-loader="$(optenv ROS_ENV_LOADER )" user="$(arg user)"/>
 
   <include file="$(find mongodb_store)/launch/mongodb_store_inc.launch">
@@ -38,6 +41,8 @@
     <arg name="repl_set" value="$(arg repl_set)"/>
     <arg name="queue_size" value="$(arg queue_size)" />
     <arg name="bind_to_host" value="$(arg bind_to_host)" />
+    <arg name="launch_config" default="$(arg launch_config)" />
+    <arg name="launch_replicator" default="$(arg launch_replicator)" />
   </include>
 
 </launch>
