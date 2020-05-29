@@ -190,7 +190,7 @@ class Replicator(object):
 
         # don't start up until master is there
         use_daemon = rospy.get_param('mongodb_use_daemon', False)
-        connection_string = rospy.get_param('mongodb_connection_string', '')
+        connection_string = rospy.get_param('/mongodb_connection_string', '')
         use_connection_string = len(connection_string) > 0
         if use_connection_string:
             use_daemon = True
