@@ -42,7 +42,7 @@ rosparam set mongodb_use_daemon true
 rosparam set mongodb_port 62345
 rosparam set mongodb_host localhost
 
-roslaunch mongodb_store mongodb_store use_daemon:=true
+roslaunch mongodb_store mongodb_store.launch use_daemon:=true
 ```
 
 Config Manager Overview
