@@ -206,7 +206,7 @@ class Replicator(object):
                 self.connection_string = connection_string
                 is_daemon_alive = mongodb_store.util.check_connection_to_mongod(None, None, connection_string=connection_string)
             else:
-                is_daemon_alive = mongodb_store.util.check_connection_to_mongod(db_host, db_port)
+                is_daemon_alive = mongodb_store.util.check_connection_to_mongod(self.master_db_host, self.master_db_port)
             if not is_daemon_alive:
                 raise Exception("No Daemon?")
         else:
