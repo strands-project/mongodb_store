@@ -80,7 +80,6 @@ class TopicPlayer(PlayerProcess):
         self.mongodb_port = mongodb_port
         self.db_name = db_name
         self.collection_name = collection_name
-        self.start_time = start_time
 
 
     def init(self, running):
@@ -97,14 +96,12 @@ class TopicPlayer(PlayerProcess):
 
         # two threads running here, the main one does the publishing
 
-        # the second one populates the queue of things to publish
         now = rospy.get_rostime()
 
+        # wait until the sim clock has been initialised
         while rospy.get_rostime().secs == 0:
-            # can't use rospy time here as if clock is 0 it will wait forever
             rospy.sleep(2)
-        print(now)
-        print(self.start_time)
+
         if self.start_time > now:
             self.start_time_diff = self.start_time - now
         else:
@@ -160,7 +157,6 @@ class TopicPlayer(PlayerProcess):
 
         # wait until sim clock has initialised
         while rospy.get_rostime().secs == 0:
-            # can't use rospy time here as if clock is 0 it will wait forever
             rospy.sleep(2)
 
         rospy.logdebug('Topic playback ready %s %s' % (self.collection.name, rospy.get_param('use_sim_time')))
@@ -224,12 +220,6 @@ class ClockPlayer(PlayerProcess):
         # switch to simulated time, note that as this is after the init_node, this node DOES NOT use sim time
         #rospy.set_param('use_sim_time', True)
 
-        # topic to public clock on
-        self.clock_pub = rospy.Publisher('/clock', Clock, queue_size=1)
-
-        # send the first message to get time off 0
-        #self.clock_pub.publish(Clock(clock=(self.start_time - self.pre_roll)))
-
         # notify everyone else that they can move on
         self.event.set()
 
@@ -258,11 +248,8 @@ class ClockPlayer(PlayerProcess):
 
         while running.value and clock_msg.clock <= end:
 
-            # update time
             clock_msg.clock += update
 
-            # publish time
-            #self.clock_pub.publish(clock_msg)
 
             rate.sleep()
 
