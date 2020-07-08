@@ -80,6 +80,7 @@ class TopicPlayer(PlayerProcess):
         self.mongodb_port = mongodb_port
         self.db_name = db_name
         self.collection_name = collection_name
+        self.start_time = start_time
 
 
     def init(self, running):
@@ -96,13 +97,25 @@ class TopicPlayer(PlayerProcess):
 
         # two threads running here, the main one does the publishing
 
-        # the second one populates the qeue of things to publish
+        # the second one populates the queue of things to publish
+        now = rospy.get_rostime()
+
+        while rospy.get_rostime().secs == 0:
+            # can't use rospy time here as if clock is 0 it will wait forever
+            rospy.sleep(2)
+        print(now)
+        print(self.start_time)
+        if self.start_time > now:
+            self.start_time_diff = self.start_time - now
+        else:
+            self.start_time_diff = now - self.start_time
 
         # how many to
         buffer_size = 50
         self.to_publish = Queue.Queue(maxsize=buffer_size)
         self.queue_thread = threading.Thread(target=self.queue_from_db, args=[running])
         self.queue_thread.start()
+
 
 
     def queue_from_db(self, running):
@@ -148,7 +161,7 @@ class TopicPlayer(PlayerProcess):
         # wait until sim clock has initialised
         while rospy.get_rostime().secs == 0:
             # can't use rospy time here as if clock is 0 it will wait forever
-            time.sleep(0.2)
+            rospy.sleep(2)
 
         rospy.logdebug('Topic playback ready %s %s' % (self.collection.name, rospy.get_param('use_sim_time')))
 
@@ -161,15 +174,18 @@ class TopicPlayer(PlayerProcess):
             try:
                 msg_time_tuple = self.to_publish.get(timeout=timeout)
                 publish_time = msg_time_tuple[1]
+                dt = publish_time - self.start_time
                 msg = msg_time_tuple[0]
 
                 now = rospy.get_rostime()
 
+                now_in_sim = now - self.start_time_diff
+
                 # if we've missed our window
-                if publish_time < now:
-                    rospy.logwarn('Message out of sync by %f', (now - publish_time).to_sec())
+                if publish_time < now_in_sim:
+                    rospy.logwarn('Message out of sync by %f', (now_in_sim - publish_time).to_sec())
                 else:
-                    delay = publish_time - now
+                    delay = publish_time - now_in_sim
                     rospy.sleep(delay)
 
                 # rospy.loginfo('diff %f' % (publish_time - rospy.get_rostime()).to_sec())
@@ -201,18 +217,18 @@ class ClockPlayer(PlayerProcess):
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
         # make sure this node doesn't use sim time
-        rospy.set_param('use_sim_time', False)
+        #rospy.set_param('use_sim_time', False)
 
         rospy.init_node('mongodb_playback_clock_player')
 
         # switch to simulated time, note that as this is after the init_node, this node DOES NOT use sim time
-        rospy.set_param('use_sim_time', True)
+        #rospy.set_param('use_sim_time', True)
 
         # topic to public clock on
         self.clock_pub = rospy.Publisher('/clock', Clock, queue_size=1)
 
         # send the first message to get time off 0
-        self.clock_pub.publish(Clock(clock=(self.start_time - self.pre_roll)))
+        #self.clock_pub.publish(Clock(clock=(self.start_time - self.pre_roll)))
 
         # notify everyone else that they can move on
         self.event.set()
@@ -221,8 +237,11 @@ class ClockPlayer(PlayerProcess):
     def run(self, running):
 
         self.init()
+        try:
+            start = self.start_time - self.pre_roll
+        except:
+            start = self.start_time
 
-        start = self.start_time - self.pre_roll
         end = self.end_time + self.post_roll
 
         # start value
@@ -243,7 +262,7 @@ class ClockPlayer(PlayerProcess):
             clock_msg.clock += update
 
             # publish time
-            self.clock_pub.publish(clock_msg)
+            #self.clock_pub.publish(clock_msg)
 
             rate.sleep()
 
@@ -313,13 +332,15 @@ class MongoPlayback(object):
 
         self.event = multiprocessing.Event()
 
+
         # create clock thread
         pre_roll = rospy.Duration(2)
         post_roll = rospy.Duration(0)
+
         self.clock_player = ClockPlayer(self.event, start_time, end_time, pre_roll, post_roll)
 
         # create playback objects
-        self.players = map(lambda c: TopicPlayer(self.mongodb_host, self.mongodb_port, database_name, c, self.event, start_time - pre_roll, end_time + post_roll), topics)
+        self.players = map(lambda c: TopicPlayer(self.mongodb_host, self.mongodb_port, database_name, c, self.event, start_time, end_time + post_roll), topics)
 
 
     def start(self):
