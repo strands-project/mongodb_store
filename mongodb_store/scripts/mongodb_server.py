@@ -119,6 +119,10 @@ class MongoServer(object):
         if self.bind_to_host:
             cmd.append("--bind_ip")
             cmd.append(self._mongo_host)
+        else:
+            cmd.append("--bind_ip")
+            cmd.append("0.0.0.0")
+            
 
         if self.repl_set is not None:
             cmd.append("--replSet")
@@ -164,7 +168,7 @@ class MongoServer(object):
             rospy.logwarn("It looks like Mongo already died. Watch out as the DB might need recovery time at next run.")
             return
         try:
-            c = MongoClient(port=self._mongo_port)
+            c = MongoClient(host=self._mongo_host, port=self._mongo_port)
         except pymongo.errors.ConnectionFailure:
             c = None
         try:
