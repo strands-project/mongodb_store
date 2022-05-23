@@ -29,11 +29,12 @@ MongoClient = mongodb_store.util.import_MongoClient()
 
 
 class Process(object):
-    def __init__(self, cmd):
+    def __init__(self, cmd, logerr_period):
         self.lock = Lock()
         self.cmd = cmd
         self.process = None
         self.threads = []
+        self.logerr_period = logerr_period
 
     def _message_callback(self, stream, callback):
         buf = str()
@@ -126,7 +127,7 @@ class Process(object):
         rospy.loginfo('[{}] {}'.format(self.cmd[0], msg))
 
     def on_stderr(self, msg):
-        rospy.logerr('[{}] {}'.format(self.cmd[0], msg))
+        rospy.logerr_throttle(self.logerr_period, '[{}] {}'.format(self.cmd[0], msg))
 
 
 class MongoProcess(Process):
@@ -151,7 +152,7 @@ class MongoProcess(Process):
 
 
 class MongoDumpProcess(MongoProcess):
-    def __init__(self, host, port, db, collection, dump_path, less_time=None, query=None):
+    def __init__(self, host, port, db, collection, dump_path, less_time=None, query=None, logerr_period=0):
         cmd = [
             'mongodump', '--verbose', '-o', dump_path,
             '--host', host, '--port', str(port),
@@ -195,6 +196,7 @@ class Replicator(object):
         if use_connection_string:
             use_daemon = True
             rospy.loginfo('Using connection string: %s', connection_string)
+        self.logerr_period = rospy.get_param('logerr_period', 0)
 
         self.connection_string = ''
 
@@ -343,7 +345,8 @@ class Replicator(object):
 
         self.dump_process = MongoDumpProcess(host=host, port=port, db=db, collection=collection,
                                              dump_path=self.dump_path,
-                                             less_time=less_time_time, query=query)
+                                             less_time=less_time_time, query=query,
+                                             logerr_period=self.logerr_period)
         self.dump_process.start()
         self.dump_process.wait()
         self.dump_process = None
