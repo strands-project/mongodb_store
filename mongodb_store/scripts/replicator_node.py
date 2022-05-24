@@ -170,11 +170,11 @@ class MongoDumpProcess(MongoProcess):
             query = json_util.dumps(query)
             cmd += ['--query', query]
 
-        super(MongoDumpProcess, self).__init__(cmd=cmd)
+        super(MongoDumpProcess, self).__init__(cmd=cmd, logerr_period=logerr_period)
 
 
 class MongoRestoreProcess(MongoProcess):
-    def __init__(self, host, port, dump_path, db=None, collection=None):
+    def __init__(self, host, port, dump_path, db=None, collection=None, logerr_period=0):
         cmd = [
             'mongorestore', '--verbose', '--host', host, '--port', str(port),
         ]
@@ -183,7 +183,7 @@ class MongoRestoreProcess(MongoProcess):
         if collection is not None:
             cmd += [ '--collection', collection]
         cmd += [dump_path]
-        super(MongoRestoreProcess, self).__init__(cmd=cmd)
+        super(MongoRestoreProcess, self).__init__(cmd=cmd, logerr_period=logerr_period)
 
 
 class Replicator(object):
@@ -317,7 +317,7 @@ class Replicator(object):
             except pymongo.errors.ServerSelectionTimeoutError:
                 rospy.logerr('Failed to connect to the extra server {}'.format(extra))
                 continue
-            self.restore_process = MongoRestoreProcess(host=host, port=port, dump_path=self.dump_path)
+            self.restore_process = MongoRestoreProcess(host=host, port=port, dump_path=self.dump_path, logerr_period=self.logerr_period)
             self.restore_process.start()
             self.restore_process.wait()
             self.restore_process = None
