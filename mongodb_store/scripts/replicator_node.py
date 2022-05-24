@@ -196,7 +196,7 @@ class Replicator(object):
         if use_connection_string:
             use_daemon = True
             rospy.loginfo('Using connection string: %s', connection_string)
-        self.logerr_period = rospy.get_param('logerr_period', 0)
+        self.logerr_period = rospy.get_param('~logerr_period', 0)
 
         self.connection_string = ''
 
