@@ -10,10 +10,10 @@ import copy
 import platform
 if float(platform.python_version()[0:2]) >= 3.0:
     _PY3 = True
-    from io import BytesIO as Buffer
+    import io as StringIO
 else:
     _PY3 = False
-    from StringIO import StringIO as Buffer
+    import StringIO
 from mongodb_store_msgs.msg import SerialisedMessage
 from mongodb_store_msgs.srv import MongoQueryMsgRequest
 
@@ -201,13 +201,16 @@ def sanitize_value(attr, v, type):
         else:
             # ensure unicode
             try:
-                if not _PY3:    # All strings are unicode in Python 3
+                if _PY3:
+                    v = str(v, "utf-8")
+                else:
                     v = unicode(v, "utf-8")
             except UnicodeDecodeError as e:
                 # at this point we can deal with the encoding, so treat it as binary
                 v = Binary(v)
         # no need to carry on with the other type checks below
         return v
+
     if isinstance(v, rospy.Message):
         return msg_to_document(v)
     elif isinstance(v, genpy.rostime.Time):
@@ -329,7 +332,8 @@ def fill_message(message, document):
                     lst.append(msg)
                     setattr(message, slot, lst)
             else:
-                if not _PY3 and isinstance(value, unicode):     # All strings are unicode in Python 3
+                if ( (not _PY3 and isinstance(value, unicode)) or
+                    (_PY3 and isinstance(value, str)) ):
                     setattr(message, slot, value.encode('utf-8'))
                 else:
                     setattr(message, slot, value)
@@ -514,9 +518,9 @@ def serialise_message(message):
     :Args:
         | message (ROS message): The message to serialise
     :Returns:
-        | mongodb_store_msgs.msg.SerialisedMessage: A serialised copy of message
+        | mongodb_store_msgs.msg.SerialisedMessage: A serialies copy of message
     """
-    buf = Buffer()
+    buf=StringIO.StringIO()
     message.serialize(buf)
     serialised_msg = SerialisedMessage()
     serialised_msg.msg = buf.getvalue()

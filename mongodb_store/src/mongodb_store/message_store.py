@@ -261,8 +261,8 @@ class MessageStoreProxy:
             messages = []
             metas = []
         else:
-            messages = list(map(dc_util.deserialise_message, response.messages))
-            metas = list(map(dc_util.string_pair_list_to_dictionary, response.metas))
+            messages = map(dc_util.deserialise_message, response.messages)
+            metas = map(dc_util.string_pair_list_to_dictionary, response.metas)
 
         if single:
             if len(messages) > 0:
@@ -270,4 +270,4 @@ class MessageStoreProxy:
             else:
                 return [None, None]
         else:
-            return list(zip(messages,metas))
+            return zip(messages,metas)
