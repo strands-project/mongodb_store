@@ -133,18 +133,9 @@ target_link_libraries(example_multi_event_log
 
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
-catkin_install_python(PROGRAMS
-  scripts/config_manager.py
-  scripts/example_message_store_client.py
-  scripts/example_multi_event_log.py
-  scripts/message_store_node.py
-  scripts/mongo_bridge.py
-  scripts/mongodb_play.py
-  scripts/mongodb_server.py
-  scripts/replicator_client.py
-  scripts/replicator_node.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
+install(DIRECTORY scripts/
+        DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+        USE_SOURCE_PERMISSIONS)
 
 # Mark other files for installation (e.g. launch and bag files, etc.)
 install(
