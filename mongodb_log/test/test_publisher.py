@@ -45,6 +45,6 @@ if __name__ == '__main__':
 
     for target in to_publish:
         msg_store = MessageStoreProxy(database='roslog', collection=target[0])
-        print len(msg_store.query(Int64._type)) == target[3]
+        print(len(msg_store.query(Int64._type)) == target[3])
         
 
