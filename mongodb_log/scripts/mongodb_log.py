@@ -46,7 +46,10 @@ import signal
 import subprocess
 from threading import Thread, Timer
 
-from Queue import Empty
+try: 
+    from queue import Empty
+except ImportError:
+    from Queue import Empty
 from optparse import OptionParser
 from tempfile import mktemp
 from datetime import datetime, timedelta
@@ -271,12 +274,12 @@ class WorkerProcess(object):
 
                         mongodb_store.util.store_message(self.collection, msg, meta)
 
-                    except InvalidDocument, e:
+                    except InvalidDocument as e:
                         print("InvalidDocument " + current_process().name + "@" + topic +": \n")
-                        print e
-                    except InvalidStringData, e:
+                        print(e)
+                    except InvalidStringData as e:
                         print("InvalidStringData " + current_process().name + "@" + topic +": \n")
-                        print e
+                        print(e)
 
             else:
                 #print("Quit W2: %s" % self.name)
@@ -447,7 +450,7 @@ class MongoWriter(object):
                 self.workers.append(w)
                 self.collnames |= set([collname])
                 self.topics |= set([topic])
-            except Exception, e:
+            except Exception as e:
                 print('Failed to subscribe to %s due to %s' % (topic, e))
                 missing_topics.add(topic)
 
@@ -457,7 +460,7 @@ class MongoWriter(object):
     def create_worker(self, idnum, topic, collname):
         try:
             msg_class, real_topic, msg_eval = rostopic.get_topic_class(topic, blocking=False)
-        except Exception, e:
+        except Exception as e:
             print('Topic %s not announced, cannot get type: %s' % (topic, e))
             raise
 
