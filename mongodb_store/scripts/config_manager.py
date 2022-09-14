@@ -82,17 +82,17 @@ class ConfigManager(object):
     def __init__(self):
         rospy.init_node("config_manager")
 
-        use_daemon = rospy.get_param('mongodb_use_daemon', False)
+        self.use_daemon = rospy.get_param('mongodb_use_daemon', False)
         connection_string = rospy.get_param('/mongodb_connection_string', '')
         use_connection_string = len(connection_string) > 0
         if use_connection_string:
-            use_daemon = True
+            self.use_daemon = True
             rospy.loginfo('Using connection string: %s', connection_string)
 
 
         db_host = rospy.get_param('mongodb_host')
         db_port = rospy.get_param('mongodb_port')
-        if use_daemon:
+        if self.use_daemon:
             if use_connection_string:
                 is_daemon_alive = mongodb_store.util.check_connection_to_mongod(None, None, connection_string=connection_string)
             else:
@@ -243,6 +243,13 @@ class ConfigManager(object):
 
 
     def _on_node_shutdown(self):
+        # Prevent concurrent calls to mongod process during shutdown to avoid deadlock
+        if not self.use_daemon:
+            try:
+                mongodb_store.util.wait_for_mongo(timeout=2)    # The server is marked "not ready" just before shutdown
+            except rospy.service.ServiceException:              # If the server node exits during the service call
+                pass
+        # Close Mongo Client
         try:
             # PyMongo 2.9 or later
             self._mongo_client.close()

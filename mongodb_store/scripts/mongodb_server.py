@@ -160,10 +160,10 @@ class MongoServer(object):
             rospy.logerr("Mongo process error! Exit code="+str(self._mongo_process.returncode))
 
         self._gone_down = True
-        self._ready=False
 
     def _on_node_shutdown(self):
         rospy.loginfo("Shutting down datacentre")
+        self._ready=False
         if self._gone_down:
             rospy.logwarn("It looks like Mongo already died. Watch out as the DB might need recovery time at next run.")
             return
