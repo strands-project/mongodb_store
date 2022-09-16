@@ -82,17 +82,17 @@ class ConfigManager(object):
     def __init__(self):
         rospy.init_node("config_manager")
 
-        self.use_daemon = rospy.get_param('mongodb_use_daemon', False)
+        use_daemon = rospy.get_param('mongodb_use_daemon', False)
         connection_string = rospy.get_param('/mongodb_connection_string', '')
         use_connection_string = len(connection_string) > 0
         if use_connection_string:
-            self.use_daemon = True
+            use_daemon = True
             rospy.loginfo('Using connection string: %s', connection_string)
 
 
         db_host = rospy.get_param('mongodb_host')
         db_port = rospy.get_param('mongodb_port')
-        if self.use_daemon:
+        if use_daemon:
             if use_connection_string:
                 is_daemon_alive = mongodb_store.util.check_connection_to_mongod(None, None, connection_string=connection_string)
             else:
@@ -107,8 +107,6 @@ class ConfigManager(object):
             self._mongo_client=MongoClient(connection_string)
         else:
             self._mongo_client=MongoClient(db_host, db_port)
-
-        rospy.on_shutdown(self._on_node_shutdown)
 
         self._database=self._mongo_client.config
         self._database.add_son_manipulator(MongoTransformer())
@@ -240,21 +238,6 @@ class ConfigManager(object):
             filename=param["from_file"]
             print(name, " "*(30-len(name)),val," "*(30-len(str(val))),filename)
         print()
-
-
-    def _on_node_shutdown(self):
-        # Prevent concurrent calls to mongod process during shutdown to avoid deadlock
-        if not self.use_daemon:
-            try:
-                mongodb_store.util.wait_for_mongo(timeout=2)    # The server is marked "not ready" just before shutdown
-            except rospy.service.ServiceException:              # If the server node exits during the service call
-                pass
-        # Close Mongo Client
-        try:
-            # PyMongo 2.9 or later
-            self._mongo_client.close()
-        except Exception as e:
-            self._mongo_client.disconnect()
 
     # Could just use the ros parameter server to get the params
     # but one day might not back onto the parameter server...
