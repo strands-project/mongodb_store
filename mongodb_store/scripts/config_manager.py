@@ -108,8 +108,6 @@ class ConfigManager(object):
         else:
             self._mongo_client=MongoClient(db_host, db_port)
 
-        rospy.on_shutdown(self._on_node_shutdown)
-
         self._database=self._mongo_client.config
         self._database.add_son_manipulator(MongoTransformer())
 
@@ -240,14 +238,6 @@ class ConfigManager(object):
             filename=param["from_file"]
             print(name, " "*(30-len(name)),val," "*(30-len(str(val))),filename)
         print()
-
-
-    def _on_node_shutdown(self):
-        try:
-            # PyMongo 2.9 or later
-            self._mongo_client.close()
-        except Exception as e:
-            self._mongo_client.disconnect()
 
     # Could just use the ros parameter server to get the params
     # but one day might not back onto the parameter server...

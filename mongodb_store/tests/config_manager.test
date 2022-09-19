@@ -1,8 +1,8 @@
 <launch>
   <include file="$(find mongodb_store)/launch/mongodb_store.launch">
-    <arg name="db_path" value="/tmp" />
+    <arg name="test_mode" value="true"/>
   </include>
-j
+
   <!-- rosout and diagnostic topic logger -->
   <!-- <node name="diagnostics_logger" pkg="strands_diagnostics" type="logger"/> -->
 
