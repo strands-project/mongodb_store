@@ -2,8 +2,8 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.6.0 (2022-09-20)
+------------------
 * Avoid deadlock on server shutdown (`#279 <https://github.com/strands-project/mongodb_store/issues/279>`_)
 * Fix Python 3 bugs in mongodb_store (`#272 <https://github.com/strands-project/mongodb_store/issues/272>`_, `#274 <https://github.com/strands-project/mongodb_store/issues/274>`_, `#275 <https://github.com/strands-project/mongodb_store/issues/275>`_)
 * handling of host binding (`#270 <https://github.com/strands-project/mongodb_store/issues/270>`_)
