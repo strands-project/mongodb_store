@@ -2,6 +2,23 @@
 Changelog for package mongodb_store
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Avoid deadlock on server shutdown (`#279 <https://github.com/strands-project/mongodb_store/issues/279>`_)
+* Fix Python 3 bugs in mongodb_store (`#272 <https://github.com/strands-project/mongodb_store/issues/272>`_, `#274 <https://github.com/strands-project/mongodb_store/issues/274>`_, `#275 <https://github.com/strands-project/mongodb_store/issues/275>`_)
+* handling of host binding (`#270 <https://github.com/strands-project/mongodb_store/issues/270>`_)
+* update package.xml to format=3 (`#269 <https://github.com/strands-project/mongodb_store/issues/269>`_)
+* fix connection_string arg default value (`#266 <https://github.com/strands-project/mongodb_store/issues/266>`_)
+* fixed bug in where the replicator node did not recognize the db_host (`#261 <https://github.com/strands-project/mongodb_store/issues/261>`_)
+* Added .launch to the roslaunch command that was written in the readme file (`#262 <https://github.com/strands-project/mongodb_store/issues/262>`_)
+* fixed a formatting issue
+* fixed bug in where the replicator node did not recognize the db_host
+* remembering namespace in rosparam
+* Provide options to prevent unnecessary nodes launching
+* added ability for message store to use a full connection string
+* Removed --smallfiles arg no longer supported by MongoDB (`#257 <https://github.com/strands-project/mongodb_store/issues/257>`_)
+* Contributors: Adrian Dole, Gal Gorjup, Kei Okada, Marc Hanheide, Nick Hawes, Shingo Kitagawa, Vittoria Santoro
+
 0.5.2 (2019-11-11)
 ------------------
 * added python-future to package.xml, which got lost in previous commit for some reasons ...

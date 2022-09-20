@@ -2,6 +2,12 @@
 Changelog for package mongodb_log
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Ensure Python 3 compatibility in mongodb log (`#277 <https://github.com/strands-project/mongodb_store/issues/277>`_)
+* update package.xml to format=3 (`#269 <https://github.com/strands-project/mongodb_store/issues/269>`_)
+* Contributors: Gal Gorjup, Kei Okada, Nick Hawes
+
 0.5.2 (2019-11-11)
 ------------------
 * back to system mongo
