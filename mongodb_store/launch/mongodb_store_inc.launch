@@ -3,6 +3,7 @@
   <!-- This launch file assumes that the machine tag named with the "machine" arg was set previously. If this is not the case then call mongodb_store.launch instead which will set the machine tag for you. This should typically be called within a larger roslaunch structure. -->
 
   <arg name="db_path" default="/var/local/mongodb_store"/>
+  <arg name="mongodb_host" default="$(optenv ROS_HOSTNAME localhost)" />
   <arg name="port" default="62345" />
   <arg name="defaults_path" default=""/>
   <arg name="replicator_dump_path" default="/tmp/replicator_dumps"/>
@@ -29,7 +30,7 @@
 
   <group if="$(arg use_daemon)">
     <param name="mongodb_port" value="$(arg port)" />
-    <param name="mongodb_host" value="$(optenv ROS_HOSTNAME localhost)" />
+    <param name="mongodb_host" value="$(arg mongodb_host)" />
   </group>
 
   <group unless="$(arg use_daemon)">
@@ -42,7 +43,7 @@
   	<!-- launch in non-test, i.e. normal, mode -->
   	<group unless="$(arg test_mode)">
   		<param name="mongodb_port" value="$(arg port)" />
-  		<param name="mongodb_host" value="$(optenv HOSTNAME localhost)" />
+  		<param name="mongodb_host" value="$(arg mongodb_host)" />
    
   	  <node name="mongo_server" pkg="mongodb_store" type="mongodb_server.py" machine="$(arg machine)">
         <param name="bind_to_host" value="$(arg bind_to_host)"/>

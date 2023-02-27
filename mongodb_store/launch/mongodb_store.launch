@@ -4,6 +4,7 @@
   <!-- This is the outer launch file for mongodb_store. It sets a machine tag for the mongodb_store_inc.launch to use. If you already have a machine tag defined, you can call mongodb_store_inc.launch directly and use the machine argument to it.-->
 
   <arg name="db_path" default="/var/local/mongodb_store"/>
+  <arg name="mongodb_host" default="$(optenv ROS_HOSTNAME localhost)" />
   <arg name="port" default="62345" />
   <arg name="defaults_path" default=""/>
   <arg name="replicator_dump_path" default="/tmp/replicator_dumps"/>
@@ -30,6 +31,7 @@
 
   <include file="$(find mongodb_store)/launch/mongodb_store_inc.launch">
     <arg name="db_path" value="$(arg db_path)"/>
+    <arg name="mongodb_host" value="$(arg mongodb_host)"/>
     <arg name="port" value="$(arg port)"/>
     <arg name="defaults_path" value="$(arg defaults_path)"/>
     <arg name="replicator_dump_path" value="$(arg replicator_dump_path)"/>
