@@ -141,7 +141,7 @@ mongodb_store_extras: [["localhost", 62344], ["localhost", 62333]]
 
 Inserts and updates are performed acorss the main and replicant datacentres.
 
-If `mongodb_store_extras` is set (regardless of `replicate_on_write`), queries are performed on the main first, and if nothing found, the replicants are tried.
+If `mongodb_store_extras` is set and `replicate_on_write`is True, queries are performed on the main first, and if nothing found, the replicants are tried.
 
 You can launch additional datacentres as follows, e.g.
 
