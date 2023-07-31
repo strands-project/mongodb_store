@@ -20,6 +20,7 @@
   <arg name="repl_set" default="rs0" />
   <arg name="queue_size" default="100" />
   <arg name="bind_to_host" default="false" />
+  <arg name="logerr_period" default="0" />
 
   <arg name="use_localdatacenter" default="true" />
 
@@ -66,6 +67,7 @@
   <group if="$(arg launch_replicator)">
     <node name="replicator_node" pkg="mongodb_store" type="replicator_node.py" machine="$(arg machine)">
       <param name="replicator_dump_path" value="$(arg replicator_dump_path)"/>
+      <param name="logerr_period" value="$(arg logerr_period)"/>
     </node>
   </group>
 

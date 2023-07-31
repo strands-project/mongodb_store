@@ -29,11 +29,12 @@ MongoClient = mongodb_store.util.import_MongoClient()
 
 
 class Process(object):
-    def __init__(self, cmd):
+    def __init__(self, cmd, logerr_period):
         self.lock = Lock()
         self.cmd = cmd
         self.process = None
         self.threads = []
+        self.logerr_period = logerr_period
 
     def _message_callback(self, stream, callback):
         buf = str()
@@ -126,7 +127,7 @@ class Process(object):
         rospy.loginfo('[{}] {}'.format(self.cmd[0], msg))
 
     def on_stderr(self, msg):
-        rospy.logerr('[{}] {}'.format(self.cmd[0], msg))
+        rospy.logerr_throttle(self.logerr_period, '[{}] {}'.format(self.cmd[0], msg))
 
 
 class MongoProcess(Process):
@@ -151,7 +152,7 @@ class MongoProcess(Process):
 
 
 class MongoDumpProcess(MongoProcess):
-    def __init__(self, host, port, db, collection, dump_path, less_time=None, query=None):
+    def __init__(self, host, port, db, collection, dump_path, less_time=None, query=None, logerr_period=0):
         cmd = [
             'mongodump', '--verbose', '-o', dump_path,
             '--host', host, '--port', str(port),
@@ -169,11 +170,11 @@ class MongoDumpProcess(MongoProcess):
             query = json_util.dumps(query)
             cmd += ['--query', query]
 
-        super(MongoDumpProcess, self).__init__(cmd=cmd)
+        super(MongoDumpProcess, self).__init__(cmd=cmd, logerr_period=logerr_period)
 
 
 class MongoRestoreProcess(MongoProcess):
-    def __init__(self, host, port, dump_path, db=None, collection=None):
+    def __init__(self, host, port, dump_path, db=None, collection=None, logerr_period=0):
         cmd = [
             'mongorestore', '--verbose', '--host', host, '--port', str(port),
         ]
@@ -182,7 +183,7 @@ class MongoRestoreProcess(MongoProcess):
         if collection is not None:
             cmd += [ '--collection', collection]
         cmd += [dump_path]
-        super(MongoRestoreProcess, self).__init__(cmd=cmd)
+        super(MongoRestoreProcess, self).__init__(cmd=cmd, logerr_period=logerr_period)
 
 
 class Replicator(object):
@@ -195,6 +196,7 @@ class Replicator(object):
         if use_connection_string:
             use_daemon = True
             rospy.loginfo('Using connection string: %s', connection_string)
+        self.logerr_period = rospy.get_param('~logerr_period', 0)
 
         self.connection_string = ''
 
@@ -315,7 +317,7 @@ class Replicator(object):
             except pymongo.errors.ServerSelectionTimeoutError:
                 rospy.logerr('Failed to connect to the extra server {}'.format(extra))
                 continue
-            self.restore_process = MongoRestoreProcess(host=host, port=port, dump_path=self.dump_path)
+            self.restore_process = MongoRestoreProcess(host=host, port=port, dump_path=self.dump_path, logerr_period=self.logerr_period)
             self.restore_process.start()
             self.restore_process.wait()
             self.restore_process = None
@@ -343,7 +345,8 @@ class Replicator(object):
 
         self.dump_process = MongoDumpProcess(host=host, port=port, db=db, collection=collection,
                                              dump_path=self.dump_path,
-                                             less_time=less_time_time, query=query)
+                                             less_time=less_time_time, query=query,
+                                             logerr_period=self.logerr_period)
         self.dump_process.start()
         self.dump_process.wait()
         self.dump_process = None
