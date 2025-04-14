@@ -1,35 +1,28 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.10)
 project(mongodb_store_msgs)
 
-find_package(catkin REQUIRED COMPONENTS message_generation actionlib actionlib_msgs)
+if(POLICY CMP0148)
+# don't show warnings about this policy
+cmake_policy(SET CMP0148 OLD)
+endif()
 
-add_message_files(
-  FILES
-  StringList.msg
-  StringPair.msg
-  StringPairList.msg
-  SerialisedMessage.msg
-  Insert.msg
+find_package(ament_cmake)
+find_package(std_msgs)
+find_package(action_msgs)
+find_package(builtin_interfaces)
+find_package(rosidl_default_generators)
+
+file(GLOB msg_files RELATIVE "${CMAKE_CURRENT_LIST_DIR}"
+    "${CMAKE_CURRENT_LIST_DIR}/msg/*.msg"
+    "${CMAKE_CURRENT_LIST_DIR}/srv/*.srv"
+    "${CMAKE_CURRENT_LIST_DIR}/action/*.action"
 )
 
-add_service_files(
-  FILES
-  MongoInsertMsg.srv
-  MongoUpdateMsg.srv
-  MongoQueryMsg.srv
-  MongoQuerywithProjectionMsg.srv
-  MongoDeleteMsg.srv
+rosidl_generate_interfaces(${PROJECT_NAME}
+    ${msg_files}
+    DEPENDENCIES std_msgs action_msgs builtin_interfaces
 )
 
-add_action_files(
-  FILES
-  MoveEntries.action
-)
+ament_export_dependencies(rosidl_default_runtime)
 
-
-generate_messages(DEPENDENCIES actionlib_msgs)
-
-catkin_package(
- CATKIN_DEPENDS message_generation
-)
-
+ament_package()
