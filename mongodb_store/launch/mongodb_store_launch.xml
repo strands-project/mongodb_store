@@ -29,22 +29,22 @@
 
   <machine name="$(arg machine)" address="$(arg machine)" env-loader="$(optenv ROS_ENV_LOADER )" user="$(arg user)"/>
 
-  <include file="$(find mongodb_store)/launch/mongodb_store_inc.launch">
-    <arg name="db_path" value="$(arg db_path)"/>
-    <arg name="mongodb_host" value="$(arg mongodb_host)"/>
-    <arg name="port" value="$(arg port)"/>
-    <arg name="defaults_path" value="$(arg defaults_path)"/>
-    <arg name="replicator_dump_path" value="$(arg replicator_dump_path)"/>
-    <arg name="use_daemon" value="$(arg use_daemon)"/>
-    <arg name="connection_string" value="$(arg connection_string)"/>
-    <arg name="machine" value="$(arg machine)"/>    
-    <arg name="test_mode" value="$(arg test_mode)"/>
-    <arg name="use_repl_set" value="$(arg use_repl_set)"/>
-    <arg name="repl_set" value="$(arg repl_set)"/>
-    <arg name="queue_size" value="$(arg queue_size)" />
-    <arg name="bind_to_host" value="$(arg bind_to_host)" />
-    <arg name="launch_config" default="$(arg launch_config)" />
-    <arg name="launch_replicator" default="$(arg launch_replicator)" />
+  <include file="$(find-pkg-share mongodb_store)/launch/mongodb_store_inc.launch">
+    <arg name="db_path" value="$(var db_path)"/>
+    <arg name="mongodb_host" value="$(var mongodb_host)"/>
+    <arg name="port" value="$(var port)"/>
+    <arg name="defaults_path" value="$(var defaults_path)"/>
+    <arg name="replicator_dump_path" value="$(var replicator_dump_path)"/>
+    <arg name="use_daemon" value="$(var use_daemon)"/>
+    <arg name="connection_string" value="$(var connection_string)"/>
+    <arg name="machine" value="$(var machine)"/>
+    <arg name="test_mode" value="$(var test_mode)"/>
+    <arg name="use_repl_set" value="$(var use_repl_set)"/>
+    <arg name="repl_set" value="$(var repl_set)"/>
+    <arg name="queue_size" value="$(var queue_size)" />
+    <arg name="bind_to_host" value="$(var bind_to_host)" />
+    <arg name="launch_config" default="$(var launch_config)" />
+    <arg name="launch_replicator" default="$(var launch_replicator)" />
   </include>
 
 </launch>

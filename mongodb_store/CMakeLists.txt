@@ -1,58 +1,19 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(mongodb_store)
 
-# for ROS indigo compile without c++11 support
-if(DEFINED ENV{ROS_DISTRO})
-  if(NOT $ENV{ROS_DISTRO} STREQUAL "indigo")
-    add_compile_options(-std=c++11)
-    message(STATUS "Building with C++11 support")
-  else()
-    message(STATUS "ROS Indigo: building without C++11 support")
-  endif()
-else()
-  message(STATUS "Environmental variable ROS_DISTRO not defined, checking OS version")
-  file(STRINGS /etc/os-release RELEASE_CODENAME
-		REGEX "VERSION_CODENAME=")
-  if(NOT ${RELEASE_CODENAME} MATCHES "trusty")
-    add_compile_options(-std=c++11)
-    message(STATUS "OS distro is not trusty: building with C++11 support")
-  else()
-    message(STATUS "Ubuntu Trusty: building without C++11 support")
-  endif()
-endif()
+find_package(ament_cmake)
+find_package(std_msgs)
+find_package(std_srvs)
+find_package(mongodb_store_msgs)
 
-find_package(catkin REQUIRED COMPONENTS roscpp message_generation rospy std_msgs std_srvs mongodb_store_msgs topic_tools)
-
-set(CMAKE_MODULE_PATH   ${PROJECT_SOURCE_DIR}/cmake)
-find_package(MongoClient REQUIRED)
+#set(CMAKE_MODULE_PATH   ${PROJECT_SOURCE_DIR}/cmake)
+#find_package(MongoClient REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
 
-catkin_python_setup()
-
-#######################################
-## Declare ROS messages and services ##
-#######################################
-
-
-## Generate services in the 'srv' folder
-add_service_files(
-  FILES
-  GetParam.srv
-  SetParam.srv
-  MongoFind.srv
-  MongoUpdate.srv
-  MongoInsert.srv
-)
-
-
-## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-)
+#catkin_python_setup()
 
 ###################################
 ## catkin specific configuration ##
@@ -65,12 +26,12 @@ generate_messages(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 
 
-catkin_package(
- INCLUDE_DIRS include
- LIBRARIES message_store ${MongoClient_INCLUDE_DIR}
- CATKIN_DEPENDS mongodb_store_msgs topic_tools
- DEPENDS MongoClient
-)
+#catkin_package(
+# INCLUDE_DIRS include
+# LIBRARIES message_store ${MongoClient_INCLUDE_DIR}
+# CATKIN_DEPENDS mongodb_store_msgs topic_tools
+# DEPENDS MongoClient
+#)
 
 ###########
 ## Build ##
@@ -78,50 +39,50 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-  ${MongoClient_INCLUDE_DIR} 
-)
-
-link_directories(${catkin_LINK_DIRS})
-link_directories(${MongoClient_LINK_DIRS})
-
-add_library(message_store src/message_store.cpp )
-
-add_executable(example_mongodb_store_cpp_client src/example_mongodb_store_cpp_client.cpp)
-add_executable(example_multi_event_log src/example_multi_event_log.cpp)
-# add_executable(pc_test src/point_cloud_test.cpp)
-
-
-add_dependencies(example_mongodb_store_cpp_client mongodb_store_msgs_generate_messages_cpp )
-add_dependencies(message_store mongodb_store_msgs_generate_messages_cpp )
-
-target_link_libraries(message_store
-  ${MongoClient_LIBRARIES}
-  ${catkin_LIBRARIES}
-)
+#include_directories(
+#  include
+#  ${catkin_INCLUDE_DIRS}
+#  ${MongoClient_INCLUDE_DIR}
+#)
+#
+#link_directories(${catkin_LINK_DIRS})
+#link_directories(${MongoClient_LINK_DIRS})
+#
+#add_library(message_store src/message_store.cpp )
+#
+#add_executable(example_mongodb_store_cpp_client src/example_mongodb_store_cpp_client.cpp)
+#add_executable(example_multi_event_log src/example_multi_event_log.cpp)
+## add_executable(pc_test src/point_cloud_test.cpp)
+#
+#
+#add_dependencies(example_mongodb_store_cpp_client mongodb_store_msgs_generate_messages_cpp )
+#add_dependencies(message_store mongodb_store_msgs_generate_messages_cpp )
+#
+#target_link_libraries(message_store
+#  ${MongoClient_LIBRARIES}
+#  ${catkin_LIBRARIES}
+#)
 
 
 
 # Specify libraries to link a library or executable target against
-target_link_libraries(example_mongodb_store_cpp_client
-  message_store
-  ${MongoClient_LIBRARIES}  
-  ${catkin_LIBRARIES}  
-)
-
-target_link_libraries(example_multi_event_log
-  message_store
-  ${MongoClient_LIBRARIES}  
-  ${catkin_LIBRARIES}  
-)
-
-target_link_libraries(example_multi_event_log
-  message_store
-  ${MongoClient_LIBRARIES}  
-  ${catkin_LIBRARIES}  
-)
+#target_link_libraries(example_mongodb_store_cpp_client
+#  message_store
+#  ${MongoClient_LIBRARIES}
+#  ${catkin_LIBRARIES}
+#)
+#
+#target_link_libraries(example_multi_event_log
+#  message_store
+#  ${MongoClient_LIBRARIES}
+#  ${catkin_LIBRARIES}
+#)
+#
+#target_link_libraries(example_multi_event_log
+#  message_store
+#  ${MongoClient_LIBRARIES}
+#  ${catkin_LIBRARIES}
+#)
 
 
 #############
@@ -133,18 +94,18 @@ target_link_libraries(example_multi_event_log
 
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
-catkin_install_python(PROGRAMS
-  scripts/config_manager.py
-  scripts/example_message_store_client.py
-  scripts/example_multi_event_log.py
-  scripts/message_store_node.py
-  scripts/mongo_bridge.py
-  scripts/mongodb_play.py
-  scripts/mongodb_server.py
-  scripts/replicator_client.py
-  scripts/replicator_node.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
+#catkin_install_python(PROGRAMS
+#  scripts/config_manager.py
+#  scripts/example_message_store_client.py
+#  scripts/example_multi_event_log.py
+#  scripts/message_store_node.py
+#  scripts/mongo_bridge.py
+#  scripts/mongodb_play.py
+#  scripts/mongodb_server.py
+#  scripts/replicator_client.py
+#  scripts/replicator_node.py
+#  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+#)
 
 # Mark other files for installation (e.g. launch and bag files, etc.)
 install(
@@ -153,39 +114,39 @@ install(
 )
 
 # Mark cpp header files for installation
-install(DIRECTORY include/mongodb_store/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-)
+#install(DIRECTORY include/mongodb_store/
+#  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+#)
 
 ## Mark executables and/or libraries for installation
-install(TARGETS example_mongodb_store_cpp_client example_multi_event_log message_store #pc_test
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
+#install(TARGETS example_mongodb_store_cpp_client example_multi_event_log message_store #pc_test
+#  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+#)
 
 
 #############
 ## Testing ##
 #############
 
-if (CATKIN_ENABLE_TESTING)
-  find_package(catkin REQUIRED COMPONENTS rostest)
-
-  add_rostest(tests/message_store.test)
-  add_rostest(tests/config_manager.test)
-  add_rostest(tests/replication.test)
-
-  add_executable(message_store_cpp_test tests/message_store_cpp_test.cpp)
-
-  target_link_libraries(message_store_cpp_test
-    message_store
-    ${OPENSSL_LIBRARIES}
-    ${catkin_LIBRARIES}
-    ${Boost_LIBRARIES}
-    gtest
-  )
-
-  add_rostest(tests/message_store_cpp_client.test)
-
-endif()
+#if (CATKIN_ENABLE_TESTING)
+#  find_package(catkin REQUIRED COMPONENTS rostest)
+#
+#  add_rostest(tests/message_store.test)
+#  add_rostest(tests/config_manager.test)
+#  add_rostest(tests/replication.test)
+#
+#  add_executable(message_store_cpp_test tests/message_store_cpp_test.cpp)
+#
+#  target_link_libraries(message_store_cpp_test
+#    message_store
+#    ${OPENSSL_LIBRARIES}
+#    ${catkin_LIBRARIES}
+#    ${Boost_LIBRARIES}
+#    gtest
+#  )
+#
+#  add_rostest(tests/message_store_cpp_client.test)
+#
+#endif()
