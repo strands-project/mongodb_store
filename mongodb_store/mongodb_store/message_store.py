@@ -1,6 +1,11 @@
-from __future__ import absolute_import
-import rospy
-import mongodb_store_msgs.srv as dc_srv
+import rclpy
+import typing
+from mongodb_store_msgs.srv import (
+    MongoInsertMsg,
+    MongoDeleteMsg,
+    MongoQueryMsg,
+    MongoUpdateMsg,
+)
 import mongodb_store.util as dc_util
 from mongodb_store_msgs.msg import StringPair, StringPairList, SerialisedMessage, Insert
 from bson import json_util
@@ -29,7 +34,14 @@ class MessageStoreProxy:
 
     """
 
-    def __init__(self, service_prefix='/message_store', database='message_store', collection='message_store', queue_size=100):
+    def __init__(
+        self,
+        parent_node: rclpy.node.Node,
+        service_prefix="/message_store",
+        database="message_store",
+        collection="message_store",
+        queue_size=100,
+    ) -> None:
         """
         Args:
            | service_prefix (str): The prefix to the *insert*, *update*, *delete* and
@@ -37,37 +49,46 @@ class MessageStoreProxy:
            | database (str): The MongoDB database that this object works with.
            | collection (str): The MongoDB collect/on that this object works with.
         """
+        self.parent_node = parent_node
         self.database = database
         self.collection = collection
-        insert_service = service_prefix + '/insert'
-        update_service = service_prefix + '/update'
-        delete_service = service_prefix + '/delete'
-        query_service = service_prefix + '/query_messages'
+        insert_service = service_prefix + "/insert"
+        update_service = service_prefix + "/update"
+        delete_service = service_prefix + "/delete"
+        query_service = service_prefix + "/query_messages"
         # try and get the mongo service, block until available
-        found_services_first_try = True # if found straight away
-        while not rospy.is_shutdown():
-                try:
-                        rospy.wait_for_service(insert_service,5)
-                        rospy.wait_for_service(update_service,5)
-                        rospy.wait_for_service(query_service,5)
-                        rospy.wait_for_service(delete_service,5)
-                        break
-                except rospy.ROSException as e:
-                        found_services_first_try = False
-                        rospy.logerr("Could not get message store services. Maybe the message "
-                                     "store has not been started? Retrying..")
+        found_services_first_try = True  # if found straight away
+        self.insert_srv = self.parent_node.create_client(MongoInsertMsg, insert_service)
+        self.update_srv = self.parent_node.create_client(MongoUpdateMsg, update_service)
+        self.query_srv = self.parent_node.create_client(MongoQueryMsg, query_service)
+        self.delete_srv = self.parent_node.create_client(MongoDeleteMsg, delete_service)
+
+        insert_topic = service_prefix + "/insert"
+        self.pub_insert = self.parent_node.create_publisher(Insert, insert_topic, 10)
+
+        while rclpy.ok():
+            try:
+                self.insert_srv.wait_for_service(5)
+                self.update_srv.wait_for_service(5)
+                self.query_srv.wait_for_service(5)
+                self.delete_srv.wait_for_service(5)
+                break
+            except Exception as e:
+                found_services_first_try = False
+                self.parent_node.get_logger().error(
+                    "Could not get message store services. Maybe the message "
+                    "store has not been started? Retrying..."
+                )
         if not found_services_first_try:
-                rospy.loginfo("Message store services found.")
-        self.insert_srv = rospy.ServiceProxy(insert_service, dc_srv.MongoInsertMsg)
-        self.update_srv = rospy.ServiceProxy(update_service, dc_srv.MongoUpdateMsg)
-        self.query_srv = rospy.ServiceProxy(query_service, dc_srv.MongoQueryMsg)
-        self.delete_srv = rospy.ServiceProxy(delete_service, dc_srv.MongoDeleteMsg)
+            self.parent_node.get_logger().info("Message store services found.")
 
-        insert_topic = service_prefix + '/insert'
-        self.pub_insert = rospy.Publisher(insert_topic, Insert, queue_size=queue_size)
-
-
-    def insert_named(self, name, message, meta = {}, wait=True):
+    def insert_named(
+        self,
+        name: str,
+        message: "RosMessage",
+        meta: typing.Dict = None,
+        wait: bool = True,
+    ) -> str:
         """
         Inserts a ROS message into the message storage, giving it a name for convenient
         later retrieval.
@@ -83,12 +104,15 @@ class MessageStoreProxy:
             | (str) the ObjectId of the MongoDB document containing the stored message.
         """
         # create a copy as we're modifying it
+        if meta is None:
+            meta = {}
         meta_copy = copy.copy(meta)
         meta_copy["name"] = name
         return self.insert(message, meta_copy, wait=wait)
 
-
-    def insert(self, message, meta = {}, wait=True):
+    def insert(
+        self, message: "ROSMessage", meta: typing.Dict = None, wait: bool = True
+    ) -> typing.Union[bool, str]:
         """
         Inserts a ROS message into the message storage.
 
@@ -102,16 +126,32 @@ class MessageStoreProxy:
 
         """
         # assume meta is a dict, convert k/v to tuple pairs
-        meta_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(meta, default=json_util.default)),)
+        meta_tuple = (
+            StringPair(
+                first=MongoQueryMsg.Request.JSON_QUERY,
+                second=json.dumps(meta, default=json_util.default),
+            ),
+        )
         serialised_msg = dc_util.serialise_message(message)
+        request = MongoInsertMsg.Request()
+        request.database = self.database
+        request.collection = self.collection
+        request.meta = StringPairList(pairs=meta_tuple)
+        request.message = serialised_msg
+
         if wait:
-            return self.insert_srv(self.database, self.collection, serialised_msg, StringPairList(meta_tuple)).id
+            return self.insert_srv.call(request).id
         else:
-            msg = Insert(self.database, self.collection, serialised_msg, StringPairList(meta_tuple))
+            msg = Insert(
+                database=self.database,
+                collection=self.collection,
+                message=serialised_msg,
+                meta=StringPairList(pairs=meta_tuple),
+            )
             self.pub_insert.publish(msg)
             return True
 
-    def query_id(self, id, type):
+    def query_id(self, id: str, type: str):
         """
         Finds and returns the message with the given ID.
 
@@ -122,9 +162,9 @@ class MessageStoreProxy:
             | message (ROS message), meta (dict): The retrieved message and associated metadata
               or *None* if the named message could not be found.
         """
-        return self.query(type, {'_id': ObjectId(id)}, {}, True)
+        return self.query(type, {"_id": ObjectId(id)}, {}, True)
 
-    def delete(self, message_id):
+    def delete(self, message_id: str) -> bool:
         """
         Delete the message with the given ID.
 
@@ -133,9 +173,20 @@ class MessageStoreProxy:
         :Returns:
             | bool : was the object successfully deleted.
         """
-        return self.delete_srv(self.database, self.collection, message_id)
+        request = MongoDeleteMsg.Request()
+        request.database = self.database
+        request.collection = self.collection
+        request.document_id = message_id
+        return self.delete_srv.call(request)
 
-    def query_named(self, name, type, single = True, meta = {}, limit = 0):
+    def query_named(
+        self,
+        name: str,
+        type: str,
+        single: bool = True,
+        meta: typing.Dict = None,
+        limit: int = 0,
+    ):
         """
         Finds and returns the message(s) with the given name.
 
@@ -144,18 +195,28 @@ class MessageStoreProxy:
             | type (str): The type of the stored message.
             | single (bool): Should only one message be returned?
             | meta (dict): Extra queries on the meta data of the message.
-                    | limit (int): Limit number of return documents
+            | limit (int): Limit number of return documents
         :Return:
             | message (ROS message), meta (dict): The retrieved message and associated metadata
               or *None* if the named message could not be found.
 
         """
         # create a copy as we're modifying it
+        if meta is None:
+            meta = {}
         meta_copy = copy.copy(meta)
         meta_copy["name"] = name
-        return self.query(type, {}, meta_copy, single, [], limit)
+        return self.query(
+            type, {}, meta_copy, single, [], projection_query={}, limit=limit
+        )
 
-    def update_named(self, name, message, meta = {}, upsert = False):
+    def update_named(
+        self,
+        name: str,
+        message: "ROSMessage",
+        meta: typing.Dict = None,
+        upsert: bool = False,
+    ) -> typing.Tuple[str, bool]:
         """
         Updates a named message.
 
@@ -177,27 +238,34 @@ class MessageStoreProxy:
 
         return self.update(message, meta_copy, {}, meta_query, upsert)
 
-    def update_id(self, id, message, meta = {}, upsert = False):
+    def update_id(self, id, message, meta=None, upsert=False):
         """
         Updates a message by MongoDB ObjectId.
 
-        :Args:
-            | id (str): The MongoDB ObjectId of the doucment storing the message.
-            | message (ROS Message): The updated ROS message
-            | meta (dict): Updated meta data to store with the message.
-            | upsert (bool): If True, insert the named message if it doesnt exist.
-        :Return:
-            | str, bool: The MongoDB ObjectID of the document, and whether it was altered by
+        Args:
+            id: The MongoDB ObjectId of the doucment storing the message.
+            message: The updated ROS message
+            meta: Updated meta data to store with the message.
+            upsert: If True, insert the named message if it doesnt exist.
+        Return:
+            str, bool: The MongoDB ObjectID of the document, and whether it was altered by
                          the update.
 
         """
 
-        msg_query = {'_id': ObjectId(id)}
+        msg_query = {"_id": ObjectId(id)}
         meta_query = {}
 
         return self.update(message, meta, msg_query, meta_query, upsert)
 
-    def update(self, message, meta = {}, message_query = {}, meta_query = {},  upsert = False):
+    def update(
+        self,
+        message: "ROSMessage",
+        meta: typing.Dict = None,
+        message_query: typing.Dict = None,
+        meta_query: typing.Dict = None,
+        upsert: bool = False,
+    ):
         """
         Updates a message.
 
@@ -212,17 +280,58 @@ class MessageStoreProxy:
                          the update.
 
         """
-        # serialise the json queries to strings using json_util.dumps
-        message_query_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(message_query, default=json_util.default)),)
-        meta_query_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(meta_query, default=json_util.default)),)
-        meta_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(meta, default=json_util.default)),)
-        return self.update_srv(self.database, self.collection, upsert, StringPairList(message_query_tuple), StringPairList(meta_query_tuple), dc_util.serialise_message(message), StringPairList(meta_tuple))
+        if message_query is None:
+            message_query = {}
+        if meta_query is None:
+            meta_query = {}
+        if meta is None:
+            meta = {}
 
+        # serialise the json queries to strings using json_util.dumps
+        message_query_tuple = (
+            StringPair(
+                first=MongoQueryMsg.Request.JSON_QUERY,
+                second=json.dumps(message_query, default=json_util.default),
+            ),
+        )
+        meta_query_tuple = (
+            StringPair(
+                first=MongoQueryMsg.Request.JSON_QUERY,
+                second=json.dumps(meta_query, default=json_util.default),
+            ),
+        )
+        meta_tuple = (
+            StringPair(
+                first=MongoQueryMsg.Request.JSON_QUERY,
+                second=json.dumps(meta, default=json_util.default),
+            ),
+        )
+
+        request = MongoUpdateMsg.Request()
+        request.database = self.database
+        request.collection = self.collection
+        request.upsert = upsert
+        request.message_query = StringPairList(pairs=message_query_tuple)
+        request.meta_query = StringPairList(pairs=meta_query_tuple)
+        request.message = dc_util.serialise_message(message)
+        request.meta = StringPairList(pairs=meta_tuple)
+
+        return self.update_srv.call(request)
 
     """
     Returns [message, meta] where message is the queried message and meta a dictionary of meta information. If single is false returns a list of these lists.
     """
-    def query(self, type, message_query = {}, meta_query = {}, single = False, sort_query = [], projection_query = {}, limit=0):
+
+    def query(
+        self,
+        type: str,
+        message_query: typing.Dict = None,
+        meta_query: typing.Dict = None,
+        single: bool = False,
+        sort_query: typing.List[typing.Tuple] = None,
+        projection_query: typing.Dict = None,
+        limit: int = 0,
+    ):
         """
         Finds and returns message(s) matching the message and meta data queries.
 
@@ -238,24 +347,57 @@ class MessageStoreProxy:
             | [message, meta] where message is the queried message and meta a dictionary of
               meta information. If single is false returns a list of these lists.
         """
+        if message_query is None:
+            message_query = {}
+        if meta_query is None:
+            meta_query = {}
+        if sort_query is None:
+            sort_query = []
+        if projection_query is None:
+            projection_query = {}
+
         # assume meta is a dict, convert k/v to tuple pairs for ROS msg type
 
         # serialise the json queries to strings using json_util.dumps
-        message_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(message_query, default=json_util.default)),)
-        meta_tuple = (StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(meta_query, default=json_util.default)),)
-        projection_tuple =(StringPair(dc_srv.MongoQueryMsgRequest.JSON_QUERY, json.dumps(projection_query, default=json_util.default)),)
+
+        message_tuple = (
+            StringPair(
+                first=MongoQueryMsg.Request.JSON_QUERY,
+                second=json.dumps(message_query, default=json_util.default),
+            ),
+        )
+        meta_tuple = (
+            StringPair(
+                first=MongoQueryMsg.Request.JSON_QUERY,
+                second=json.dumps(meta_query, default=json_util.default),
+            ),
+        )
+        projection_tuple = (
+            StringPair(
+                first=MongoQueryMsg.Request.JSON_QUERY,
+                second=json.dumps(projection_query, default=json_util.default),
+            ),
+        )
 
         if len(sort_query) > 0:
-                sort_tuple = [StringPair(str(k), str(v)) for k, v in sort_query]
+            sort_tuple = [
+                StringPair(first=str(k), second=str(v)) for k, v in sort_query
+            ]
         else:
-                sort_tuple = []
+            sort_tuple = []
 
-        response = self.query_srv(
-                            self.database, self.collection, type, single, limit,
-                            StringPairList(message_tuple),
-                            StringPairList(meta_tuple),
-                            StringPairList(sort_tuple),
-                            StringPairList(projection_tuple))
+        request = MongoQueryMsg.Request()
+        request.database = self.database
+        request.collection = self.collection
+        request.type = type
+        request.single = single
+        request.limit = limit
+        request.message_query = message_query
+        request.meta_query = meta_query
+        request.projection_query = projection_query
+        request.sort_query = sort_query
+
+        response = self.query_srv.call(request)
 
         if response.messages is None:
             messages = []
@@ -270,4 +412,4 @@ class MessageStoreProxy:
             else:
                 return [None, None]
         else:
-            return list(zip(messages,metas))
+            return list(zip(messages, metas))

@@ -1,19 +1,16 @@
-#!/usr/bin/env python
-from __future__ import absolute_import
-import rospy
+import rclpy
 import subprocess
 import sys
 import os
 import re
-import signal
 import errno
-from std_srvs.srv import Empty, EmptyResponse
+from rclpy.duration import Duration
+import threading
+
+from rcl_interfaces.msg import ParameterDescriptor
+from std_srvs.srv import Empty
 import shutil
-import platform
-if float(platform.python_version()[0:2]) >= 3.0:
-    _PY3 = True
-else:
-    _PY3 = False
+import pymongo
 
 import mongodb_store.util
 
@@ -22,42 +19,49 @@ if not mongodb_store.util.check_for_pymongo():
 
 MongoClient = mongodb_store.util.import_MongoClient()
 
-import pymongo
 
 def is_socket_free(host, port):
-    import socket;
+    import socket
+
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     result = sock.connect_ex((host, port))
     return result != 0
 
-class MongoServer(object):
-    def __init__(self):
-        rospy.init_node("mongodb_server", anonymous=True)#, disable_signals=True)
 
+class MongoServer(rclpy.node.Node):
+    def __init__(self):
+        # TODO: This should be anonymous, but ROS2 doesn't allow for that natively
+        super().__init__("mongodb_server")
 
         # Has the db already gone down, before the ros node?
         self._gone_down = False
 
-        self._ready = False # is the db ready: when mongo says "waiting for connection"
+        self._ready = False  # is the db ready: when mongo says "waiting for connection"
 
-
-        self.test_mode = rospy.get_param("~test_mode", False)
-        self.repl_set = rospy.get_param("~repl_set", None)
-        self.bind_to_host = rospy.get_param("~bind_to_host", False)
-
+        self.test_mode = self.declare_parameter(
+            "test_mode", False, descriptor=ParameterDescriptor(description="")
+        ).value
+        self.repl_set = self.declare_parameter(
+            "repl_set", None, descriptor=ParameterDescriptor(description="")
+        ).value
+        self.bind_to_host = self.declare_parameter(
+            "bind_to_host", False, descriptor=ParameterDescriptor(description="")
+        ).value
 
         if self.test_mode:
             import random
 
             default_host = "localhost"
-            default_port = random.randrange(49152,65535)
+            default_port = random.randrange(49152, 65535)
 
             count = 0
             while not is_socket_free(default_host, default_port):
-                default_port = random.randrange(49152,65535)
+                default_port = random.randrange(49152, 65535)
                 count += 1
                 if count > 100:
-                    rospy.logerr("Can't find a free port to run the test server on.")
+                    self.get_logger().error(
+                        "Can't find a free port to run the test server on."
+                    )
                     sys.exit(1)
 
             self.default_path = "/tmp/ros_mongodb_store_%d" % default_port
@@ -68,53 +72,81 @@ class MongoServer(object):
             self.default_path = "/opt/ros/mongodb_store"
 
         # Get the database path
-        self._db_path = rospy.get_param("~database_path", self.default_path)
-        is_master = rospy.get_param("~master", True)
+        self._db_path = self.declare_parameter(
+            "database_path",
+            self.default_path,
+            descriptor=ParameterDescriptor(description=""),
+        ).value
+        is_master = self.declare_parameter(
+            "master", True, descriptor=ParameterDescriptor(description="")
+        ).value
 
         if is_master:
-            self._mongo_host = rospy.get_param("mongodb_host", default_host)
-            rospy.set_param("mongodb_host",self._mongo_host)
-            self._mongo_port = rospy.get_param("mongodb_port", default_port)
-            rospy.set_param("mongodb_port",self._mongo_port)
+            # TODO: These used to be global params
+            self._mongo_host = self.declare_parameter(
+                "mongodb_host",
+                default_host,
+                descriptor=ParameterDescriptor(description=""),
+            ).value
+            self._mongo_port = self.declare_parameter(
+                "mongodb_port",
+                default_port,
+                descriptor=ParameterDescriptor(description=""),
+            ).value
         else:
-            self._mongo_host = rospy.get_param("~host")
-            self._mongo_port = rospy.get_param("~port")
+            self._mongo_host = self.declare_parameter(
+                "host", descriptor=ParameterDescriptor(description="")
+            ).value
+            self._mongo_port = self.declare_parameter(
+                "port", descriptor=ParameterDescriptor(description="")
+            ).value
 
-        rospy.loginfo("Mongo server address: "+self._mongo_host+":"+str(self._mongo_port))
+        self.get_logger().info(
+            "Mongo server address: " + self._mongo_host + ":" + str(self._mongo_port)
+        )
 
         # Check that mongodb is installed
         try:
-            mongov = subprocess.check_output(["mongod","--version"])
-            match = re.search("db version v(\d+\.\d+\.\d+)", mongov.decode('utf-8'))
-            self._mongo_version=match.group(1)
+            mongov = subprocess.check_output(["mongod", "--version"])
+            match = re.search("db version v(\d+\.\d+\.\d+)", mongov.decode("utf-8"))
+            self._mongo_version = match.group(1)
         except subprocess.CalledProcessError:
-            rospy.logerr("Can't find MongoDB executable. Is it installed?\nInstall it with  \"sudo apt-get install mongodb\"")
+            self.get_logger().error(
+                'Can\'t find MongoDB executable. Is it installed?\nInstall it with  "sudo apt install mongodb"'
+            )
             sys.exit(1)
-        rospy.loginfo("Found MongoDB version " + self._mongo_version)
+        self.get_logger().info("Found MongoDB version " + self._mongo_version)
 
         # Check that the provided db path exists.
         if not os.path.exists(self._db_path):
-            rospy.logerr("Can't find database at supplied path " + self._db_path + ". If this is a new DB, create it as an empty directory.")
+            self.get_logger().error(
+                "Can't find database at supplied path "
+                + self._db_path
+                + ". If this is a new DB, create it as an empty directory."
+            )
             sys.exit(1)
 
         # Advertise ros services for db interaction
-        self._shutdown_srv = rospy.Service("/datacentre/shutdown", Empty, self._shutdown_srv_cb)
-        self._wait_ready_srv = rospy.Service("/datacentre/wait_ready",Empty,self._wait_ready_srv_cb)
+        self._shutdown_srv = self.create_service(
+            Empty, "/datacentre/shutdown", self._shutdown_srv_cb
+        )
+        self._wait_ready_srv = self.create_service(
+            Empty, "/datacentre/wait_ready", self._wait_ready_srv_cb
+        )
 
-        rospy.on_shutdown(self._on_node_shutdown)
-
-        # Start the mongodb server
-        self._mongo_loop()
+        self.mongo_thread = threading.Thread(target=self._mongo_loop)
+        self.mongo_thread.start()
 
     def _mongo_loop(self):
 
         # Blocker to prevent Ctrl-C being passed to the mongo server
         def block_mongo_kill():
             os.setpgrp()
-#            signal.signal(signal.SIGINT, signal.SIG_IGN)
 
-        #cmd = ["mongod","--dbpath",self._db_path,"--port",str(self._mongo_port),"--smallfiles","--bind_ip","127.0.0.1"]
-        cmd = ["mongod","--dbpath",self._db_path,"--port",str(self._mongo_port)]
+        #            signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+        # cmd = ["mongod","--dbpath",self._db_path,"--port",str(self._mongo_port),"--smallfiles","--bind_ip","127.0.0.1"]
+        cmd = ["mongod", "--dbpath", self._db_path, "--port", str(self._mongo_port)]
 
         if self.bind_to_host:
             cmd.append("--bind_ip")
@@ -122,53 +154,82 @@ class MongoServer(object):
         else:
             cmd.append("--bind_ip")
             cmd.append("0.0.0.0")
-            
 
         if self.repl_set is not None:
             cmd.append("--replSet")
             cmd.append(self.repl_set)
-        self._mongo_process = subprocess.Popen(cmd,
-                                         stdout=subprocess.PIPE,
-                                         preexec_fn = block_mongo_kill)
+        self._mongo_process = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, preexec_fn=block_mongo_kill
+        )
 
-        while self._mongo_process.poll() is None:# and not rospy.is_shutdown():
+        while self._mongo_process.poll() is None:  # and not rospy.is_shutdown():
             try:
-                stdout = self._mongo_process.stdout.readline().decode('utf-8')
-            except IOError as e: # probably interupt because shutdown cut it up
+                stdout = self._mongo_process.stdout.readline().decode("utf-8")
+            except IOError as e:  # probably interupt because shutdown cut it up
                 if e.errno == errno.EINTR:
                     continue
                 else:
                     raise
             if stdout is not None:
                 if stdout.find("ERROR") != -1:
-                    rospy.logerr(stdout.strip())
+                    self.get_logger().error(stdout.strip())
                 else:
-                    rospy.loginfo(stdout.strip())
+                    self.get_logger().info(stdout.strip())
 
-                if stdout.find("waiting for connections on port") !=-1:
-                    self._ready=True
+                if stdout.find("waiting for connections on port") != -1:
+                    self._ready = True
                     if self.repl_set is not None:
                         try:
                             self.initialize_repl_set()
                         except Exception as e:
-                            rospy.logwarn("initialzing replSet failed: %s" % e)
+                            self.get_logger().warning("initialzing replSet failed: %s" % e)
 
-        if not rospy.is_shutdown():
-            rospy.logerr("MongoDB process stopped!")
+        if not rclpy.ok():
+            self.get_logger().error("MongoDB process stopped!")
 
-        if self._mongo_process.returncode!=0:
-            rospy.logerr("Mongo process error! Exit code="+str(self._mongo_process.returncode))
+        if self._mongo_process.returncode != 0:
+            self.get_logger().error(
+                "Mongo process error! Exit code=" + str(self._mongo_process.returncode)
+            )
 
         self._gone_down = True
 
-    def _on_node_shutdown(self):
-        rospy.loginfo("Shutting down datacentre")
-        self._ready=False
-        if self._gone_down:
-            rospy.logwarn("It looks like Mongo already died. Watch out as the DB might need recovery time at next run.")
+    def _shutdown_srv_cb(self, req):
+        self.destroy_node()
+        rclpy.shutdown()
+        return Empty.Response()
+
+    def _wait_ready_srv_cb(self, req):
+        while not self._ready:
+            self.get_clock().sleep_for(Duration(seconds=0.1))
+        return Empty.Response()
+
+    def initialize_repl_set(self):
+        c = pymongo.Connection(
+            "%s:%d" % (self._mongo_host, self._mongo_port), slave_okay=True
+        )
+        c.admin.command("replSetInitiate")
+        c.close()
+
+
+def main():
+    rclpy.init()
+    try:
+        server = MongoServer()
+        rclpy.spin(server)
+        server.destroy_node()
+        rclpy.shutdown()
+    finally:
+        # TODO: The context on_shutdown doesn't seem to work, so moving that code here
+        server.get_logger().info("Shutting down datacentre")
+        server._ready = False
+        if server._gone_down:
+            server.get_logger().warning(
+                "It looks like Mongo already died. Watch out as the DB might need recovery time at next run."
+            )
             return
         try:
-            c = MongoClient(host=self._mongo_host, port=self._mongo_port)
+            c = MongoClient(host=server._mongo_host, port=server._mongo_port)
         except pymongo.errors.ConnectionFailure:
             c = None
         try:
@@ -177,26 +238,8 @@ class MongoServer(object):
         except pymongo.errors.AutoReconnect:
             pass
 
-        if self.test_mode:  # remove auto-created DB in the /tmp folder
+        if server.test_mode:  # remove auto-created DB in the /tmp folder
             try:
-                shutil.rmtree(self.default_path)
+                shutil.rmtree(server.default_path)
             except Exception as e:
-                rospy.logerr(e)
-
-    def _shutdown_srv_cb(self,req):
-        rospy.signal_shutdown("Shutdown request..")
-        return EmptyResponse()
-
-    def _wait_ready_srv_cb(self,req):
-        while not self._ready:
-            rospy.sleep(0.1)
-        return EmptyResponse()
-
-    def initialize_repl_set(self):
-        c = pymongo.Connection("%s:%d" % (self._mongo_host,self._mongo_port), slave_okay=True)
-        c.admin.command("replSetInitiate")
-        c.close()
-
-if __name__ == '__main__':
-    server = MongoServer()
-
+                server.get_logger().error(e)

@@ -1,28 +1,23 @@
-from __future__ import print_function, absolute_import
-import rospy
-import genpy
-from std_srvs.srv import Empty
-import yaml
-from bson import json_util, Binary
-import json
-
-import copy
-import platform
-if float(platform.python_version()[0:2]) >= 3.0:
-    _PY3 = True
-    from io import BytesIO as Buffer
-else:
-    _PY3 = False
-    from StringIO import StringIO as Buffer
-from mongodb_store_msgs.msg import SerialisedMessage
-from mongodb_store_msgs.srv import MongoQueryMsgRequest
-
-from pymongo.errors import ConnectionFailure
-
+import rclpy
+import rclpy.type_support
+import rclpy.action
 import importlib
+import json
 from datetime import datetime
+from datetime import timezone
+from io import BytesIO as Buffer
 
-def check_connection_to_mongod(db_host, db_port, connection_string=None):
+from bson import json_util, Binary
+from pymongo.errors import ConnectionFailure
+from std_srvs.srv import Empty
+
+from mongodb_store_msgs.msg import SerialisedMessage
+from mongodb_store_msgs.srv import MongoQueryMsg
+
+
+def check_connection_to_mongod(
+    parent_node: rclpy.node.Node, db_host, db_port, connection_string=None
+) -> bool:
     """
     Check connection to mongod server
 
@@ -31,34 +26,30 @@ def check_connection_to_mongod(db_host, db_port, connection_string=None):
     """
     if check_for_pymongo():
         try:
-            try:
-                # pymongo 2.X
-                from pymongo import Connection
-                Connection(db_host, db_port)
-                return True
-            except:
-                # pymongo 3.X
-                from pymongo import MongoClient
-                if connection_string is None:
-                    client = MongoClient(db_host, db_port, connect=False)
-                else:
-                    client = MongoClient(connection_string)
-                result = client.admin.command('ismaster')
-                return True
+            # pymongo 3.X
+            from pymongo import MongoClient
+
+            if connection_string is None:
+                client = MongoClient(db_host, db_port, connect=False)
+            else:
+                client = MongoClient(connection_string)
+            result = client.admin.command("ismaster")
+            return True
         except ConnectionFailure:
             if connection_string is None:
-                rospy.logerr("Could not connect to mongo server %s:%d" % (db_host, db_port))
-                rospy.logerr("Make sure mongod is launched on your specified host/port")
+                parent_node.get_logger().error(
+                    f"Could not connect to mongo server {db_host}:{db_port}\nMake sure mongod is launched on your specified host/port"
+                )
             else:
-                rospy.logerr("Could not connect to mongo server %s" % (connection_string))
-                rospy.logerr("Make sure mongod is launched on your specified host/port")
-        
+                parent_node.get_logger().error(
+                    f"Could not connect to mongo server {connection_string}\nMake sure mongod is launched on your specified host/port"
+                )
             return False
     else:
         return False
 
 
-def wait_for_mongo(timeout=60, ns="/datacentre"):
+def wait_for_mongo(parent_node: rclpy.node.Node, timeout=60, ns="/datacentre"):
     """
     Waits for the mongo server, as started through the mongodb_store/mongodb_server.py wrapper
 
@@ -66,14 +57,18 @@ def wait_for_mongo(timeout=60, ns="/datacentre"):
         | bool : True on success, False if server not even started.
     """
     # Check that mongo is live, create connection
-    try:
-        rospy.wait_for_service(ns + "/wait_ready", timeout)
-    except rospy.exceptions.ROSException as e:
-        rospy.logerr("Can't connect to MongoDB server. Make sure mongodb_store/mongodb_server.py node is started.")
+    service = ns + "/wait_ready"
+    client = parent_node.create_client(Empty, service)
+
+    valid = client.wait_for_service(timeout)
+    if not valid:
+        parent_node.get_logger().error(
+            "Can't connect to MongoDB server. Make sure mongodb_store/mongodb_server.py node is started."
+        )
         return False
-    wait = rospy.ServiceProxy(ns + '/wait_ready', Empty)
-    wait()
+    client.call(Empty.Request())
     return True
+
 
 def check_for_pymongo():
     """
@@ -85,61 +80,67 @@ def check_for_pymongo():
     try:
         import pymongo
     except:
-        rospy.logerr("ERROR!!!")
-        rospy.logerr("Can't import pymongo, this is needed by mongodb_store.")
-        rospy.logerr("Make sure it is installed (sudo pip install pymongo)")
+        print("ERROR!!!")
+        print(
+            "Can't import pymongo, this is needed by mongodb_store."
+        )
+        print(
+            "Make sure it is installed (pip install pymongo)"
+        )
         return False
 
     return True
 
-"""
-Pick an object to use as MongoClient based on the currently installed pymongo
-version. Use this instead of importing Connection or MongoClient from pymongo
-directly.
 
-Example:
-    MongoClient = util.importMongoClient()
-"""
 def import_MongoClient():
+    """
+    Pick an object to use as MongoClient based on the currently installed pymongo
+    version. Use this instead of importing Connection or MongoClient from pymongo
+    directly.
+
+    Example:
+        MongoClient = util.importMongoClient()
+    """
     import pymongo
-    if pymongo.version >= '2.4':
+
+    if pymongo.version >= "2.4":
+
         def mongo_client_wrapper(*args, **kwargs):
             return pymongo.MongoClient(*args, **kwargs)
+
         return mongo_client_wrapper
-    else:
-        import functools
-        def mongo_client_wrapper(*args, **kwargs):
-            return pymongo.Connection(*args, **kwargs)
-        return functools.partial(mongo_client_wrapper, safe=True)
 
 
-"""
-Given a ROS msg and a dictionary of the right values, fill in the msg
-"""
-def _fill_msg(msg,dic):
+def _fill_msg(msg, dic):
+    """
+    Given a ROS msg and a dictionary of the right values, fill in the msg
+    """
     for i in dic:
-        if isinstance(dic[i],dict):
-            _fill_msg(getattr(msg,i),dic[i])
+        if isinstance(dic[i], dict):
+            _fill_msg(getattr(msg, i), dic[i])
         else:
-            setattr(msg,i,dic[i])
+            setattr(msg, i, dic[i])
 
 
-"""
-Given a document in the database, return metadata and ROS message -- must have been
-"""
 def document_to_msg_and_meta(document, TYPE):
+    """
+    Given a document in the database, return metadata and ROS message -- must have been
+    """
     meta = document["_meta"]
     msg = TYPE()
-    _fill_msg(msg,document["msg"])
-    return meta,msg
+    _fill_msg(msg, document["msg"])
+    return meta, msg
 
-"""
-Given a document return ROS message
-"""
+
+
+
 def document_to_msg(document, TYPE):
+    """
+    Given a document return ROS message
+    """
     msg = TYPE()
-    _fill_msg(msg,document)
-    return meta
+    _fill_msg(msg, document)
+    return msg
 
 
 def msg_to_document(msg):
@@ -157,22 +158,19 @@ def msg_to_document(msg):
         | dict : A dictionary representation of the supplied message.
     """
 
-
-
-
     d = {}
 
     slot_types = []
-    if hasattr(msg,'_slot_types'):
-        slot_types = msg._slot_types
+    if hasattr(msg, "SLOT_TYPES"):
+        slot_types = msg.SLOT_TYPES
     else:
         slot_types = [None] * len(msg.__slots__)
 
-
-    for (attr, type) in zip(msg.__slots__, slot_types):
+    for attr, type in zip(msg._fields_and_string_types.keys(), slot_types):
         d[attr] = sanitize_value(attr, getattr(msg, attr), type)
 
     return d
+
 
 def sanitize_value(attr, v, type):
     """
@@ -189,43 +187,32 @@ def sanitize_value(attr, v, type):
         | A sanitized version of v.
     """
 
-        # print '---'
-        # print attr
-        # print v.__class__
-        # print type
-        # print v
+    # print '---'
+    # print attr
+    # print v.__class__
+    # print type
+    # print v
 
     if isinstance(v, str):
-        if type == 'uint8[]':
+        if type == "uint8[]":
             v = Binary(v)
-        else:
-            # ensure unicode
-            try:
-                if not _PY3:    # All strings are unicode in Python 3
-                    v = unicode(v, "utf-8")
-            except UnicodeDecodeError as e:
-                # at this point we can deal with the encoding, so treat it as binary
-                v = Binary(v)
+
         # no need to carry on with the other type checks below
         return v
-    if isinstance(v, rospy.Message):
+
+    if rclpy.type_support.check_for_type_support(v):
+        # This should be a sufficient check for whether something is a ros msg, srv, or action
         return msg_to_document(v)
-    elif isinstance(v, genpy.rostime.Time):
-        return msg_to_document(v)
-    elif isinstance(v, genpy.rostime.Duration):
-         return msg_to_document(v)
     elif isinstance(v, list):
         result = []
         for t in v:
-            if hasattr(t, '_type'):
+            if hasattr(t, "_type"):
                 result.append(sanitize_value(None, t, t._type))
             else:
                 result.append(sanitize_value(None, t, None))
         return result
     else:
         return v
-
-
 
 
 def store_message(collection, msg, meta, oid=None):
@@ -240,22 +227,27 @@ def store_message(collection, msg, meta, oid=None):
     :Returns:
         | str: ObjectId of the MongoDB document.
     """
-    doc=msg_to_document(msg)
-    doc["_meta"]=meta
+    doc = msg_to_document(msg)
+    doc["_meta"] = meta
     #  also store type information
     doc["_meta"]["stored_class"] = msg.__module__ + "." + msg.__class__.__name__
     doc["_meta"]["stored_type"] = msg._type
 
-    if msg._type == "soma2_msgs/SOMA2Object" or msg._type == "soma_msgs/SOMAObject" or msg._type == "soma_msgs/SOMAROIObject":
-        add_soma_fields(msg,doc)
+    if (
+        msg._type == "soma2_msgs/SOMA2Object"
+        or msg._type == "soma_msgs/SOMAObject"
+        or msg._type == "soma_msgs/SOMAROIObject"
+    ):
+        add_soma_fields(msg, doc)
 
-    if hasattr(msg, '_connection_header'):
-        print(getattr(msg, '_connection_header'))
+    if hasattr(msg, "_connection_header"):
+        print(getattr(msg, "_connection_header"))
 
     if oid != None:
         doc["_id"] = oid
 
     return collection.insert(doc)
+
 
 # """
 # Stores a ROS message into the DB with msg and meta as separate fields
@@ -265,7 +257,6 @@ def store_message(collection, msg, meta, oid=None):
 #     doc["_meta"]=meta
 #     doc["msg"]=msg_to_document(msg)
 #     return collection.insert(doc)
-
 
 
 def store_message_no_meta(collection, msg):
@@ -278,7 +269,7 @@ def store_message_no_meta(collection, msg):
     :Returns:
         | str: The ObjectId of the MongoDB document created.
     """
-    doc=msg_to_document(msg)
+    doc = msg_to_document(msg)
     return collection.insert(doc)
 
 
@@ -308,19 +299,21 @@ def fill_message(message, document):
       z: 0.0
       w: 0.0
     """
-    for slot, slot_type in zip(message.__slots__,
-                               getattr(message,"_slot_types",[""]*len(message.__slots__))):
+    for slot, slot_type in zip(
+        message.__slots__,
+        getattr(message, "SLOT_TYPES", [""] * len(message.__slots__)),
+    ):
 
         # This check is required since objects returned with projection queries can have absent keys
         if slot in document.keys():
             value = document[slot]
-        # fill internal structures if value is a dictionary itself
+            # fill internal structures if value is a dictionary itself
             if isinstance(value, dict):
                 fill_message(getattr(message, slot), value)
-            elif isinstance(value, list) and slot_type.find("/")!=-1:
-            # if its a list and the type is some message (contains a "/")
-                lst=[]
-            # Remove [] from message type ([:-2])
+            elif isinstance(value, list) and slot_type.find("/") != -1:
+                # if its a list and the type is some message (contains a "/")
+                lst = []
+                # Remove [] from message type ([:-2])
                 msg_type = type_to_class_string(slot_type[:-2])
                 msg_class = load_class(msg_type)
                 for i in value:
@@ -329,10 +322,8 @@ def fill_message(message, document):
                     lst.append(msg)
                     setattr(message, slot, lst)
             else:
-                if not _PY3 and isinstance(value, unicode):     # All strings are unicode in Python 3
-                    setattr(message, slot, value.encode('utf-8'))
-                else:
-                    setattr(message, slot, value)
+                setattr(message, slot, value)
+
 
 def dictionary_to_message(dictionary, cls):
     """
@@ -367,7 +358,10 @@ def dictionary_to_message(dictionary, cls):
 
     return message
 
-def query_message(collection, query_doc, sort_query=[], projection_query={},find_one=False, limit=0):
+
+def query_message(
+    collection, query_doc, sort_query=None, projection_query=None, find_one=False, limit=0
+):
     """
     Peform a query for a stored messages, returning results in list.
 
@@ -381,32 +375,51 @@ def query_message(collection, query_doc, sort_query=[], projection_query={},find
     :Returns:
         | dict or list of dict: the MongoDB document(s) found by the query
     """
-
+    if sort_query is None:
+        sort_query = []
+    if projection_query is None:
+        projection_query = {}
     if find_one:
         ids = ()
         if sort_query:
             if not projection_query:
                 result = collection.find_one(query_doc, sort=sort_query)
             else:
-                result = collection.find_one(query_doc,  projection_query, sort=sort_query)
+                result = collection.find_one(
+                    query_doc, projection_query, sort=sort_query
+                )
         elif projection_query:
             result = collection.find_one(query_doc, projection_query)
         else:
             result = collection.find_one(query_doc)
         if result:
-            return [ result ]
+            return [result]
         else:
             return []
     else:
         if sort_query:
-            if  not projection_query:
-            	return [ result for result in collection.find(query_doc).sort(sort_query).limit(limit) ]
+            if not projection_query:
+                return [
+                    result
+                    for result in collection.find(query_doc)
+                    .sort(sort_query)
+                    .limit(limit)
+                ]
             else:
-                return [ result for result in collection.find(query_doc, projection_query).sort(sort_query).limit(limit) ]
+                return [
+                    result
+                    for result in collection.find(query_doc, projection_query)
+                    .sort(sort_query)
+                    .limit(limit)
+                ]
         elif projection_query:
-            return [ result for result in collection.find(query_doc, projection_query).limit(limit) ]
+            return [
+                result
+                for result in collection.find(query_doc, projection_query).limit(limit)
+            ]
         else:
-            return [ result for result in collection.find(query_doc).limit(limit) ]
+            return [result for result in collection.find(query_doc).limit(limit)]
+
 
 def update_message(collection, query_doc, msg, meta, upsert):
     """
@@ -433,15 +446,19 @@ def update_message(collection, query_doc, msg, meta, upsert):
             return "", False
 
     # convert msg to db document
-    doc=msg_to_document(msg)
+    doc = msg_to_document(msg)
 
-    if msg._type == "soma2_msgs/SOMA2Object" or msg._type == "soma_msgs/SOMAObject" or msg._type == "soma_msgs/SOMAROIObject":
-        add_soma_fields(msg,doc)
+    if (
+        msg._type == "soma2_msgs/SOMA2Object"
+        or msg._type == "soma_msgs/SOMAObject"
+        or msg._type == "soma_msgs/SOMAROIObject"
+    ):
+        add_soma_fields(msg, doc)
 
-    #update _meta
+    # update _meta
     doc["_meta"] = result["_meta"]
-    #merge the two dicts, overwiriting elements in doc["_meta"] with elements in meta
-    doc["_meta"]=dict(list(doc["_meta"].items()) + list(meta.items()))
+    # merge the two dicts, overwiriting elements in doc["_meta"] with elements in meta
+    doc["_meta"] = dict(list(doc["_meta"].items()) + list(meta.items()))
 
     # ensure necessary parts are there too
     doc["_meta"]["stored_class"] = msg.__module__ + "." + msg.__class__.__name__
@@ -464,10 +481,11 @@ def query_message_ids(collection, query_doc, find_one):
     if find_one:
         result = collection.find_one(query_doc)
         if result:
-            return str(result["_id"]),
+            return (str(result["_id"]),)
     else:
-        return tuple(str(result["_id"]) for result in collection.find(query_doc, {'_id':1}))
-
+        return tuple(
+            str(result["_id"]) for result in collection.find(query_doc, {"_id": 1})
+        )
 
 
 def type_to_class_string(type):
@@ -484,9 +502,10 @@ def type_to_class_string(type):
     :Returns:
         | str: A python class string for the ROS message type supplied
     """
-    parts = type.split('/')
+    parts = type.split("/")
     cls_string = "%s.msg._%s.%s" % (parts[0], parts[1], parts[1])
     return cls_string
+
 
 def load_class(full_class_string):
     """
@@ -523,6 +542,7 @@ def serialise_message(message):
     serialised_msg.type = message._type
     return serialised_msg
 
+
 def deserialise_message(serialised_message):
     """
     Create a ROS message from a mongodb_store_msgs/SerialisedMessage
@@ -552,6 +572,7 @@ def string_pair_list_to_dictionary_no_json(spl):
     """
     return dict((pair.first, pair.second) for pair in spl)
 
+
 def string_pair_list_to_dictionary(spl):
     """
     Creates a dictionary from a mongodb_store_msgs/StringPairList which could contain JSON as a string.
@@ -562,12 +583,13 @@ def string_pair_list_to_dictionary(spl):
     :Returns:
         | dict: resulting dictionary
     """
-    if len(spl.pairs) > 0 and spl.pairs[0].first == MongoQueryMsgRequest.JSON_QUERY:
+    if len(spl.pairs) > 0 and spl.pairs[0].first == MongoQueryMsg.Request.JSON_QUERY:
         # print "looks like %s", spl.pairs[0].second
         return json.loads(spl.pairs[0].second, object_hook=json_util.object_hook)
     # else use the string pairs
     else:
         return string_pair_list_to_dictionary_no_json(spl.pairs)
+
 
 def topic_name_to_collection_name(topic_name):
     """
@@ -575,26 +597,30 @@ def topic_name_to_collection_name(topic_name):
     """
     return topic_name.replace("/", "_")[1:]
 
-def add_soma_fields(msg,doc):
+
+def add_soma_fields(msg, doc):
     """
     For soma Object msgs adds the required fields as indexes to the mongodb object.
     """
 
-    if hasattr(msg, 'pose'):
-        doc["loc"] = [doc["pose"]["position"]["x"],doc["pose"]["position"]["y"]]
-    if hasattr(msg,'logtimestamp'):
-        doc["timestamp"] = datetime.utcfromtimestamp(doc["logtimestamp"])
-#doc["timestamp"] = datetime.strptime(doc["logtime"], "%Y-%m-%dT%H:%M:%SZ")
+    if hasattr(msg, "pose"):
+        doc["loc"] = [doc["pose"]["position"]["x"], doc["pose"]["position"]["y"]]
+    if hasattr(msg, "logtimestamp"):
+        doc["timestamp"] = datetime.fromtimestamp(doc["logtimestamp"], timezone.utc)
+    # doc["timestamp"] = datetime.strptime(doc["logtime"], "%Y-%m-%dT%H:%M:%SZ")
 
-    if hasattr(msg, 'geotype'):
-        if(doc["geotype"] == "Point"):
+    if hasattr(msg, "geotype"):
+        if doc["geotype"] == "Point":
             for p in doc["geoposearray"]["poses"]:
-                doc["geoloc"] = {'type': doc['geotype'],'coordinates': [p["position"]["x"], p["position"]["y"]]}
-        if(msg._type =="soma_msgs/SOMAROIObject"):
+                doc["geoloc"] = {
+                    "type": doc["geotype"],
+                    "coordinates": [p["position"]["x"], p["position"]["y"]],
+                }
+        if msg._type == "soma_msgs/SOMAROIObject":
             coordinates = []
             doc["geotype"] = "Polygon"
             for p in doc["geoposearray"]["poses"]:
                 coordinates.append([p["position"]["x"], p["position"]["y"]])
-            coordinates2=[]
+            coordinates2 = []
             coordinates2.append(coordinates)
-            doc["geoloc"] = {'type': doc['geotype'],'coordinates': coordinates2}
+            doc["geoloc"] = {"type": doc["geotype"], "coordinates": coordinates2}
