@@ -27,7 +27,23 @@ from mongodb_store_msgs.srv import (
     MongoQuerywithProjectionMsg,
 )
 
+import functools
+
 MongoClient = dc_util.import_MongoClient()
+
+
+
+def srv_call_decorator(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            print("executing wrapped")
+            return func(*args, **kwargs)
+        except Exception as e:
+            import traceback
+            print(traceback.print_exc())
+
+    return wrapper
 
 
 class MessageStore(rclpy.node.Node):
@@ -158,6 +174,7 @@ class MessageStore(rclpy.node.Node):
         # actually procedure is the same
         self.insert_ros_srv(msg, MongoInsertMsg.Response())
 
+    @srv_call_decorator
     def insert_ros_srv(
         self, request: MongoInsertMsg.Request, response: MongoInsertMsg.Response
     ) -> MongoInsertMsg.Response:
@@ -211,7 +228,7 @@ class MessageStore(rclpy.node.Node):
             meta["published_at"] = datetime.fromtimestamp(fl, timezone.utc)
             meta["timestamp"] = stamp.nanoseconds
 
-            obj_id = dc_util.store_message(collection, obj, meta)
+            obj_id = dc_util.store_message(collection, obj, meta).inserted_id
             return MongoInsertMsg.Response(id=str(obj_id))
         except Exception as e:
             import traceback
@@ -221,6 +238,7 @@ class MessageStore(rclpy.node.Node):
 
     insert_ros_srv.type = MongoInsertMsg
 
+    @srv_call_decorator
     def delete_ros_srv(
         self, request: MongoDeleteMsg.Request, response: MongoDeleteMsg.Response
     ) -> MongoDeleteMsg.Response:
@@ -238,19 +256,20 @@ class MessageStore(rclpy.node.Node):
         message = docs[0]
 
         # Remove the doc
-        collection.remove({"_id": ObjectId(request.document_id)})
+        collection.delete_one({"_id": ObjectId(request.document_id)})
 
         if self.keep_trash:
-            # But keep it into "trash"
+            # But keep it in "trash"
             bk_collection = self._mongo_client[request.database][
                 request.collection + "_Trash"
             ]
-            bk_collection.save(message)
+            bk_collection.insert_one(message)
 
         return MongoDeleteMsg.Response(success=True)
 
     delete_ros_srv.type = MongoDeleteMsg
 
+    @srv_call_decorator
     def update_ros_srv(
         self, request: MongoUpdateMsg.Request, response: MongoUpdateMsg.Response
     ) -> MongoUpdateMsg.Response:
@@ -277,7 +296,8 @@ class MessageStore(rclpy.node.Node):
         meta["last_updated_at"] = datetime.fromtimestamp(
             self.get_clock().now().seconds_nanoseconds()[0], timezone.utc
         )
-        meta["last_updated_by"] = request._connection_header["callerid"]
+        # can't do this in ros2
+        # meta["last_updated_by"] = request._connection_header["callerid"]
 
         (obj_id, altered) = dc_util.update_message(
             collection, obj_query, obj, meta, request.upsert
@@ -297,6 +317,7 @@ class MessageStore(rclpy.node.Node):
             obj_query["_meta." + k] = v
         return obj_query
 
+    @srv_call_decorator
     def query_messages_ros_srv(
         self, request: MongoQueryMsg.Request, response: MongoQueryMsg.Response
     ) -> MongoQueryMsg.Response:
@@ -353,14 +374,14 @@ class MessageStore(rclpy.node.Node):
         metas = ()
 
         for idx, entry in enumerate(entries):
-
             # load the class object for this type
             # TODO this should be the same for every item in the list, so could reuse
             cls = rosidl_runtime_py.utilities.get_interface(
-                entry["_meta"]["stored_class"]
+                    entry["_meta"]["stored_type"]
             )
             # instantiate the ROS message object from the dictionary retrieved from the db
-            message = rosidl_runtime_py.set_message_fields(cls(), entry)
+            message = cls()
+            rosidl_runtime_py.set_message_fields(message, entry["message"])
             # the serialise this object in order to be sent in a generic form
             serialised_messages = serialised_messages + (
                 dc_util.serialise_message(message),

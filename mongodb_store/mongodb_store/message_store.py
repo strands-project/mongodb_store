@@ -1,17 +1,19 @@
-import rclpy
+import copy
+import json
 import typing
+
+import rclpy
+from bson import json_util
+from bson.objectid import ObjectId
+
+import mongodb_store.util as dc_util
+from mongodb_store_msgs.msg import StringPair, StringPairList, Insert
 from mongodb_store_msgs.srv import (
     MongoInsertMsg,
     MongoDeleteMsg,
     MongoQueryMsg,
     MongoUpdateMsg,
 )
-import mongodb_store.util as dc_util
-from mongodb_store_msgs.msg import StringPair, StringPairList, SerialisedMessage, Insert
-from bson import json_util
-from bson.objectid import ObjectId
-import json
-import copy
 
 
 class MessageStoreProxy:
@@ -179,7 +181,9 @@ class MessageStoreProxy:
         request.database = self.database
         request.collection = self.collection
         request.document_id = message_id
-        return self.delete_srv.call(request)
+        return dc_util.check_and_get_service_result_async(
+            self.parent_node, self.delete_srv, request
+        )[0].success
 
     def query_named(
         self,
@@ -235,6 +239,8 @@ class MessageStoreProxy:
         meta_query["name"] = name
 
         # make sure the name goes into the meta info after update
+        if meta is None:
+            meta = {}
         meta_copy = copy.copy(meta)
         meta_copy["name"] = name
 
@@ -267,7 +273,7 @@ class MessageStoreProxy:
         message_query: typing.Dict = None,
         meta_query: typing.Dict = None,
         upsert: bool = False,
-    ):
+    ) -> MongoUpdateMsg.Response:
         """
         Updates a message.
 
@@ -318,11 +324,9 @@ class MessageStoreProxy:
         request.message = dc_util.serialise_message(message)
         request.meta = StringPairList(pairs=meta_tuple)
 
-        return self.update_srv.call(request)
-
-    """
-    Returns [message, meta] where message is the queried message and meta a dictionary of meta information. If single is false returns a list of these lists.
-    """
+        return dc_util.check_and_get_service_result_async(
+            self.parent_node, self.update_srv, request
+        )[0]
 
     def query(
         self,
@@ -405,7 +409,9 @@ class MessageStoreProxy:
         request.projection_query = projection_tuple
         request.sort_query = sort_tuple
 
-        response = self.query_srv.call(request)
+        response = dc_util.check_and_get_service_result_async(
+            self.parent_node, self.query_srv, request
+        )[0]
 
         if response.messages is None:
             messages = []

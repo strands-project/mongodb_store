@@ -166,39 +166,6 @@ def import_MongoClient():
         return mongo_client_wrapper
 
 
-def _fill_msg(msg, dic):
-    """
-    TODO: Remove?
-    Given a ROS msg and a dictionary of the right values, fill in the msg
-    """
-    for i in dic:
-        if isinstance(dic[i], dict):
-            _fill_msg(getattr(msg, i), dic[i])
-        else:
-            setattr(msg, i, dic[i])
-
-
-def document_to_msg_and_meta(document, TYPE):
-    """
-    TODO: Remove?
-    Given a document in the database, return metadata and ROS message -- must have been
-    """
-    meta = document["_meta"]
-    msg = TYPE()
-    _fill_msg(msg, document["msg"])
-    return meta, msg
-
-
-def document_to_msg(document, TYPE):
-    """
-    TODO: Remove?
-    Given a document return ROS message
-    """
-    msg = TYPE()
-    _fill_msg(msg, document)
-    return msg
-
-
 def msg_to_document(msg):
     """
     Given a ROS message, turn it into a (nested) dictionary suitable for the datacentre.
@@ -213,19 +180,7 @@ def msg_to_document(msg):
     :Returns:
         | dict : A dictionary representation of the supplied message.
     """
-
-    d = {}
-
-    slot_types = []
-    if hasattr(msg, "SLOT_TYPES"):
-        slot_types = msg.SLOT_TYPES
-    else:
-        slot_types = [None] * len(msg.__slots__)
-
-    for attr, type in zip(msg._fields_and_string_types.keys(), slot_types):
-        d[attr] = sanitize_value(attr, getattr(msg, attr), type)
-
-    return d
+    return yaml.safe_load(rosidl_runtime_py.message_to_yaml(msg))
 
 
 def sanitize_value(attr, v, type):
@@ -283,7 +238,9 @@ def store_message(collection: pymongo.collection.Collection, msg, meta, oid=None
     :Returns:
         | str: ObjectId of the MongoDB document.
     """
-    doc = yaml.safe_load(rosidl_runtime_py.message_to_yaml(msg))
+    # The message should be stored separate from the meta fields so it can be more easily restored. Otherwise rosidl
+    # dict to message has problems later because the message doesn't have the meta fields
+    doc = {"message": msg_to_document(msg)}
 
     message_type = message_to_namespaced_type(msg)
     doc["_meta"] = meta
@@ -408,7 +365,7 @@ def update_message(
             return "", False
 
     # convert msg to db document
-    doc = msg_to_document(msg)
+    doc = {"message": msg_to_document(msg)}
 
     # update _meta
     doc["_meta"] = result["_meta"]
@@ -416,10 +373,13 @@ def update_message(
     doc["_meta"] = dict(list(doc["_meta"].items()) + list(meta.items()))
 
     # ensure necessary parts are there too
-    doc["_meta"]["stored_class"] = msg.__module__ + "." + msg.__class__.__name__
-    doc["_meta"]["stored_type"] = msg._type
+    doc["_meta"]["stored_class"] = ".".join([msg.__module__, msg.__class__.__name__])
+    doc["_meta"]["stored_type"] = message_to_namespaced_type(msg)
 
-    return collection.update_one(query_doc, doc), True
+    # Have to use the $set command to actually update the matching entry
+    set_cmd = {"$set": doc}
+
+    return collection.update_one(query_doc, set_cmd), True
 
 
 def query_message_ids(collection, query_doc, find_one):
