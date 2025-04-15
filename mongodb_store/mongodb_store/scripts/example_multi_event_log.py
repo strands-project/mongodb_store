@@ -1,69 +1,78 @@
-#!/usr/bin/env python
-from __future__ import print_function
-import rospy
-from mongodb_store_msgs.msg import StringPairList, StringPair
-import mongodb_store_msgs.srv as dc_srv
-import mongodb_store.util as dc_util
-from mongodb_store.message_store import MessageStoreProxy
+from datetime import *
+
+import rclpy
 from geometry_msgs.msg import Pose, Point, Quaternion
 from std_msgs.msg import Bool
-from datetime import *
-import platform
-if float(platform.python_version()[0:2]) >= 3.0:
-    import io
-else:
-    import StringIO
 
-if __name__ == '__main__':
-    rospy.init_node("example_multi_event_log")
+from mongodb_store.message_store import MessageStoreProxy
+from mongodb_store_msgs.msg import StringPairList, StringPair
+from mongodb_store.util import message_to_namespaced_type
+
+if __name__ == "__main__":
+    rclpy.init()
+    node = rclpy.node.Node("example_multi_event_log")
 
     try:
 
         # let's say we have a couple of things that we need to store together
         # these could be some sensor data, results of processing etc.
-        pose = Pose(Point(0, 1, 2), Quaternion(3, 4,  5, 6))
-        point = Point(7, 8, 9)
-        quaternion = Quaternion(10, 11, 12, 13)
+        pose = Pose(
+            position=Point(x=0.0, y=1.0, z=2.0),
+            orientation=Quaternion(x=3.0, y=4.0, z=5.0, w=6.0),
+        )
+        point = Point(x=7.0, y=8.0, z=9.0)
+        quaternion = Quaternion(x=10.0, y=11.0, z=12.0, w=13.0)
         # note that everything that is pass to the message_store must be a ros message type
-        #therefore use std_msg types for standard data types like float, int, bool, string etc
-        result = Bool(True)
-
+        # therefore use std_msg types for standard data types like float, int, bool, string etc
+        result = Bool(data=True)
 
         # we will store our results in a separate collection
-        msg_store = MessageStoreProxy(collection='pose_results')
-        # save the ids from each addition
-        stored = []
-        stored.append([pose._type, msg_store.insert(pose)])
-        stored.append([point._type, msg_store.insert(point)])
-        stored.append([quaternion._type, msg_store.insert(quaternion)])
-        stored.append([result._type, msg_store.insert(result)])
+        msg_store = MessageStoreProxy(node, collection="pose_results")
 
-        # now store ids togther in store, addition types for safety
+        messages_to_store = [pose, point, quaternion, result]
         spl = StringPairList()
-        for pair in stored:
-            spl.pairs.append(StringPair(pair[0], pair[1]))
+        for message in messages_to_store:
+            # Each pair in the string pair list will be the type of message stored, and the id of the relevant
+            # message in the collection
+            spl.pairs.append(
+                StringPair(
+                    first=message_to_namespaced_type(message),
+                    second=msg_store.insert(message),
+                )
+            )
 
         # and add some meta information
-        meta = {}
-        meta['description'] = "this wasn't great"
-        meta['result_time'] = datetime.utcfromtimestamp(rospy.get_rostime().to_sec())
-        msg_store.insert(spl, meta = meta)
+        meta = {"description": "this wasn't great"}
+        sec_ns = node.get_clock().now().seconds_nanoseconds()
+        fl = float(f"{sec_ns[0]}.{sec_ns[1]}")
+        meta["result_time"] = datetime.fromtimestamp(fl, timezone.utc)
+        msg_store.insert(spl, meta=meta)
 
         # now let's get all our logged data back
-        results = msg_store.query(StringPairList._type)
+        results = msg_store.query(message_to_namespaced_type(StringPairList))
         for message, meta in results:
-            if 'description' in meta:
-                print('description: %s' % meta['description'])
-            print('result time (UTC from rostime): %s' % meta['result_time'])
-            print('inserted at (UTC from rostime): %s' % meta['inserted_at'])
-            pose = msg_store.query_id(message.pairs[0].second, Pose._type)
-            point = msg_store.query_id(message.pairs[1].second, Point._type)
-            quaternion = msg_store.query_id(message.pairs[2].second, Quaternion._type)
-            result = msg_store.query_id(message.pairs[3].second, Bool._type)
+            if "description" in meta:
+                print(f"description: {meta['description']}")
+            print(f"result time (UTC from rostime): {meta['result_time']}")
+            print(f"inserted at (UTC from rostime): {meta['inserted_at']}")
+            pose = msg_store.query_id(
+                message.pairs[0].second, message_to_namespaced_type(Pose)
+            )[0]
+            point = msg_store.query_id(
+                message.pairs[1].second, message_to_namespaced_type(Point)
+            )[0]
+            quaternion = msg_store.query_id(
+                message.pairs[2].second, message_to_namespaced_type(Quaternion)
+            )[0]
+            result = msg_store.query_id(
+                message.pairs[3].second, message_to_namespaced_type(Bool)
+            )[0]
+            print(pose)
+            print(point)
+            print(quaternion)
+            print(result)
 
+    except Exception:
+        import traceback
 
-    except rospy.ServiceException as e:
-        print("Service call failed: %s"%e)
-
-
-
+        print(traceback.print_exc())

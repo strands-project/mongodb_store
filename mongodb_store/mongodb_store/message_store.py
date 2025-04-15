@@ -337,7 +337,7 @@ class MessageStoreProxy:
         sort_query: typing.List[typing.Tuple] = None,
         projection_query: typing.Dict = None,
         limit: int = 0,
-    ):
+    ) -> typing.Tuple[typing.Any, typing.Dict]:
         """
         Finds and returns message(s) matching the message and meta data queries.
 
