@@ -6,14 +6,13 @@ import json
 from datetime import datetime, timezone
 
 import pymongo
-from rcl_interfaces.srv import GetParameters
 import rclpy
 from bson import json_util
 from bson.objectid import ObjectId
 from builtin_interfaces.msg import Time
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType
-from rclpy.duration import Duration
-from rclpy.executors import SingleThreadedExecutor, MultiThreadedExecutor
+from rcl_interfaces.srv import GetParameters
+from rclpy.executors import MultiThreadedExecutor
 from tf2_msgs.msg import TFMessage
 
 import mongodb_store.util as dc_util
@@ -60,26 +59,19 @@ class MessageStore(rclpy.node.Node):
         param_client = self.create_client(
             GetParameters, "/mongodb_server/get_parameters"
         )
-        if not param_client.wait_for_service(10):
+        request = GetParameters.Request()
+        request.names = ["mongodb_host", "mongodb_port"]
+
+        result, message = dc_util.check_and_get_service_result_async(
+            self, param_client, request, existence_timeout=10
+        )
+        if result is None:
             raise RuntimeError(
                 f"Could not find service {param_client.srv_name} from which to retrieve mongo host and port parameters"
             )
 
-        request = GetParameters.Request()
-        request.names = ["mongodb_host", "mongodb_port"]
-        resp_future: rclpy.Future = param_client.call_async(request)
-
-        # This is hacky but we need to do it in order to call this service before calling rclpy spin
-        rclpy.spin_until_future_complete(
-            self,
-            resp_future,
-            timeout_sec=5,
-            executor=SingleThreadedExecutor(),
-        )
-        # Reset the executor, otherwise the node won't spin properly later
-        self.executor = None
-        host_value = resp_future.result().values[0]
-        port_value = resp_future.result().values[1]
+        host_value = result.values[0]
+        port_value = result.values[1]
         if host_value.type != ParameterType.PARAMETER_STRING:
             raise RuntimeError(
                 f"Parameter value for the mongodb_host param was not a string: {host_value}. Check the /mongodb_server parameters."
@@ -117,6 +109,8 @@ class MessageStore(rclpy.node.Node):
             have_dc = dc_util.wait_for_mongo(self, local_timeout)
             if not have_dc:
                 raise Exception("No Datacentre?")
+            else:
+                self.get_logger().info("Got datacentre")
 
         self.keep_trash = self.declare_parameter(
             "mongodb_keep_trash", True, descriptor=ParameterDescriptor(description="")
@@ -132,26 +126,9 @@ class MessageStore(rclpy.node.Node):
         ).value
         if self.replicate_on_write:
             self.get_logger().warning(
-                "The option 'replicate_on_write' is now deprecated and will be removed. "
+                "The option 'replicate_on_write' is now deprecated and will not function. "
                 "Use 'Replication' on MongoDB instead: "
                 "https://docs.mongodb.com/manual/replication/"
-            )
-
-            extras = self.declare_parameter(
-                "mongodb_store_extras",
-                [],
-                descriptor=ParameterDescriptor(description=""),
-            ).value
-            self.extra_clients = []
-            for extra in extras:
-                try:
-                    self.extra_clients.append(MongoClient(extra[0], extra[1]))
-                except pymongo.errors.ConnectionFailure as e:
-                    self.get_logger().warning(
-                        f"Could not connect to extra datacentre at {extra[0]}:{extra[1]}"
-                    )
-            self.get_logger().info(
-                f"Replicating content to a futher {len(self.extra_clients)} datacentres"
             )
 
         # advertise ros services
@@ -226,12 +203,6 @@ class MessageStore(rclpy.node.Node):
 
         obj_id = dc_util.store_message(collection, obj, meta)
 
-        if self.replicate_on_write:
-            # also do insert to extra datacentres, making sure object ids are consistent
-            for extra_client in self.extra_clients:
-                extra_collection = extra_client[req.database][req.collection]
-                dc_util.store_message(extra_collection, obj, meta, obj_id)
-
         return str(obj_id)
         # except Exception, e:
         # print e
@@ -259,16 +230,6 @@ class MessageStore(rclpy.node.Node):
             # But keep it into "trash"
             bk_collection = self._mongo_client[req.database][req.collection + "_Trash"]
             bk_collection.save(message)
-
-            # also repeat in extras
-            if self.replicate_on_write:
-                for extra_client in self.extra_clients:
-                    extra_collection = extra_client[req.database][req.collection]
-                    extra_collection.remove({"_id": ObjectId(req.document_id)})
-                    extra_bk_collection = extra_client[req.database][
-                        req.collection + "_Trash"
-                    ]
-                    extra_bk_collection.save(message)
 
         return True
 
@@ -303,14 +264,6 @@ class MessageStore(rclpy.node.Node):
         (obj_id, altered) = dc_util.update_message(
             collection, obj_query, obj, meta, req.upsert
         )
-
-        if self.replicate_on_write:
-            # also do update to extra datacentres
-            for extra_client in self.extra_clients:
-                extra_collection = extra_client[req.database][req.collection]
-                dc_util.update_message(
-                    extra_collection, obj_query, obj, meta, req.upsert
-                )
 
         return str(obj_id), altered
 
@@ -375,33 +328,6 @@ class MessageStore(rclpy.node.Node):
                 req.single,
                 req.limit,
             )
-
-        # keep trying clients until we find an answer
-        if self.replicate_on_write:
-            for extra_client in self.extra_clients:
-                if len(entries) == 0:
-                    extra_collection = extra_client[req.database][req.collection]
-                    entries = dc_util.query_message(
-                        extra_collection,
-                        obj_query,
-                        sort_query_tuples,
-                        projection_query_dict,
-                        req.single,
-                        req.limit,
-                    )
-                    if projection_query_dict:
-                        meta_entries = dc_util.query_message(
-                            extra_collection,
-                            obj_query,
-                            sort_query_tuples,
-                            projection_meta_dict,
-                            req.single,
-                            req.limit,
-                        )
-                    if len(entries) > 0:
-                        self.get_logger().info("found result in extra datacentre")
-                else:
-                    break
 
         serialised_messages = ()
         metas = ()

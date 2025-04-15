@@ -1,14 +1,18 @@
-import rclpy
-import rclpy.type_support
-import rclpy.action
 import importlib
 import json
+import typing
 from datetime import datetime
 from datetime import timezone
 from io import BytesIO as Buffer
 
+import rclpy
+import rclpy.node
+import rclpy.client
+import rclpy.type_support
 from bson import json_util, Binary
 from pymongo.errors import ConnectionFailure
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
+from rclpy.executors import MultiThreadedExecutor
 from std_srvs.srv import Empty
 
 from mongodb_store_msgs.msg import SerialisedMessage
@@ -56,18 +60,70 @@ def wait_for_mongo(parent_node: rclpy.node.Node, timeout=60, ns="/datacentre"):
     :Returns:
         | bool : True on success, False if server not even started.
     """
-    # Check that mongo is live, create connection
+    # # Check that mongo is live, create connection
     service = ns + "/wait_ready"
-    client = parent_node.create_client(Empty, service)
+    wait_client = parent_node.create_client(
+        Empty, service
+    )
 
-    valid = client.wait_for_service(timeout)
-    if not valid:
+    result, message = check_and_get_service_result_async(
+        parent_node, wait_client, Empty.Request()
+    )
+    if result is None:
         parent_node.get_logger().error(
             "Can't connect to MongoDB server. Make sure mongodb_store/mongodb_server.py node is started."
         )
         return False
-    client.call(Empty.Request())
     return True
+
+
+def check_and_get_service_result_async(
+    node: rclpy.node.Node,
+    client: rclpy.client.Client,
+    request,
+    existence_timeout: typing.Optional[float] = 1,
+    spin_timeout: typing.Optional[float] = None,
+) -> typing.Tuple[typing.Optional[typing.Any], str]:
+    """
+    Check the service for the given client exists, then call it and retrieve the response asynchronously,
+    but block to do so. Calls the executor from the node associated with the client, using its
+    spin_until_future_complete function
+
+    Note: If the client is being called from a callback (i.e. subscriber callback, service callback, any actionserver
+    callback) You must ensure that the client is in a separate callback group to the one which is initiating this
+    call. If it is not, you will probably get a silent deadlock.
+
+    Args:
+        node: Node which created the client. TODO: Is this needed? The client has a context and handle but not sure if those have references to the node
+        client: Client to call
+        request: Request to send to the client
+        existence_timeout: How long to wait for the service to become available
+        spin_timeout: How long to spin waiting for the result before timing out
+
+    Returns:
+        Tuple with result of the call, or None if it failed, and a message
+    """
+    if not client.wait_for_service(timeout_sec=existence_timeout):
+        message = f"Couldn't find {client.srv_name}"
+        node.get_logger().error(message)
+        return None, message
+    resp_future = client.call_async(request)
+    # Don't use rclpy.spin_until_future_completes on the node because then the node is removed from the global
+    # executor and will not receive any further callbacks
+    if not node.executor:
+        # do this in case the node doesn't have an executor, and remove the executor after we're done, otherwise the
+        # executor is permanently set as that node's executor
+        rclpy.spin_until_future_complete(
+            node,
+            resp_future,
+            timeout_sec=spin_timeout,
+            executor=MultiThreadedExecutor(),
+        )
+        node.executor = None
+    else:
+        node.executor.spin_until_future_complete(resp_future, timeout_sec=spin_timeout)
+
+    return resp_future.result(), f"Successfully called {client.srv_name}"
 
 
 def check_for_pymongo():
@@ -81,12 +137,8 @@ def check_for_pymongo():
         import pymongo
     except:
         print("ERROR!!!")
-        print(
-            "Can't import pymongo, this is needed by mongodb_store."
-        )
-        print(
-            "Make sure it is installed (pip install pymongo)"
-        )
+        print("Can't import pymongo, this is needed by mongodb_store.")
+        print("Make sure it is installed (pip install pymongo)")
         return False
 
     return True
@@ -130,8 +182,6 @@ def document_to_msg_and_meta(document, TYPE):
     msg = TYPE()
     _fill_msg(msg, document["msg"])
     return meta, msg
-
-
 
 
 def document_to_msg(document, TYPE):
@@ -360,7 +410,12 @@ def dictionary_to_message(dictionary, cls):
 
 
 def query_message(
-    collection, query_doc, sort_query=None, projection_query=None, find_one=False, limit=0
+    collection,
+    query_doc,
+    sort_query=None,
+    projection_query=None,
+    find_one=False,
+    limit=0,
 ):
     """
     Peform a query for a stored messages, returning results in list.
