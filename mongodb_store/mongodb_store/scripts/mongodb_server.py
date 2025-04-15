@@ -8,6 +8,7 @@ from rclpy.duration import Duration
 import threading
 
 from rcl_interfaces.msg import ParameterDescriptor
+from rclpy.executors import MultiThreadedExecutor
 from std_srvs.srv import Empty
 import shutil
 import pymongo
@@ -120,9 +121,8 @@ class MongoServer(rclpy.node.Node):
         # Check that the provided db path exists.
         if not os.path.exists(self._db_path):
             self.get_logger().error(
-                "Can't find database at supplied path "
-                + self._db_path
-                + ". If this is a new DB, create it as an empty directory."
+                f"Can't find database at supplied path {self._db_path}. If this is a new DB, create it as an empty "
+                f"directory."
             )
             sys.exit(1)
 
@@ -158,11 +158,13 @@ class MongoServer(rclpy.node.Node):
         if self.repl_set is not None:
             cmd.append("--replSet")
             cmd.append(self.repl_set)
+
+        self.get_logger().info(f"Running command {' '.join(cmd)}")
         self._mongo_process = subprocess.Popen(
             cmd, stdout=subprocess.PIPE, preexec_fn=block_mongo_kill
         )
 
-        while self._mongo_process.poll() is None:  # and not rospy.is_shutdown():
+        while self._mongo_process.poll() is None:  # and rclpy.ok():
             try:
                 stdout = self._mongo_process.stdout.readline().decode("utf-8")
             except IOError as e:  # probably interupt because shutdown cut it up
@@ -176,13 +178,15 @@ class MongoServer(rclpy.node.Node):
                 else:
                     self.get_logger().info(stdout.strip())
 
-                if stdout.find("waiting for connections on port") != -1:
+                if not self._ready and stdout.find("mongod startup complete") != -1:
                     self._ready = True
                     if self.repl_set is not None:
                         try:
                             self.initialize_repl_set()
                         except Exception as e:
-                            self.get_logger().warning("initialzing replSet failed: %s" % e)
+                            self.get_logger().warning(
+                                f"initialzing replSet failed: {e}"
+                            )
 
         if not rclpy.ok():
             self.get_logger().error("MongoDB process stopped!")
@@ -194,19 +198,24 @@ class MongoServer(rclpy.node.Node):
 
         self._gone_down = True
 
-    def _shutdown_srv_cb(self, req):
-        self.destroy_node()
+    def _shutdown_srv_cb(
+        self, request: Empty.Request, response: Empty.Response
+    ) -> Empty.Response:
+        # Calling shutdown exits the spin on the node.
         rclpy.shutdown()
         return Empty.Response()
 
-    def _wait_ready_srv_cb(self, req):
+    def _wait_ready_srv_cb(
+        self, request: Empty.Request, resp: Empty.Response
+    ) -> Empty.Response:
         while not self._ready:
+            self.get_logger().info("waiting")
             self.get_clock().sleep_for(Duration(seconds=0.1))
         return Empty.Response()
 
     def initialize_repl_set(self):
         c = pymongo.Connection(
-            "%s:%d" % (self._mongo_host, self._mongo_port), slave_okay=True
+            f"{self._mongo_host}:{self._mongo_port}", slave_okay=True
         )
         c.admin.command("replSetInitiate")
         c.close()
@@ -216,9 +225,11 @@ def main():
     rclpy.init()
     try:
         server = MongoServer()
-        rclpy.spin(server)
+        rclpy.spin(server, executor=MultiThreadedExecutor())
         server.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            # If the shutdown srv is called calling this again will cause a crash
+            rclpy.shutdown()
     finally:
         # TODO: The context on_shutdown doesn't seem to work, so moving that code here
         server.get_logger().info("Shutting down datacentre")
