@@ -54,7 +54,7 @@ setup(
             "message_store_node = mongodb_store.message_store_node:main",
             "mongo_bridge = mongodb_store.scripts.mongo_bridge:main",
             "mongodb_play = mongodb_store.scripts.mongodb_play:main",
-            "mongodb_server = mongodb_store.scripts.mongodb_server:main",
+            "mongodb_server = mongodb_store.mongodb_server:main",
             "replicator_client= mongodb_store.scripts.replicator_client:main",
             "replicator_node = mongodb_store.scripts.replicator_node:main",
         ],
