@@ -1,74 +1,69 @@
 <launch>
+    <arg name="db_path" default="/var/local/mongodb_store"/>
+    <arg name="mongodb_host" default="$(env ROS_HOSTNAME localhost)"/>
+    <arg name="port" default="62345"/>
+    <arg name="defaults_path" default=""/>
+    <arg name="replicator_dump_path" default="/tmp/replicator_dumps"/>
+    <arg name="use_daemon" default="false"/>
+    <arg name="launch_config" default="false"/>
+    <arg name="launch_replicator" default="false"/>
 
-  <!-- This launch file assumes that the machine tag named with the "machine" arg was set previously. If this is not the case then call mongodb_store.launch instead which will set the machine tag for you. This should typically be called within a larger roslaunch structure. -->
+    <!-- Connect via full URI/Connection string. Requires use_daemon to be true -->
+    <arg name="connection_string" default=""/>
 
-  <arg name="db_path" default="/var/local/mongodb_store"/>
-  <arg name="mongodb_host" default="$(optenv ROS_HOSTNAME localhost)" />
-  <arg name="port" default="62345" />
-  <arg name="defaults_path" default=""/>
-  <arg name="replicator_dump_path" default="/tmp/replicator_dumps"/>
-  <arg name="use_daemon" default="false" />
-  <arg name="launch_config" default="true" />
-  <arg name="launch_replicator" default="true" />
+    <arg name="test_mode" default="false"/>
+    <arg name="use_repl_set" default="false"/>
+    <arg name="repl_set" default="rs0"/>
+    <arg name="queue_size" default="100"/>
+    <arg name="bind_to_host" default="false"/>
 
+    <arg name="use_localdatacenter" default="true"/>
 
-  <!-- Connect via full URI/Connection string. Requires use_daemon to be true -->
-  <arg name="connection_string" default="" />
-
-  <arg name="machine"/>
-  <arg name="test_mode" default="false" />
-  <arg name="use_repl_set" default="false" />
-  <arg name="repl_set" default="rs0" />
-  <arg name="queue_size" default="100" />
-  <arg name="bind_to_host" default="false" />
-
-  <arg name="use_localdatacenter" default="true" />
-
-  <param name="mongodb_use_daemon" value="$(var use_daemon)" />
-  <param name="mongodb_connection_string" value="$(var connection_string)" />
+<!--    <arg name="mongodb_use_daemon" value="$(var use_daemon)"/>-->
+<!--    <arg name="mongodb_connection_string" value="$(var connection_string)"/>-->
 
 
-  <group if="$(var use_daemon)">
-    <param name="mongodb_port" value="$(var port)" />
-    <param name="mongodb_host" value="$(var mongodb_host)" />
-  </group>
+<!--    <group if="$(var use_daemon)">-->
+<!--        <param name="mongodb_port" value="$(var port)"/>-->
+<!--        <param name="mongodb_host" value="$(var mongodb_host)"/>-->
+<!--    </group>-->
 
-  <group unless="$(var use_daemon)">
-  	<!-- launch in test mode -->
-  	<group if="$(var test_mode)">
-  		<node name="mongo_server" pkg="mongodb_store" exec="mongodb_server" machine="$(var machine)">
-  			<param name="test_mode" value="true"/>
-  		</node>
-  	</group>
-  	<!-- launch in non-test, i.e. normal, mode -->
-  	<group unless="$(var test_mode)">
-  		<param name="mongodb_port" value="$(var port)" />
-  		<param name="mongodb_host" value="$(var mongodb_host)" />
+    <group unless="$(var use_daemon)">
+        <!-- launch in test mode -->
+        <group if="$(var test_mode)">
+            <node name="mongodb_server" pkg="mongodb_store" exec="mongodb_server">
+                <param name="test_mode" value="true"/>
+            </node>
+        </group>
+        <!-- launch in non-test, i.e. normal, mode -->
+        <group unless="$(var test_mode)">
 
-  	  <node name="mongo_server" pkg="mongodb_store" exec="mongodb_server" machine="$(var machine)">
-        <param name="bind_to_host" value="$(var bind_to_host)"/>
-  	    <param name="database_path" value="$(var db_path)"/>
-  	    <param name="repl_set" value="$(var repl_set)" if="$(var use_repl_set)" />
-  	  </node>
-  	</group>
-  </group>
+            <node name="mongodb_server" pkg="mongodb_store" exec="mongodb_server">
+                <param name="mongodb_port" value="$(var port)"/>
+                <param name="mongodb_host" value="$(var mongodb_host)"/>
+                <param name="bind_to_host" value="$(var bind_to_host)"/>
+                <param name="database_path" value="$(var db_path)"/>
+                <param name="repl_set" value="$(eval '$(var repl_set) if \'$(var use_repl_set)\' == \'true\' else \'\'')"/>
+            </node>
+        </group>
+    </group>
 
-  <group if="$(arg launch_config)">
-    <node name="config_manager" pkg="mongodb_store" exec="config_manager" machine="$(var machine)">
-      <param name="defaults_path" value="$(var defaults_path)"/>
-    </node>
-  </group>
+    <group if="$(var launch_config)">
+        <node name="config_manager" pkg="mongodb_store" exec="config_manager">
+            <param name="defaults_path" value="$(var defaults_path)"/>
+        </node>
+    </group>
 
-  <node name="message_store" pkg="mongodb_store" exec="message_store_node" machine="$(var machine)" >
-	<param name="mongodb_use_localdatacenter" value="$(var use_localdatacenter)" />
-  <param name="queue_size" value="$(var queue_size)" />
-  </node> <!-- output="screen" -->
+    <node name="message_store" pkg="mongodb_store" exec="message_store_node">
+        <param name="mongodb_use_localdatacenter" value="$(var use_localdatacenter)"/>
+        <param name="queue_size" value="$(var queue_size)"/>
+    </node> <!-- output="screen" -->
 
-  <group if="$(arg launch_replicator)">
-    <node name="replicator_node" pkg="mongodb_store" exec="replicator_node" machine="$(var machine)">
-      <param name="replicator_dump_path" value="$(var replicator_dump_path)"/>
-    </node>
-  </group>
+    <group if="$(var launch_replicator)">
+        <node name="replicator_node" pkg="mongodb_store" exec="replicator_node">
+            <param name="replicator_dump_path" value="$(var replicator_dump_path)"/>
+        </node>
+    </group>
 
 </launch>
 

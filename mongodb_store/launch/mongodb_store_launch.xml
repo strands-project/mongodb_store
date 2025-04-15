@@ -1,50 +1,43 @@
 <launch>
+    <!-- This is the outer launch file for mongodb_store. It sets a machine tag for the mongodb_store_inc.launch to use. If you already have a machine tag defined, you can call mongodb_store_inc.launch directly and use the machine argument to it.-->
+    <arg name="db_path" default="/var/local/mongodb_store"/>
+    <arg name="mongodb_host" default="$(env ROS_HOSTNAME localhost)"/>
+    <arg name="port" default="62345"/>
+    <arg name="defaults_path" default=""/>
+    <arg name="replicator_dump_path" default="/tmp/replicator_dumps"/>
+    <arg name="use_daemon" default="false"/>
 
+    <!-- Connect via full URI/Connection string. Requires use_daemon to be true -->
+    <arg name="connection_string" default=""/>
+    <arg name="machine" default="localhost"/>
+    <arg name="user" default=""/>
+    <arg name="test_mode" default="false"/>
+    <arg name="use_repl_set" default="false"/>
+    <arg name="repl_set" default="rs0"/>
+    <arg name="queue_size" default="100"/>
+    <arg name="bind_to_host" default="false"/>
 
-  <!-- This is the outer launch file for mongodb_store. It sets a machine tag for the mongodb_store_inc.launch to use. If you already have a machine tag defined, you can call mongodb_store_inc.launch directly and use the machine argument to it.-->
+    <arg name="use_localdatacenter" default="true"/>
 
-  <arg name="db_path" default="/var/local/mongodb_store"/>
-  <arg name="mongodb_host" default="$(optenv ROS_HOSTNAME localhost)" />
-  <arg name="port" default="62345" />
-  <arg name="defaults_path" default=""/>
-  <arg name="replicator_dump_path" default="/tmp/replicator_dumps"/>
-  <arg name="use_daemon" default="false" />
+    <arg name="launch_config" default="false"/>
+    <arg name="launch_replicator" default="false"/>
 
-  <!-- Connect via full URI/Connection string. Requires use_daemon to be true -->
-  <arg name="connection_string" default="" />
-
-
-  <arg name="machine" default="localhost" />
-  <arg name="user" default="" />
-  <arg name="test_mode" default="false" />
-  <arg name="use_repl_set" default="false" />
-  <arg name="repl_set" default="rs0" />
-  <arg name="queue_size" default="100" />
-  <arg name="bind_to_host" default="false" />
-
-  <arg name="use_localdatacenter" default="true" />
-
-  <arg name="launch_config" default="true" />
-  <arg name="launch_replicator" default="true" />
-
-  <machine name="$(arg machine)" address="$(arg machine)" env-loader="$(optenv ROS_ENV_LOADER )" user="$(arg user)"/>
-
-  <include file="$(find-pkg-share mongodb_store)/launch/mongodb_store_inc.launch">
-    <arg name="db_path" value="$(var db_path)"/>
-    <arg name="mongodb_host" value="$(var mongodb_host)"/>
-    <arg name="port" value="$(var port)"/>
-    <arg name="defaults_path" value="$(var defaults_path)"/>
-    <arg name="replicator_dump_path" value="$(var replicator_dump_path)"/>
-    <arg name="use_daemon" value="$(var use_daemon)"/>
-    <arg name="connection_string" value="$(var connection_string)"/>
-    <arg name="machine" value="$(var machine)"/>
-    <arg name="test_mode" value="$(var test_mode)"/>
-    <arg name="use_repl_set" value="$(var use_repl_set)"/>
-    <arg name="repl_set" value="$(var repl_set)"/>
-    <arg name="queue_size" value="$(var queue_size)" />
-    <arg name="bind_to_host" value="$(var bind_to_host)" />
-    <arg name="launch_config" default="$(var launch_config)" />
-    <arg name="launch_replicator" default="$(var launch_replicator)" />
-  </include>
+    <include file="$(find-pkg-share mongodb_store)/launch/mongodb_store_inc_launch.xml">
+        <arg name="db_path" value="$(var db_path)"/>
+        <arg name="mongodb_host" value="$(var mongodb_host)"/>
+        <arg name="port" value="$(var port)"/>
+        <arg name="defaults_path" value="$(var defaults_path)"/>
+        <arg name="replicator_dump_path" value="$(var replicator_dump_path)"/>
+        <arg name="use_daemon" value="$(var use_daemon)"/>
+        <arg name="connection_string" value="$(var connection_string)"/>
+        <arg name="machine" value="$(var machine)"/>
+        <arg name="test_mode" value="$(var test_mode)"/>
+        <arg name="use_repl_set" value="$(var use_repl_set)"/>
+        <arg name="repl_set" value="$(var repl_set)"/>
+        <arg name="queue_size" value="$(var queue_size)"/>
+        <arg name="bind_to_host" value="$(var bind_to_host)"/>
+        <arg name="launch_config" value="$(var launch_config)"/>
+        <arg name="launch_replicator" value="$(var launch_replicator)"/>
+    </include>
 
 </launch>

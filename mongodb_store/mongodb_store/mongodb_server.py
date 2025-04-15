@@ -43,7 +43,7 @@ class MongoServer(rclpy.node.Node):
             "test_mode", False, descriptor=ParameterDescriptor(description="")
         ).value
         self.repl_set = self.declare_parameter(
-            "repl_set", None, descriptor=ParameterDescriptor(description="")
+            "repl_set", "", descriptor=ParameterDescriptor(description="")
         ).value
         self.bind_to_host = self.declare_parameter(
             "bind_to_host", False, descriptor=ParameterDescriptor(description="")
@@ -155,7 +155,7 @@ class MongoServer(rclpy.node.Node):
             cmd.append("--bind_ip")
             cmd.append("0.0.0.0")
 
-        if self.repl_set is not None:
+        if self.repl_set:
             cmd.append("--replSet")
             cmd.append(self.repl_set)
 
@@ -180,7 +180,7 @@ class MongoServer(rclpy.node.Node):
 
                 if not self._ready and stdout.find("mongod startup complete") != -1:
                     self._ready = True
-                    if self.repl_set is not None:
+                    if self.repl_set:
                         try:
                             self.initialize_repl_set()
                         except Exception as e:
