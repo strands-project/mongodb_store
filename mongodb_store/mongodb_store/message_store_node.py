@@ -2,6 +2,8 @@
 Provides a service to store ROS message objects in a mongodb database in JSON.
 """
 
+import rosidl_runtime_py
+import rosidl_runtime_py.utilities
 import json
 from datetime import datetime, timezone
 
@@ -154,18 +156,20 @@ class MessageStore(rclpy.node.Node):
         Receives a message published
         """
         # actually procedure is the same
-        self.insert_ros_srv(msg)
+        self.insert_ros_srv(msg, MongoInsertMsg.Response())
 
-    def insert_ros_srv(self, req):
+    def insert_ros_srv(
+        self, request: MongoInsertMsg.Request, response: MongoInsertMsg.Response
+    ) -> MongoInsertMsg.Response:
         """
         Receives a
         """
         # deserialize data into object
-        obj = dc_util.deserialise_message(req.message)
+        obj = dc_util.deserialise_message(request.message)
         # convert input tuple to dict
-        meta = dc_util.string_pair_list_to_dictionary(req.meta)
+        meta = dc_util.string_pair_list_to_dictionary(request.meta)
         # get requested collection from the db, creating if necessary
-        collection = self._mongo_client[req.database][req.collection]
+        collection = self._mongo_client[request.database][request.collection]
         # check if the object has the location attribute
         if hasattr(obj, "pose"):
             # if it does create a location index
@@ -181,91 +185,105 @@ class MessageStore(rclpy.node.Node):
         # if it does create a location index
         #  collection.create_index([("datetime", pymongo.GEO2D)])
 
-        # try:
-        stamp = self.get_clock().now().to_msg()
-        meta["inserted_at"] = datetime.fromtimestamp(stamp.to_sec(), timezone.UTC)
-        meta["inserted_by"] = req._connection_header["callerid"]
-        if (
-            hasattr(obj, "header")
-            and hasattr(obj.header, "stamp")
-            and isinstance(obj.header.stamp, Time)
-        ):
-            stamp = obj.header.stamp
-        elif isinstance(obj, TFMessage):
-            if obj.transforms:
-                transforms = sorted(
-                    obj.transforms, key=lambda m: m.header.stamp, reverse=True
-                )
-                stamp = transforms[0].header.stamp
+        try:
+            stamp = self.get_clock().now()
+            sec_ns = stamp.seconds_nanoseconds()
+            fl = float(f"{sec_ns[0]}.{sec_ns[1]}")
+            meta["inserted_at"] = datetime.fromtimestamp(fl, timezone.utc)
+            # TODO: Retrieving this information seems to be much harder/impossible in ros2
+            # meta["inserted_by"] = request._connection_header["callerid"]
 
-        meta["published_at"] = datetime.fromtimestamp(stamp.to_sec(), timezone.utc)
-        meta["timestamp"] = stamp.to_nsec()
+            if (
+                hasattr(obj, "header")
+                and hasattr(obj.header, "stamp")
+                and isinstance(obj.header.stamp, Time)
+            ):
+                stamp = obj.header.stamp
+            elif isinstance(obj, TFMessage):
+                if obj.transforms:
+                    transforms = sorted(
+                        obj.transforms, key=lambda m: m.header.stamp, reverse=True
+                    )
+                    stamp = transforms[0].header.stamp
 
-        obj_id = dc_util.store_message(collection, obj, meta)
+            sec_ns = stamp.seconds_nanoseconds()
+            fl = float(f"{sec_ns[0]}.{sec_ns[1]}")
+            meta["published_at"] = datetime.fromtimestamp(fl, timezone.utc)
+            meta["timestamp"] = stamp.nanoseconds
 
-        return str(obj_id)
-        # except Exception, e:
-        # print e
+            obj_id = dc_util.store_message(collection, obj, meta)
+            return MongoInsertMsg.Response(id=str(obj_id))
+        except Exception as e:
+            import traceback
+
+            print(traceback.format_exc())
+            return MongoInsertMsg.Response(id="")
 
     insert_ros_srv.type = MongoInsertMsg
 
-    def delete_ros_srv(self, req):
+    def delete_ros_srv(
+        self, request: MongoDeleteMsg.Request, response: MongoDeleteMsg.Response
+    ) -> MongoDeleteMsg.Response:
         """
         Deletes a message by ID
         """
         # Get the message
-        collection = self._mongo_client[req.database][req.collection]
+        collection = self._mongo_client[request.database][request.collection]
         docs = dc_util.query_message(
-            collection, {"_id": ObjectId(req.document_id)}, find_one=True
+            collection, {"_id": ObjectId(request.document_id)}, find_one=True
         )
         if len(docs) != 1:
-            return False
+            return MongoDeleteMsg.Response(success=False)
 
         message = docs[0]
 
         # Remove the doc
-        collection.remove({"_id": ObjectId(req.document_id)})
+        collection.remove({"_id": ObjectId(request.document_id)})
 
         if self.keep_trash:
             # But keep it into "trash"
-            bk_collection = self._mongo_client[req.database][req.collection + "_Trash"]
+            bk_collection = self._mongo_client[request.database][
+                request.collection + "_Trash"
+            ]
             bk_collection.save(message)
 
-        return True
+        return MongoDeleteMsg.Response(success=True)
 
     delete_ros_srv.type = MongoDeleteMsg
 
-    def update_ros_srv(self, req):
+    def update_ros_srv(
+        self, request: MongoUpdateMsg.Request, response: MongoUpdateMsg.Response
+    ) -> MongoUpdateMsg.Response:
         """
         Updates a msg in the store
         """
         # rospy.lrosoginfo("called")
-        collection = self._mongo_client[req.database][req.collection]
+        collection = self._mongo_client[request.database][request.collection]
 
         # build the query doc
-        obj_query = self.to_query_dict(req.message_query, req.meta_query)
+        obj_query = self.to_query_dict(request.message_query, request.meta_query)
 
         # restrict results to have the type asked for
-        obj_query["_meta.stored_type"] = req.message.type
+        obj_query["_meta.stored_type"] = request.message.type
 
         # TODO start using some string constants!
 
         self.get_logger().debug(f"update spec document: {obj_query}")
 
         # deserialize data into object
-        obj = dc_util.deserialise_message(req.message)
+        obj = dc_util.deserialise_message(request.message)
 
-        meta = dc_util.string_pair_list_to_dictionary(req.meta)
+        meta = dc_util.string_pair_list_to_dictionary(request.meta)
         meta["last_updated_at"] = datetime.fromtimestamp(
             self.get_clock().now().seconds_nanoseconds()[0], timezone.utc
         )
-        meta["last_updated_by"] = req._connection_header["callerid"]
+        meta["last_updated_by"] = request._connection_header["callerid"]
 
         (obj_id, altered) = dc_util.update_message(
-            collection, obj_query, obj, meta, req.upsert
+            collection, obj_query, obj, meta, request.upsert
         )
 
-        return str(obj_id), altered
+        return MongoUpdateMsg.Response(id=str(obj_id), success=altered)
 
     update_ros_srv.type = MongoUpdateMsg
 
@@ -279,24 +297,26 @@ class MessageStore(rclpy.node.Node):
             obj_query["_meta." + k] = v
         return obj_query
 
-    def query_messages_ros_srv(self, req):
+    def query_messages_ros_srv(
+        self, request: MongoQueryMsg.Request, response: MongoQueryMsg.Response
+    ) -> MongoQueryMsg.Response:
         """
         Returns t
         """
-        collection = self._mongo_client[req.database][req.collection]
+        collection = self._mongo_client[request.database][request.collection]
 
         # build the query doc
-        obj_query = self.to_query_dict(req.message_query, req.meta_query)
+        obj_query = self.to_query_dict(request.message_query, request.meta_query)
 
         # restrict results to have the type asked for
-        obj_query["_meta.stored_type"] = req.type
+        obj_query["_meta.stored_type"] = request.type
 
         # TODO start using some string constants!
 
         self.get_logger().debug(f"query document: {obj_query}")
 
         # this is a list of entries in dict format including meta
-        sort_query_dict = dc_util.string_pair_list_to_dictionary(req.sort_query)
+        sort_query_dict = dc_util.string_pair_list_to_dictionary(request.sort_query)
         sort_query_tuples = []
         for k, v in sort_query_dict.items():
             try:
@@ -306,7 +326,7 @@ class MessageStore(rclpy.node.Node):
             # this is a list of entries in dict format including meta
 
         projection_query_dict = dc_util.string_pair_list_to_dictionary(
-            req.projection_query
+            request.projection_query
         )
         projection_meta_dict = dict()
         projection_meta_dict["_meta"] = 1
@@ -316,8 +336,8 @@ class MessageStore(rclpy.node.Node):
             obj_query,
             sort_query_tuples,
             projection_query_dict,
-            req.single,
-            req.limit,
+            request.single,
+            request.limit,
         )
         if projection_query_dict:
             meta_entries = dc_util.query_message(
@@ -325,8 +345,8 @@ class MessageStore(rclpy.node.Node):
                 obj_query,
                 sort_query_tuples,
                 projection_meta_dict,
-                req.single,
-                req.limit,
+                request.single,
+                request.limit,
             )
 
         serialised_messages = ()
@@ -336,9 +356,11 @@ class MessageStore(rclpy.node.Node):
 
             # load the class object for this type
             # TODO this should be the same for every item in the list, so could reuse
-            cls = dc_util.load_class(entry["_meta"]["stored_class"])
+            cls = rosidl_runtime_py.utilities.get_interface(
+                entry["_meta"]["stored_class"]
+            )
             # instantiate the ROS message object from the dictionary retrieved from the db
-            message = dc_util.dictionary_to_message(entry, cls)
+            message = rosidl_runtime_py.set_message_fields(cls(), entry)
             # the serialise this object in order to be sent in a generic form
             serialised_messages = serialised_messages + (
                 dc_util.serialise_message(message),
@@ -362,7 +384,7 @@ class MessageStore(rclpy.node.Node):
                 ),
             )
 
-        return [serialised_messages, metas]
+        return MongoQueryMsg.Response(messages=serialised_messages, metas=metas)
 
     query_messages_ros_srv.type = MongoQueryMsg
 
@@ -370,7 +392,7 @@ class MessageStore(rclpy.node.Node):
         """
         Returns t
         """
-        return self.query_messages_ros_srv(req)
+        return self.query_messages_ros_srv(req, MongoQueryMsg.Response())
 
     query_with_projection_messages_ros_srv.type = MongoQuerywithProjectionMsg
 

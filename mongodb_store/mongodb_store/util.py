@@ -1,5 +1,8 @@
 import importlib
 import json
+
+import pymongo.collection
+import yaml
 import typing
 from datetime import datetime
 from datetime import timezone
@@ -9,6 +12,8 @@ import rclpy
 import rclpy.node
 import rclpy.client
 import rclpy.type_support
+import rclpy.serialization
+import rosidl_runtime_py.utilities
 from bson import json_util, Binary
 from pymongo.errors import ConnectionFailure
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
@@ -62,9 +67,7 @@ def wait_for_mongo(parent_node: rclpy.node.Node, timeout=60, ns="/datacentre"):
     """
     # # Check that mongo is live, create connection
     service = ns + "/wait_ready"
-    wait_client = parent_node.create_client(
-        Empty, service
-    )
+    wait_client = parent_node.create_client(Empty, service)
 
     result, message = check_and_get_service_result_async(
         parent_node, wait_client, Empty.Request()
@@ -165,6 +168,7 @@ def import_MongoClient():
 
 def _fill_msg(msg, dic):
     """
+    TODO: Remove?
     Given a ROS msg and a dictionary of the right values, fill in the msg
     """
     for i in dic:
@@ -176,6 +180,7 @@ def _fill_msg(msg, dic):
 
 def document_to_msg_and_meta(document, TYPE):
     """
+    TODO: Remove?
     Given a document in the database, return metadata and ROS message -- must have been
     """
     meta = document["_meta"]
@@ -186,6 +191,7 @@ def document_to_msg_and_meta(document, TYPE):
 
 def document_to_msg(document, TYPE):
     """
+    TODO: Remove?
     Given a document return ROS message
     """
     msg = TYPE()
@@ -265,7 +271,7 @@ def sanitize_value(attr, v, type):
         return v
 
 
-def store_message(collection, msg, meta, oid=None):
+def store_message(collection: pymongo.collection.Collection, msg, meta, oid=None):
     """
     Update ROS message into the DB
 
@@ -277,18 +283,13 @@ def store_message(collection, msg, meta, oid=None):
     :Returns:
         | str: ObjectId of the MongoDB document.
     """
-    doc = msg_to_document(msg)
+    doc = yaml.safe_load(rosidl_runtime_py.message_to_yaml(msg))
+
+    message_type = message_to_namespaced_type(msg)
     doc["_meta"] = meta
     #  also store type information
-    doc["_meta"]["stored_class"] = msg.__module__ + "." + msg.__class__.__name__
-    doc["_meta"]["stored_type"] = msg._type
-
-    if (
-        msg._type == "soma2_msgs/SOMA2Object"
-        or msg._type == "soma_msgs/SOMAObject"
-        or msg._type == "soma_msgs/SOMAROIObject"
-    ):
-        add_soma_fields(msg, doc)
+    doc["_meta"]["stored_class"] = ".".join([msg.__module__, msg.__class__.__name__])
+    doc["_meta"]["stored_type"] = message_type
 
     if hasattr(msg, "_connection_header"):
         print(getattr(msg, "_connection_header"))
@@ -296,17 +297,7 @@ def store_message(collection, msg, meta, oid=None):
     if oid != None:
         doc["_id"] = oid
 
-    return collection.insert(doc)
-
-
-# """
-# Stores a ROS message into the DB with msg and meta as separate fields
-# """
-# def store_message_separate(collection, msg, meta):
-#     doc={}
-#     doc["_meta"]=meta
-#     doc["msg"]=msg_to_document(msg)
-#     return collection.insert(doc)
+    return collection.insert_one(doc)
 
 
 def store_message_no_meta(collection, msg):
@@ -320,93 +311,7 @@ def store_message_no_meta(collection, msg):
         | str: The ObjectId of the MongoDB document created.
     """
     doc = msg_to_document(msg)
-    return collection.insert(doc)
-
-
-def fill_message(message, document):
-    """
-    Fill a ROS message from a dictionary, assuming the slots of the message are keys in the dictionary.
-
-    :Args:
-        | message (ROS message): An instance of a ROS message that will be filled in
-        | document (dict): A dicionary containing all of the message attributes
-
-    Example:
-
-    >>> from geometry_msgs.msg import Pose
-    >>> d = dcu.msg_to_document(Pose())
-    >>> d['position']['x']=27.0
-    >>> new_pose = Pose(
-    >>> fill_message(new_pose, d)
-    >>>  new_pose
-    position:
-      x: 27.0
-      y: 0.0
-      z: 0.0
-    orientation:
-      x: 0.0
-      y: 0.0
-      z: 0.0
-      w: 0.0
-    """
-    for slot, slot_type in zip(
-        message.__slots__,
-        getattr(message, "SLOT_TYPES", [""] * len(message.__slots__)),
-    ):
-
-        # This check is required since objects returned with projection queries can have absent keys
-        if slot in document.keys():
-            value = document[slot]
-            # fill internal structures if value is a dictionary itself
-            if isinstance(value, dict):
-                fill_message(getattr(message, slot), value)
-            elif isinstance(value, list) and slot_type.find("/") != -1:
-                # if its a list and the type is some message (contains a "/")
-                lst = []
-                # Remove [] from message type ([:-2])
-                msg_type = type_to_class_string(slot_type[:-2])
-                msg_class = load_class(msg_type)
-                for i in value:
-                    msg = msg_class()
-                    fill_message(msg, i)
-                    lst.append(msg)
-                    setattr(message, slot, lst)
-            else:
-                setattr(message, slot, value)
-
-
-def dictionary_to_message(dictionary, cls):
-    """
-    Create a ROS message from the given dictionary, using fill_message.
-
-    :Args:
-        | dictionary (dict): A dictionary containing all of the atributes of the message
-        | cls (class): The python class of the ROS message type being reconstructed.
-    :Returns:
-        An instance of cls with the attributes filled.
-
-
-    Example:
-
-    >>> from geometry_msgs.msg import Pose
-    >>> d = {'orientation': {'w': 0.0, 'x': 0.0, 'y': 0.0, 'z': 0.0},
-       'position': {'x': 27.0, 'y': 0.0, 'z': 0.0}}
-    >>> dictionary_to_message(d, Pose)
-    position:
-      x: 27.0
-      y: 0.0
-      z: 0.0
-    orientation:
-      x: 0.0
-      y: 0.0
-      z: 0.0
-      w: 0.0
-    """
-    message = cls()
-
-    fill_message(message, dictionary)
-
-    return message
+    return collection.insert_one(doc)
 
 
 def query_message(
@@ -476,7 +381,9 @@ def query_message(
             return [result for result in collection.find(query_doc).limit(limit)]
 
 
-def update_message(collection, query_doc, msg, meta, upsert):
+def update_message(
+    collection: pymongo.collection.Collection, query_doc, msg, meta, upsert
+):
     """
     Update ROS message in the DB, return updated id and true if db altered.
 
@@ -503,13 +410,6 @@ def update_message(collection, query_doc, msg, meta, upsert):
     # convert msg to db document
     doc = msg_to_document(msg)
 
-    if (
-        msg._type == "soma2_msgs/SOMA2Object"
-        or msg._type == "soma_msgs/SOMAObject"
-        or msg._type == "soma_msgs/SOMAROIObject"
-    ):
-        add_soma_fields(msg, doc)
-
     # update _meta
     doc["_meta"] = result["_meta"]
     # merge the two dicts, overwiriting elements in doc["_meta"] with elements in meta
@@ -519,7 +419,7 @@ def update_message(collection, query_doc, msg, meta, upsert):
     doc["_meta"]["stored_class"] = msg.__module__ + "." + msg.__class__.__name__
     doc["_meta"]["stored_type"] = msg._type
 
-    return collection.update(query_doc, doc), True
+    return collection.update_one(query_doc, doc), True
 
 
 def query_message_ids(collection, query_doc, find_one):
@@ -543,42 +443,31 @@ def query_message_ids(collection, query_doc, find_one):
         )
 
 
-def type_to_class_string(type):
+def message_to_namespaced_type(message):
     """
-    Takes a ROS msg type and turns it into a Python module and class name.
+    Takes a ROS msg and turn it into a namespaced type
 
     E.g
-
-    >>> type_to_class_string("geometry_msgs/Pose")
-    geometry_msgs.msg._Pose.Pose
+    >>> type(Pose())
+    <class 'geometry_msgs.msg._pose.Pose'>
+    >>> type_to_class_string(Pose())
+    geometry_msgs/Pose
 
     :Args:
-        | type (str): The ROS message type to return class string
+        | type (ROS message): The ROS message object
     :Returns:
         | str: A python class string for the ROS message type supplied
     """
-    parts = type.split("/")
-    cls_string = "%s.msg._%s.%s" % (parts[0], parts[1], parts[1])
+    if "metaclass" in str(type(message)).lower():
+        # print(
+        #     f"Received message {type(message)} which is a metaclass. You should pass instantiated objects rather than "
+        #     f"metaclasses, but I'll convert it for you."
+        # )
+        message = message()
+    message_type = type(message)
+    module_parts = message_type.__module__.split(".")
+    cls_string = f"{module_parts[0]}/{module_parts[1]}/{message_type.__name__}"
     return cls_string
-
-
-def load_class(full_class_string):
-    """
-    Dynamically load a class from a string
-    shamelessly ripped from: http://thomassileo.com/blog/2012/12/21/dynamically-load-python-modules-or-classes/
-
-    :Args:
-        | full_class_string (str): The python class to dynamically load
-    :Returns:
-        | class: the loaded python class.
-    """
-    # todo: cache classes (if this is an overhead)
-    class_data = full_class_string.split(".")
-    module_path = ".".join(class_data[:-1])
-    class_str = class_data[-1]
-    module = importlib.import_module(module_path)
-    # Finally, we retrieve the Class
-    return getattr(module, class_str)
 
 
 def serialise_message(message):
@@ -590,11 +479,11 @@ def serialise_message(message):
     :Returns:
         | mongodb_store_msgs.msg.SerialisedMessage: A serialised copy of message
     """
-    buf = Buffer()
-    message.serialize(buf)
+    msg_bytes = rclpy.serialization.serialize_message(message)
     serialised_msg = SerialisedMessage()
-    serialised_msg.msg = buf.getvalue()
-    serialised_msg.type = message._type
+    serialised_msg.msg = msg_bytes
+    serialised_msg.type = message_to_namespaced_type(message)
+
     return serialised_msg
 
 
@@ -607,12 +496,10 @@ def deserialise_message(serialised_message):
     :Returns:
         | ROS message: The message deserialised
     """
-    cls_string = type_to_class_string(serialised_message.type)
-    cls = load_class(cls_string)
-    # instantiate an object from the class
-    message = cls()
-    # deserialize data into object
-    message.deserialize(serialised_message.msg)
+    cls = rosidl_runtime_py.utilities.get_interface(serialised_message.type)
+    message = rclpy.serialization.deserialize_message(
+        bytes(serialised_message.msg), cls
+    )
     return message
 
 
@@ -640,7 +527,8 @@ def string_pair_list_to_dictionary(spl):
     """
     if len(spl.pairs) > 0 and spl.pairs[0].first == MongoQueryMsg.Request.JSON_QUERY:
         # print "looks like %s", spl.pairs[0].second
-        return json.loads(spl.pairs[0].second, object_hook=json_util.object_hook)
+        # json loads will return None if the pair value is 'null'. Make sure it returns a dict.
+        return json.loads(spl.pairs[0].second, object_hook=json_util.object_hook) or {}
     # else use the string pairs
     else:
         return string_pair_list_to_dictionary_no_json(spl.pairs)
@@ -651,31 +539,3 @@ def topic_name_to_collection_name(topic_name):
     Converts the fully qualified name of a topic into legal mongodb collection name.
     """
     return topic_name.replace("/", "_")[1:]
-
-
-def add_soma_fields(msg, doc):
-    """
-    For soma Object msgs adds the required fields as indexes to the mongodb object.
-    """
-
-    if hasattr(msg, "pose"):
-        doc["loc"] = [doc["pose"]["position"]["x"], doc["pose"]["position"]["y"]]
-    if hasattr(msg, "logtimestamp"):
-        doc["timestamp"] = datetime.fromtimestamp(doc["logtimestamp"], timezone.utc)
-    # doc["timestamp"] = datetime.strptime(doc["logtime"], "%Y-%m-%dT%H:%M:%SZ")
-
-    if hasattr(msg, "geotype"):
-        if doc["geotype"] == "Point":
-            for p in doc["geoposearray"]["poses"]:
-                doc["geoloc"] = {
-                    "type": doc["geotype"],
-                    "coordinates": [p["position"]["x"], p["position"]["y"]],
-                }
-        if msg._type == "soma_msgs/SOMAROIObject":
-            coordinates = []
-            doc["geotype"] = "Polygon"
-            for p in doc["geoposearray"]["poses"]:
-                coordinates.append([p["position"]["x"], p["position"]["y"]])
-            coordinates2 = []
-            coordinates2.append(coordinates)
-            doc["geoloc"] = {"type": doc["geotype"], "coordinates": coordinates2}
