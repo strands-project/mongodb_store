@@ -51,7 +51,7 @@ setup(
             "config_manager = mongodb_store.scripts.config_manager:main",
             "example_message_store_client = mongodb_store.scripts.example_message_store_client:main",
             "example_multi_event_log = mongodb_store.scripts.example_multi_event_log:main",
-            "message_store_node = mongodb_store.scripts.message_store_node:main",
+            "message_store_node = mongodb_store.message_store_node:main",
             "mongo_bridge = mongodb_store.scripts.mongo_bridge:main",
             "mongodb_play = mongodb_store.scripts.mongodb_play:main",
             "mongodb_server = mongodb_store.scripts.mongodb_server:main",
