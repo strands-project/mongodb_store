@@ -140,7 +140,9 @@ class MessageStoreProxy:
         request.message = serialised_msg
 
         if wait:
-            return self.insert_srv.call(request).id
+            return dc_util.check_and_get_service_result_async(
+                self.parent_node, self.insert_srv, request
+            )[0].id
         else:
             msg = Insert(
                 database=self.database,
@@ -360,31 +362,37 @@ class MessageStoreProxy:
 
         # serialise the json queries to strings using json_util.dumps
 
-        message_tuple = (
-            StringPair(
-                first=MongoQueryMsg.Request.JSON_QUERY,
-                second=json.dumps(message_query, default=json_util.default),
-            ),
+        message_tuple = StringPairList(
+            pairs=[
+                StringPair(
+                    first=MongoQueryMsg.Request.JSON_QUERY,
+                    second=json.dumps(message_query, default=json_util.default),
+                ),
+            ]
         )
-        meta_tuple = (
-            StringPair(
-                first=MongoQueryMsg.Request.JSON_QUERY,
-                second=json.dumps(meta_query, default=json_util.default),
-            ),
+        meta_tuple = StringPairList(
+            pairs=[
+                StringPair(
+                    first=MongoQueryMsg.Request.JSON_QUERY,
+                    second=json.dumps(meta_query, default=json_util.default),
+                ),
+            ]
         )
-        projection_tuple = (
-            StringPair(
-                first=MongoQueryMsg.Request.JSON_QUERY,
-                second=json.dumps(projection_query, default=json_util.default),
-            ),
+        projection_tuple = StringPairList(
+            pairs=[
+                StringPair(
+                    first=MongoQueryMsg.Request.JSON_QUERY,
+                    second=json.dumps(projection_query, default=json_util.default),
+                ),
+            ]
         )
 
         if len(sort_query) > 0:
-            sort_tuple = [
-                StringPair(first=str(k), second=str(v)) for k, v in sort_query
-            ]
+            sort_tuple = StringPairList(
+                pairs=[StringPair(first=str(k), second=str(v)) for k, v in sort_query]
+            )
         else:
-            sort_tuple = []
+            sort_tuple = StringPairList()
 
         request = MongoQueryMsg.Request()
         request.database = self.database
@@ -392,10 +400,10 @@ class MessageStoreProxy:
         request.type = type
         request.single = single
         request.limit = limit
-        request.message_query = message_query
-        request.meta_query = meta_query
-        request.projection_query = projection_query
-        request.sort_query = sort_query
+        request.message_query = message_tuple
+        request.meta_query = meta_tuple
+        request.projection_query = projection_tuple
+        request.sort_query = sort_tuple
 
         response = self.query_srv.call(request)
 
