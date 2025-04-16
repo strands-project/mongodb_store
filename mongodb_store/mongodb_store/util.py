@@ -64,7 +64,7 @@ def wait_for_mongo(parent_node: rclpy.node.Node, timeout=60, ns="/datacentre"):
     wait_client = parent_node.create_client(Empty, service)
 
     result, message = check_and_get_service_result_async(
-        parent_node, wait_client, Empty.Request()
+        parent_node, wait_client, Empty.Request(), existence_timeout=timeout
     )
     if result is None:
         parent_node.get_logger().error(
