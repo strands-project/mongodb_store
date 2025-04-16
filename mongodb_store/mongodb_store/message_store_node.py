@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 
 import pymongo
 import rclpy
+import rclpy.time
 from bson import json_util
 from bson.objectid import ObjectId
 from builtin_interfaces.msg import Time
@@ -32,7 +33,6 @@ import functools
 MongoClient = dc_util.import_MongoClient()
 
 
-
 def srv_call_decorator(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -41,6 +41,7 @@ def srv_call_decorator(func):
             return func(*args, **kwargs)
         except Exception as e:
             import traceback
+
             print(traceback.print_exc())
 
     return wrapper
@@ -215,13 +216,13 @@ class MessageStore(rclpy.node.Node):
                 and hasattr(obj.header, "stamp")
                 and isinstance(obj.header.stamp, Time)
             ):
-                stamp = obj.header.stamp
+                stamp = rclpy.time.Time.from_msg(obj.header.stamp)
             elif isinstance(obj, TFMessage):
                 if obj.transforms:
                     transforms = sorted(
                         obj.transforms, key=lambda m: m.header.stamp, reverse=True
                     )
-                    stamp = transforms[0].header.stamp
+                    stamp = rclpy.time.Time.from_msg(transforms[0].header.stamp)
 
             sec_ns = stamp.seconds_nanoseconds()
             fl = float(f"{sec_ns[0]}.{sec_ns[1]}")
@@ -233,7 +234,7 @@ class MessageStore(rclpy.node.Node):
         except Exception as e:
             import traceback
 
-            print(traceback.format_exc())
+            self.get_logger().error(traceback.format_exc())
             return MongoInsertMsg.Response(id="")
 
     insert_ros_srv.type = MongoInsertMsg
@@ -377,7 +378,7 @@ class MessageStore(rclpy.node.Node):
             # load the class object for this type
             # TODO this should be the same for every item in the list, so could reuse
             cls = rosidl_runtime_py.utilities.get_interface(
-                    entry["_meta"]["stored_type"]
+                entry["_meta"]["stored_type"]
             )
             # instantiate the ROS message object from the dictionary retrieved from the db
             message = cls()

@@ -173,10 +173,10 @@ class MongoServer(rclpy.node.Node):
                 else:
                     raise
             if stdout is not None:
-                if stdout.find("ERROR") != -1:
-                    self.get_logger().error(stdout.strip())
-                else:
-                    self.get_logger().info(stdout.strip())
+                # if stdout.find("ERROR") != -1:
+                #     self.get_logger().error(stdout.strip())
+                # else:
+                #     self.get_logger().info(stdout.strip())
 
                 if not self._ready and stdout.find("mongod startup complete") != -1:
                     self._ready = True
@@ -209,7 +209,6 @@ class MongoServer(rclpy.node.Node):
         self, request: Empty.Request, resp: Empty.Response
     ) -> Empty.Response:
         while not self._ready:
-            self.get_logger().info("waiting")
             self.get_clock().sleep_for(Duration(seconds=0.1))
         return Empty.Response()
 
