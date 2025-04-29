@@ -68,14 +68,23 @@ class MessageStoreProxy:
         insert_topic = service_prefix + "/insert"
         self.pub_insert = self.parent_node.create_publisher(Insert, insert_topic, 10)
 
-        while rclpy.ok():
-            for service in [self.insert_srv, self.update_srv, self.query_srv, self.delete_srv]:
+        all_ok = False
+        while rclpy.ok() and not all_ok:
+            all_ok = True
+            for service in [
+                self.insert_srv,
+                self.update_srv,
+                self.query_srv,
+                self.delete_srv,
+            ]:
                 if not service.wait_for_service(5):
                     found_services_first_try = False
                     self.parent_node.get_logger().error(
-                        "Could not get message store services. Maybe the message "
+                        f"Could not get message store service {service.srv_name}. Maybe the message "
                         "store has not been started? Retrying..."
                     )
+                    all_ok = False
+
         if not found_services_first_try:
             self.parent_node.get_logger().info("Message store services found.")
 
