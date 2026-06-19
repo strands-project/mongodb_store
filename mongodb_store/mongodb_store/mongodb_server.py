@@ -109,7 +109,7 @@ class MongoServer(rclpy.node.Node):
         # Check that mongodb is installed
         try:
             mongov = subprocess.check_output(["mongod", "--version"])
-            match = re.search("db version v(\d+\.\d+\.\d+)", mongov.decode("utf-8"))
+            match = re.search(r"db version v(\d+\.\d+\.\d+)", mongov.decode("utf-8"))
             self._mongo_version = match.group(1)
         except subprocess.CalledProcessError:
             self.get_logger().error(
