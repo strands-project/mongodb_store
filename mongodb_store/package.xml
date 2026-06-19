@@ -12,42 +12,40 @@
   <url type="repository">https://github.com/strands-project/mongodb_store</url>
   <license>MIT</license>
 
-  <buildtool_depend>catkin</buildtool_depend>
-  
-  <build_depend>rospy</build_depend>
-  <build_depend>roscpp</build_depend>
-  <build_depend>std_msgs</build_depend>
-  <build_depend>std_srvs</build_depend>
-  <build_depend>message_generation</build_depend>
-  <build_depend>mongodb_store_msgs</build_depend>
-  <build_depend>rostest</build_depend>
-  <build_depend condition="$ROS_PYTHON_VERSION == 2">python-catkin-pkg</build_depend>
-  <build_depend condition="$ROS_PYTHON_VERSION == 3">python3-catkin-pkg</build_depend>
-  <build_depend>mongodb</build_depend>
-  <build_depend>libmongoclient-dev</build_depend>
-  <build_depend>libssl-dev</build_depend> 
-  <build_depend>topic_tools</build_depend>
- 
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <depend>rospy</depend>
+  <depend>roscpp</depend>
+  <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
+  <depend>mongodb_store_msgs</depend>
+<!--  <depend condition="$ROS_PYTHON_VERSION == 2">python-catkin-pkg</depend>-->
+<!--  <depend condition="$ROS_PYTHON_VERSION == 3">python3-catkin-pkg</depend>-->
+  <depend>mongodb</depend>
+<!--  <depend>libmongoclient-dev</depend>-->
+<!--  <depend>libssl-dev</depend>-->
+<!--  <depend>topic_tools</depend>-->
+
 
   <!-- Used for examples -->
-  <build_depend>geometry_msgs</build_depend>
+<!--  <build_depend>geometry_msgs</build_depend>-->
 
-  <exec_depend>rospy</exec_depend>
-  <exec_depend>roscpp</exec_depend>
-  <exec_depend>std_msgs</exec_depend>
-  <exec_depend>std_srvs</exec_depend>
-  <exec_depend condition="$ROS_PYTHON_VERSION == 2">python-future</exec_depend>
-  <exec_depend condition="$ROS_PYTHON_VERSION == 3">python3-future</exec_depend>
-  <exec_depend condition="$ROS_PYTHON_VERSION == 2">python-pymongo</exec_depend>
-  <exec_depend condition="$ROS_PYTHON_VERSION == 3">python3-pymongo</exec_depend>
-  <exec_depend>mongodb</exec_depend>
-  <exec_depend>mongodb_store_msgs</exec_depend>
-  <exec_depend>libmongoclient-dev</exec_depend>
-  <exec_depend>topic_tools</exec_depend>
+<!--  <exec_depend>rospy</exec_depend>-->
+<!--  <exec_depend>roscpp</exec_depend>-->
+<!--  <exec_depend>std_msgs</exec_depend>-->
+<!--  <exec_depend>std_srvs</exec_depend>-->
+<!--  <exec_depend condition="$ROS_PYTHON_VERSION == 2">python-future</exec_depend>-->
+<!--  <exec_depend condition="$ROS_PYTHON_VERSION == 3">python3-future</exec_depend>-->
+<!--  <exec_depend condition="$ROS_PYTHON_VERSION == 2">python-pymongo</exec_depend>-->
+<!--  <exec_depend condition="$ROS_PYTHON_VERSION == 3">python3-pymongo</exec_depend>-->
+<!--  <exec_depend>mongodb</exec_depend>-->
+<!--  <exec_depend>mongodb_store_msgs</exec_depend>-->
+<!--  <exec_depend>libmongoclient-dev</exec_depend>-->
+<!--  <exec_depend>topic_tools</exec_depend>-->
   <!-- Used for examples -->
-  <exec_depend>geometry_msgs</exec_depend>
+<!--  <exec_depend>geometry_msgs</exec_depend>-->
 
   <export>
-	<rosdoc config="rosdoc.yaml"/>
+    <build_type>ament_python</build_type>
   </export>
 </package>

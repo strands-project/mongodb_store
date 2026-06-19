@@ -356,7 +356,14 @@ class Replicator(object):
             self.restore_process.shutdown()
             self.restore_process = None
 
+def main():
+    rclpy.init()
+    node = rclpy.node.Node("mongodb_replicator")
+    store = Replicator(node)
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+
+
 if __name__ == '__main__':
-    rospy.init_node("mongodb_replicator")
-    store = Replicator()
-    rospy.spin()
+    main()
